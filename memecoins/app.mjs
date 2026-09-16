@@ -1,12 +1,10 @@
-// foqs.si/memecoins: podatki pridejo prek Supabase edge funkcije "market" (samo za prijavljene). Lokalna verzija uporablja /api/market.
-const MARKET_URL = "https://cgnihdlprjqpawvpznsw.supabase.co/functions/v1/market";
-const SUPA_ANON =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnbmloZGxwcmpxcGF3dnB6bnN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3ODAwODAsImV4cCI6MjEwMTM1NjA4MH0.HQgn-5op-0BYAMllyE3rbhwlLPILxvl1OVnqXau_33g";
-async function marketHeaders() {
-  const s = await (window.memecoinsSession?.() || null);
-  return { apikey: SUPA_ANON, Authorization: "Bearer " + (s?.access_token || SUPA_ANON) };
-}
-import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint } from "./engine.mjs?v=3";
+// foqs.si/memecoins: posnetke zbira strežnik (Supabase cron vsakih 30 s -> tabela memecoin_snapshots), tudi ko je stran zaprta.
+// Brskalnik ob odprtju naloži zadnjo uro posnetkov, potem bere samo nove. Pravila v1.0 tečejo v brskalniku.
+const HISTORY_MIN = 60;
+let lastSnapshotT = 0,
+  primed = false,
+  noData = false;
+import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint } from "./engine.mjs?v=4";
 const $ = (s) => document.querySelector(s),
   money = (x) =>
     Number.isFinite(x)
@@ -120,7 +118,6 @@ function scheduleRemote() {
   syncTimer = setTimeout(pushRemote, 600);
 }
 await loadRemote();
-for (const t of trades) if (!t.deletedAt && !t.interrupted && !t.closed) interruptTrade(t, "Ponovno odprtje strani");
 function current() {
   return coins.get(selected);
 }
@@ -136,8 +133,8 @@ function signal(c) {
 function draw() {
   let interruptedNow = false;
   for (const t of trades) {
-    if (!t.practice && !t.deletedAt && !t.closed && !t.interrupted && Date.now() - t.lastObserved > 75000) {
-      interruptTrade(t, "Pro posamezni par več kot 75 sekund ni podatkov");
+    if (!t.practice && !t.deletedAt && !t.closed && !t.interrupted && primed && lastSnapshotT - t.lastObserved > 75000) {
+      interruptTrade(t, "Strežnik za ta par ni imel podatkov več kot 75 sekund");
       interruptedNow = true;
     }
   }
@@ -149,7 +146,7 @@ function draw() {
   const c = current();
   $("#source").textContent = mode === "practice" ? "IZMIŠLJENA VAJA" : "ŽIVI POSNETKI";
   $("#scope").textContent =
-    mode === "practice" ? "Vaja: napreduješ ročno. Podatki so izmišljeni." : "Omejen izbor profilov DEX Screener · osvežitev na 30 s";
+    mode === "practice" ? "Vaja: napreduješ ročno. Podatki so izmišljeni." : "Strežnik zbira posnetke vsakih 30 s, tudi ko je stran zaprta · ob odprtju naložim zadnjo uro";
   $("#refresh").hidden = mode === "practice";
   $("#coins").replaceChildren();
   const list = [...coins.values()].sort((a, b) => (b.created || 0) - (a.created || 0));
@@ -422,91 +419,157 @@ function renderTools(c) {
   }
 }
 
-function close(t, c, reason) {
+function closeAt(t, price, tm, reason) {
   t.closed = Date.now();
-  t.exit = c.price;
+  t.exit = price;
   t.pnl = result(t.entry, t.exit, tradeSize(t));
   t.outcome = reason;
-  t.exitObserved = c.time || Date.now();
+  t.exitObserved = tm || Date.now();
   save();
+}
+function close(t, c, reason) {
+  closeAt(t, c.price, c.time, reason);
+}
+function coinFromRow(r, history) {
+  return {
+    id: r.pair,
+    token: r.token,
+    symbol: r.symbol || "Neznan",
+    name: r.name || "",
+    price: r.price,
+    mcap: Number.isFinite(r.mcap) ? r.mcap : null,
+    liquidity: r.liquidity,
+    volume: r.volume5m,
+    created: r.pair_created_ms,
+    image: r.image || "",
+    url: r.url || "https://dexscreener.com/solana/" + r.pair,
+    time: new Date(r.t).getTime(),
+    history,
+  };
+}
+async function fetchRows(sinceMs) {
+  const { data, error } = await db
+    .from("memecoin_snapshots")
+    .select("pair,t,token,symbol,name,price,mcap,liquidity,volume5m,pair_created_ms,image,url")
+    .gt("t", new Date(sinceMs).toISOString())
+    .order("t", { ascending: true })
+    .limit(5000);
+  if (error) throw error;
+  return data || [];
+}
+// Pravila za en nov posnetek kovanca c ob času tm: zapiranje odprtih poslov, samodejni vstop, opozorila.
+function applyTradeLogic(c, tm) {
+  const id = c.id,
+    price = c.price;
+  for (const t of trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && t.id === id)) {
+    if (tm - t.lastObserved > 75000) interruptTrade(t, "Strežnik za ta par ni imel podatkov več kot 75 sekund");
+    t.lastObserved = tm;
+    if (!t.interrupted) {
+      if (price <= t.stop) closeAt(t, price, tm, "Meja izgube");
+      else if (price >= t.target) closeAt(t, price, tm, "Cilj");
+    }
+  }
+  const s = signal(c);
+  if (
+    s.signal &&
+    $("#auto").checked &&
+    !trades.some((t) => !t.deletedAt && !t.interrupted && !t.closed && t.id === id) &&
+    trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && !t.practice).length < 5
+  ) {
+    enter(c, s, true);
+  }
+  if (s.signal && Date.now() - (announced.get(id) || 0) > 300000) {
+    alerts.unshift(`${time(Date.now())} · ${c.symbol} · ${s.name}`);
+    announced.set(id, Date.now());
+  }
+}
+// Odprti posli ob vrnitvi na stran: strežnik je cene videl tudi, ko brskalnik ni bil odprt, zato jih preigramo.
+async function reconcileOpenTrades() {
+  let changed = false;
+  for (const t of trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && !t.practice)) {
+    try {
+      const from = t.lastObserved || t.opened;
+      const { data, error } = await db
+        .from("memecoin_snapshots")
+        .select("t,price")
+        .eq("pair", t.id)
+        .gt("t", new Date(from).toISOString())
+        .order("t", { ascending: true })
+        .limit(5000);
+      if (error) throw error;
+      let prev = from;
+      for (const r of data || []) {
+        const tm = new Date(r.t).getTime();
+        if (tm - prev > 75000) {
+          interruptTrade(t, "Strežnik za ta par ni imel podatkov več kot 75 sekund");
+          break;
+        }
+        prev = tm;
+        t.lastObserved = tm;
+        if (r.price <= t.stop) {
+          closeAt(t, r.price, tm, "Meja izgube");
+          break;
+        }
+        if (r.price >= t.target) {
+          closeAt(t, r.price, tm, "Cilj");
+          break;
+        }
+      }
+      if (!t.closed && !t.interrupted && lastSnapshotT - t.lastObserved > 75000) interruptTrade(t, "Strežnik za ta par nima svežih podatkov");
+      changed = true;
+      if (!t.closed && !t.interrupted) registerWatch({ id: t.id, token: t.token });
+    } catch {
+      /* pustimo odprt; naslednji prejem bo videl */
+    }
+  }
+  if (changed) save();
+}
+async function registerWatch(c) {
+  if (!db || !remoteUser || !c) return;
+  try {
+    await db.from("memecoin_watch").upsert({ pair: c.id, token: c.token, added_by: remoteUser.id, expires_at: new Date(Date.now() + 12 * 3600000).toISOString() });
+  } catch {}
 }
 async function poll() {
   if (busy) return;
   busy = true;
   $("#refresh").disabled = true;
   try {
-    const r = await fetch(
-      MARKET_URL +
-        "?watch=" +
-        encodeURIComponent(
-          [...new Set(trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && !t.practice).map((t) => t.token))].join(","),
-        ),
-      { headers: await marketHeaders(), signal: AbortSignal.timeout(20000) },
-    );
-    if (r.status === 403) {
-      window.memecoinsDenied?.();
-      throw Error("denied");
+    if (!db) throw Error("brez povezave s profilom");
+    const since = primed ? lastSnapshotT : Date.now() - HISTORY_MIN * 60000;
+    const rows = await fetchRows(since);
+    noData = !primed && !rows.length;
+    const groups = new Map();
+    for (const r of rows) {
+      const tm = new Date(r.t).getTime();
+      if (!groups.has(tm)) groups.set(tm, []);
+      groups.get(tm).push(r);
     }
-    if (!r.ok) throw Error();
-    const data = await r.json();
-    if (!Array.isArray(data.pairs) || Date.now() - data.time > 75000) throw Error();
-    healthy = true;
-    last = data.time;
-    for (const p of data.pairs) {
-      const price = Number(p.priceUsd);
-      if (!(price > 0)) continue;
-      const id = p.pairAddress;
-      const old = coins.get(id);
-      const history = old?.history || [];
-      if (!history.length || data.time > history.at(-1).t) {
-        history.push({ p: price, t: data.time });
-        if (history.length > 160) history.shift();
-      }
-      const c = {
-        id,
-        token: p.baseToken.address,
-        symbol: p.baseToken.symbol || "Neznan",
-        name: p.baseToken.name || "",
-        price,
-        mcap: Number(p.marketCap ?? p.fdv) || null,
-        liquidity: p.liquidity?.usd,
-        volume: p.volume?.m5,
-        created: p.pairCreatedAt,
-        image: p.info?.imageUrl || "",
-        url: p.url || "https://dexscreener.com/solana/" + id,
-        time: data.time,
-        history,
-      };
-      coins.set(id, c);
-      for (const t of trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && t.id === id)) {
-        if (data.time - t.lastObserved > 75000) interruptTrade(t, "Vrzel med prejemi daljša od 75 sekund");
-        t.lastObserved = data.time;
-        if (!t.interrupted) {
-          if (price <= t.stop) close(t, c, "Meja izgube");
-          else if (price >= t.target) close(t, c, "Cilj");
+    const times = [...groups.keys()].sort((a, b) => a - b);
+    for (const tm of times) {
+      for (const r of groups.get(tm)) {
+        const old = coins.get(r.pair);
+        const history = old?.history || [];
+        if (!history.length || tm > history.at(-1).t) {
+          history.push({ p: r.price, t: tm });
+          if (history.length > 160) history.shift();
         }
+        const c = coinFromRow(r, history);
+        coins.set(r.pair, c);
+        if (primed) applyTradeLogic(c, tm);
       }
-      const s = signal(c);
-      if (
-        s.signal &&
-        $("#auto").checked &&
-        !trades.some((t) => !t.deletedAt && !t.interrupted && !t.closed && t.id === id) &&
-        trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && !t.practice).length < 5
-      ) {
-        enter(c, s, true);
-      }
-      if (s.signal && Date.now() - (announced.get(id) || 0) > 300000) {
-        alerts.unshift(`${time(Date.now())} · ${c.symbol} · ${s.name}`);
-        announced.set(id, Date.now());
-      }
+      lastSnapshotT = Math.max(lastSnapshotT, tm);
+    }
+    last = lastSnapshotT;
+    healthy = lastSnapshotT > 0 && Date.now() - lastSnapshotT < 75000;
+    if (!primed) {
+      primed = true;
+      await reconcileOpenTrades();
     }
     if (!selected) selected = coins.keys().next().value;
     save();
   } catch {
     healthy = false;
-    for (const t of trades)
-      if (!t.deletedAt && !t.interrupted && !t.closed && !t.practice) interruptTrade(t, "Napaka pri prejemu podatkov");
-    save();
   } finally {
     busy = false;
     $("#refresh").disabled = false;
@@ -517,11 +580,12 @@ async function poll() {
 function status() {
   $("#status").className = "notice " + (mode === "practice" ? "practice" : healthy && Date.now() - last < 75000 ? "connected" : "stopped");
   if (mode === "practice") $("#status").textContent = "IZMIŠLJENA VAJA · najprej primer rasti, nato primer izgube. To ni napoved.";
+  else if (noData) $("#status").textContent = "Strežnik še nima posnetkov za zadnjo uro ali ta račun nima dostopa do podatkov. Poskusi Osveži čez minuto.";
   else
     $("#status").textContent =
       healthy && Date.now() - last < 75000
-        ? "Živi vir povezan · zadnji prejem " + time(last) + " · zakasnitev ponudnika ni znana."
-        : "PREMOR · vir ni dosegljiv ali je zastarel. Živa opozorila in izstopi so ustavljeni; Počakaj na nov prejem podatkov.";
+        ? "Strežnik zbira 24/7 · zadnji posnetek " + time(last) + " · zakasnitev ponudnika ni znana."
+        : "PREMOR · strežnik nima svežega posnetka (ali brskalnik nima povezave). Opozorila in vstopi počakajo na nov posnetek.";
 }
 function navigate(v, m = mode) {
   if (m !== mode) $("#feedback").textContent = "";
@@ -575,6 +639,7 @@ function enter(c, s, automatic) {
     networkSOL: 0.00001,
   });
   save();
+  registerWatch(c);
   return true;
 }
 $("#open").onclick = () => manualEntry(current(), "#feedback");
@@ -680,6 +745,9 @@ if (remoteAuto !== null) {
 $("#autoState").textContent = $("#auto").checked ? "VKLJUČENI" : "IZKLJUČENI";
 poll();
 setInterval(poll, 30000);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) poll();
+});
 setInterval(() => {
   status();
   if (mode === "live") draw();
