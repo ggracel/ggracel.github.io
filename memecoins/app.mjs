@@ -6,7 +6,7 @@ async function marketHeaders() {
   const s = await (window.memecoinsSession?.() || null);
   return { apikey: SUPA_ANON, Authorization: "Bearer " + (s?.access_token || SUPA_ANON) };
 }
-import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint } from "./engine.mjs";
+import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint } from "./engine.mjs?v=3";
 const $ = (s) => document.querySelector(s),
   money = (x) =>
     Number.isFinite(x)
@@ -42,19 +42,85 @@ try {
   trades = JSON.parse(localStorage.getItem("solana-demo-v1") || "[]");
   if (!Array.isArray(trades)) trades = [];
 } catch {}
-for (const t of trades) if (!t.deletedAt && !t.interrupted && !t.closed) interruptTrade(t, "Ponovno odprtje strani");
 function save() {
   try {
     localStorage.setItem("solana-demo-v1", JSON.stringify(trades));
   } catch {
     $("#feedback").textContent = "Shranjevanje ni uspelo. Izvozi dnevnik pred zapiranjem.";
   }
+  scheduleRemote();
 }
 let stake = 0.1,
   boardSelected = null;
 try {
   stake = parseStake(localStorage.getItem("solana-stake-v1")) || 0.1;
 } catch {}
+
+// Dnevnik in nastavitve so na profilu (Supabase tabela memecoin_state, vsak uporabnik samo svojo vrstico).
+// Brskalnik je samo predpomnilnik: ob prijavi naložimo profil, vsaka sprememba gre nazaj gor.
+const db = window.memecoinsClient || null;
+let remoteUser = null,
+  remoteAuto = null,
+  syncTimer = null;
+function syncNote(text, bad) {
+  const el = $("#syncState");
+  if (!el) return;
+  el.textContent = text;
+  el.className = bad ? "negative" : "muted";
+}
+async function loadRemote() {
+  if (!db) return;
+  try {
+    const {
+      data: { user },
+    } = await db.auth.getUser();
+    if (!user) return;
+    remoteUser = user;
+    const { data, error } = await db.from("memecoin_state").select("trades,stake,auto_entries,updated_at").eq("user_id", user.id).maybeSingle();
+    if (error) throw error;
+    const remote = Array.isArray(data?.trades) ? data.trades : [];
+    // Združitev: pri istem ključu velja profil; kar je samo v tem brskalniku (star dnevnik), gre na profil.
+    const byKey = new Map(remote.map((t) => [t.key, t]));
+    let added = 0;
+    for (const t of trades)
+      if (t.key && !byKey.has(t.key)) {
+        byKey.set(t.key, t);
+        added++;
+      }
+    trades = [...byKey.values()].sort((a, b) => (a.opened || 0) - (b.opened || 0));
+    if (data) {
+      const st = Number(data.stake);
+      if (Number.isFinite(st) && st > 0) stake = st;
+      remoteAuto = !!data.auto_entries;
+    }
+    if (!data || added) await pushRemote(true);
+    else syncNote("Dnevnik s profila · " + time(new Date(data.updated_at).getTime()) + (added ? " · preneseno " + added + " lokalnih zapisov" : ""));
+  } catch {
+    syncNote("Profil trenutno ni dosegljiv, uporabljam lokalni dnevnik.", true);
+  }
+}
+let lastPushed = "";
+async function pushRemote(force = false) {
+  if (!db || !remoteUser) return;
+  const row = { user_id: remoteUser.id, trades, stake, auto_entries: !!$("#auto")?.checked };
+  const fingerprint = JSON.stringify(row);
+  if (!force && fingerprint === lastPushed) return; // nič novega, ne pošiljaj vsakih 30 s
+  try {
+    const { error } = await db.from("memecoin_state").upsert({ ...row, updated_at: new Date().toISOString() });
+    if (error) throw error;
+    lastPushed = fingerprint;
+    syncNote("Shranjeno v profil · " + new Date().toLocaleTimeString("sl-SI"));
+  } catch {
+    syncNote("Shranjevanje v profil ni uspelo (lokalno je shranjeno).", true);
+  }
+}
+function scheduleRemote() {
+  if (!db || !remoteUser) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(pushRemote, 600);
+}
+await loadRemote();
+for (const t of trades) if (!t.deletedAt && !t.interrupted && !t.closed) interruptTrade(t, "Ponovno odprtje strani");
 function current() {
   return coins.get(selected);
 }
@@ -607,6 +673,10 @@ try {
   $("#auto").checked = false;
   $("#autoSaved").textContent = "Shranjevanje ni dosegljivo. Izbira se po osvežitvi morda ne bo ohranila.";
 }
+if (remoteAuto !== null) {
+  $("#auto").checked = remoteAuto;
+  $("#autoSaved").textContent = "Nastavitev s profila (velja v vseh brskalnikih).";
+}
 $("#autoState").textContent = $("#auto").checked ? "VKLJUČENI" : "IZKLJUČENI";
 poll();
 setInterval(poll, 30000);
@@ -626,6 +696,7 @@ $("#auto").onchange = () => {
     $("#autoSaved").textContent = "Izbire ni bilo mogoče shraniti. Velja samo v tem odprtem zavihku.";
   }
   $("#autoState").textContent = $("#auto").checked ? "VKLJUČENI" : "IZKLJUČENI";
+  scheduleRemote();
   watching();
 };
 
@@ -1172,6 +1243,7 @@ function setStake(value) {
   } catch {
     $("#stakeMessage").textContent = "Vložek velja v tej seji; shranjevanje ni uspelo.";
   }
+  scheduleRemote();
   stakeLabels();
 }
 $("#stakeSave").onclick = () => setStake($("#stakeInput").value);
