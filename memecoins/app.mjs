@@ -596,10 +596,22 @@ function navigate(v, m = mode) {
   $("#info").hidden = v !== "info";
   $("#watching").hidden = v !== "watching";
   $("#dashboard").hidden = v !== "dashboard";
-  for (const id of ["live", "history", "about", "watch", "overview"])
+  $("#comparison").hidden = v !== "comparison";
+  for (const id of ["live", "history", "about", "watch", "overview", "compare"])
     $("#" + id).classList.toggle(
       "active",
-      id === (v === "dashboard" ? "overview" : v === "watching" ? "watch" : v === "journal" ? "history" : v === "info" ? "about" : m),
+      id ===
+        (v === "dashboard"
+          ? "overview"
+          : v === "watching"
+            ? "watch"
+            : v === "journal"
+              ? "history"
+              : v === "info"
+                ? "about"
+                : v === "comparison"
+                  ? "compare"
+                  : m),
     );
   status();
   draw();
@@ -607,6 +619,10 @@ function navigate(v, m = mode) {
 $("#live").onclick = () => navigate("market", "live");
 $("#history").onclick = () => navigate("journal");
 $("#about").onclick = () => navigate("info");
+$("#compare").onclick = () => {
+  navigate("comparison", "live");
+  loadShadow();
+};
 $("#refresh").onclick = poll;
 function enter(c, s, automatic) {
   if (
@@ -745,6 +761,9 @@ if (remoteAuto !== null) {
 $("#autoState").textContent = $("#auto").checked ? "VKLJUČENI" : "IZKLJUČENI";
 poll();
 setInterval(poll, 30000);
+setInterval(() => {
+  if (view === "comparison" && !document.hidden) loadShadow();
+}, 60000);
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) poll();
 });
@@ -1385,3 +1404,246 @@ function renderBoardGraph() {
   renderConditions(c, "#boardConditions");
   renderManual(c, "#boardManual", "#boardManualState");
 }
+
+// Primerjava: senčni posli, ki jih strežnik (edge funkcija collect, datoteka shadow.ts) piše v tabelo memecoin_shadow_trades.
+// Brskalnik jih samo bere in sešteje. Pravila so v strežniku zamrznjena; tu se nič ne odloča.
+const SHADOW_STRATEGIES = ["v1.0", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj"];
+const SHADOW_LABEL = { "v1.0": "v1.0 (trenutna)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj" };
+const SHADOW_COLOR = { "v1.0": "#9fb0c8", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff" };
+const SHADOW_START = Date.parse("2026-09-16T20:07:00Z"); // zagon senčnega testa (collect v2)
+const SHADOW_MIN_TRADES = 100,
+  SHADOW_MIN_DAYS = 14,
+  SHADOW_MIN_PF = 1.3,
+  SHADOW_MIN_EXP = 2;
+let shadowTrades = [],
+  shadowError = "",
+  shadowBusy = false;
+// Negativne številke z navadnim minusom "-" (locale sicer vrne znak U+2212).
+const plainMinus = (s) => s.replace(/\u2212/g, "-");
+const pct1 = (x) => (Number.isFinite(x) ? (x > 0 ? "+" : "") + plainMinus(x.toLocaleString("sl-SI", { maximumFractionDigits: 1 })) + " %" : "-");
+const sol4 = (x) => (Number.isFinite(x) ? (x > 0 ? "+" : "") + plainMinus(x.toLocaleString("sl-SI", { minimumFractionDigits: 4, maximumFractionDigits: 4 })) + " SOL" : "-");
+
+async function loadShadow() {
+  if (!db || shadowBusy) return;
+  shadowBusy = true;
+  try {
+    const days = $("#cmpPeriod").value;
+    let q = db
+      .from("memecoin_shadow_trades")
+      .select("id,strategy,pair,token,symbol,opened_at,entry_price,entry_mcap,size_sol,peak,half_sold,closed_at,exit_price,outcome,pnl_gross_pct,pnl_net_sol,entry_reason,status")
+      .order("opened_at", { ascending: false })
+      .limit(3000);
+    if (days !== "all") q = q.gte("opened_at", new Date(Date.now() - Number(days) * 86400000).toISOString());
+    const { data, error } = await q;
+    if (error) throw error;
+    shadowTrades = data || [];
+    shadowError = "";
+  } catch (e) {
+    shadowError = "Senčnih poslov ni bilo mogoče naložiti: " + (e?.message || e);
+  } finally {
+    shadowBusy = false;
+  }
+  renderComparison();
+}
+
+// Statistika ene strategije: dobitki, faktor dobička, pričakovanje, največji padec, krivulja (čas, kumulativni SOL).
+function shadowStats(list) {
+  const closed = list.filter((t) => t.status === "closed" && Number.isFinite(t.pnl_net_sol)).sort((a, b) => Date.parse(a.closed_at) - Date.parse(b.closed_at));
+  const open = list.filter((t) => t.status === "open");
+  const wins = closed.filter((t) => t.pnl_net_sol > 0),
+    losses = closed.filter((t) => t.pnl_net_sol < 0);
+  const sum = (arr, f) => arr.reduce((a, t) => a + f(t), 0);
+  const netPct = (t) => (t.size_sol > 0 ? (100 * t.pnl_net_sol) / t.size_sol : 0);
+  const winSol = sum(wins, (t) => t.pnl_net_sol),
+    lossSol = -sum(losses, (t) => t.pnl_net_sol);
+  let cum = 0,
+    peak = 0,
+    dd = 0;
+  const curve = [];
+  for (const t of closed) {
+    cum += t.pnl_net_sol;
+    peak = Math.max(peak, cum);
+    dd = Math.max(dd, peak - cum);
+    curve.push({ t: Date.parse(t.closed_at), v: cum });
+  }
+  return {
+    closed,
+    open,
+    wins: wins.length,
+    losses: losses.length,
+    winRate: closed.length ? wins.length / closed.length : null,
+    avgWin: wins.length ? sum(wins, netPct) / wins.length : null,
+    avgLoss: losses.length ? sum(losses, netPct) / losses.length : null,
+    pf: lossSol > 0 ? winSol / lossSol : winSol > 0 ? Infinity : null,
+    expectancy: closed.length ? sum(closed, netPct) / closed.length : null,
+    net: cum,
+    maxDD: dd,
+    rug: closed.filter((t) => (t.outcome || "").startsWith("Rug")).length,
+    gap: closed.filter((t) => (t.outcome || "").startsWith("Vrzel")).length,
+    curve,
+  };
+}
+
+function renderComparison() {
+  if ($("#comparison").hidden) return;
+  const daysRun = (Date.now() - SHADOW_START) / 86400000;
+  const statusEl = $("#cmpStatus");
+  const total = shadowTrades.length,
+    openNow = shadowTrades.filter((t) => t.status === "open").length;
+  if (shadowError) {
+    statusEl.className = "notice stopped";
+    statusEl.textContent = shadowError;
+  } else if (!total) {
+    statusEl.className = "notice";
+    statusEl.textContent =
+      "Senčni test teče od 16. 9. 2026 (dan " +
+      Math.max(1, Math.ceil(daysRun)) +
+      " od " +
+      SHADOW_MIN_DAYS +
+      "). Strežnik še ni odprl nobenega senčnega posla v izbranem obdobju: posel nastane šele, ko kak kovanec izpolni pogoje pravil (v2 potrebuje vsaj 15 minut posnetkov).";
+  } else {
+    statusEl.className = "notice connected";
+    statusEl.textContent =
+      "Senčni test teče od 16. 9. 2026 · dan " +
+      Math.max(1, Math.ceil(daysRun)) +
+      " od " +
+      SHADOW_MIN_DAYS +
+      " · " +
+      total +
+      " senčnih poslov v obdobju, " +
+      openNow +
+      " trenutno odprtih · osvežitev na 60 s.";
+  }
+  const stats = new Map(SHADOW_STRATEGIES.map((s) => [s, shadowStats(shadowTrades.filter((t) => t.strategy === s))]));
+  let lead = null;
+  for (const [s, st] of stats) if (st.closed.length && (!lead || st.net > stats.get(lead).net)) lead = s;
+  const rows = $("#cmpRows");
+  rows.replaceChildren();
+  for (const s of SHADOW_STRATEGIES) {
+    const st = stats.get(s);
+    const tr = document.createElement("tr");
+    if (s === lead && st.net > 0) tr.className = "lead";
+    const enough = st.closed.length >= SHADOW_MIN_TRADES || daysRun >= SHADOW_MIN_DAYS;
+    const pfOk = st.pf !== null && st.pf > SHADOW_MIN_PF,
+      expOk = st.expectancy !== null && st.expectancy > SHADOW_MIN_EXP;
+    const ok = enough && pfOk && expOk;
+    const crit = document.createElement("span");
+    crit.className = "crit" + (ok ? " ok" : "");
+    crit.textContent = ok
+      ? "✓ izpolnjeni"
+      : !st.closed.length
+        ? "○ ni poslov"
+        : !enough
+          ? "○ " + st.closed.length + "/" + SHADOW_MIN_TRADES + " poslov" + (pfOk && expOk ? " (vmes v redu)" : "")
+          : "✗ " + [!pfOk ? "faktor" : "", !expOk ? "pričakovanje" : ""].filter(Boolean).join(" in ") + " pod ciljem";
+    const cells = [
+      SHADOW_LABEL[s],
+      st.closed.length + " / " + st.open.length,
+      st.winRate === null ? "-" : (st.winRate * 100).toLocaleString("sl-SI", { maximumFractionDigits: 0 }) + " % (" + st.wins + ")",
+      pct1(st.avgWin),
+      pct1(st.avgLoss),
+      st.pf === null ? "-" : st.pf === Infinity ? "∞" : st.pf.toLocaleString("sl-SI", { maximumFractionDigits: 2 }),
+      pct1(st.expectancy),
+      sol4(st.net),
+      st.closed.length ? "-" + st.maxDD.toLocaleString("sl-SI", { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + " SOL" : "-",
+      st.rug + " / " + st.gap,
+      crit,
+    ];
+    cells.forEach((c, i) => {
+      const td = document.createElement("td");
+      if (c instanceof Node) td.append(c);
+      else td.textContent = c;
+      if (i === 7) td.className = tone(st.net);
+      if (i === 6) td.className = st.expectancy === null ? "" : tone(st.expectancy);
+      if (i === 0) td.style.color = SHADOW_COLOR[s];
+      tr.append(td);
+    });
+    rows.append(tr);
+  }
+  // Krivulja: x je čas, y kumulativni neto SOL; vsaka strategija svoja črta z isto lestvico.
+  const svg = $("#cmpCurve");
+  svg.replaceChildren();
+  const legend = $("#cmpLegend");
+  legend.replaceChildren();
+  const all = [...stats.values()].flatMap((st) => st.curve);
+  if (!all.length) {
+    $("#cmpCurveNote").textContent = "Krivulje se pojavijo po prvih zaključenih senčnih poslih.";
+  } else {
+    const t0 = Math.min(...all.map((p) => p.t)),
+      t1 = Math.max(Date.now(), ...all.map((p) => p.t)),
+      span = Math.max(1, t1 - t0);
+    const values = [0, ...all.map((p) => p.v)],
+      lo = Math.min(...values),
+      hi = Math.max(...values),
+      range = hi - lo || 0.001;
+    const x = (t) => 25 + ((t - t0) / span) * 650,
+      y = (v) => 195 - ((v - lo) / range) * 160;
+    for (const v of [lo, 0, hi]) {
+      if (v !== 0 && Math.abs(v) < range * 0.12) continue; // oznaka bi se prekrila z ničlo
+      if (v === 0 && (lo > 0 || hi < 0)) continue;
+      const grid = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      for (const [k, val] of Object.entries({ x1: 25, x2: 675, y1: y(v), y2: y(v), stroke: "#33465e", "stroke-dasharray": "4 5" })) grid.setAttribute(k, val);
+      svg.append(grid);
+      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      label.setAttribute("x", "28");
+      label.setAttribute("y", Math.max(16, y(v) - 6));
+      label.setAttribute("fill", "#a0b5d1");
+      label.setAttribute("font-size", "13");
+      label.textContent = v.toFixed(4) + " SOL";
+      svg.append(label);
+    }
+    for (const s of SHADOW_STRATEGIES) {
+      const st = stats.get(s);
+      const pts = [{ t: t0, v: 0 }, ...st.curve];
+      if (st.curve.length) pts.push({ t: t1, v: st.net });
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+      line.setAttribute("points", pts.map((p) => `${x(p.t)},${y(p.v)}`).join(" "));
+      line.setAttribute("fill", "none");
+      line.setAttribute("stroke", SHADOW_COLOR[s]);
+      line.setAttribute("stroke-width", s === lead ? "3" : "2");
+      if (!st.curve.length) line.setAttribute("stroke-dasharray", "3 6");
+      svg.append(line);
+      const item = document.createElement("span");
+      const i = document.createElement("i");
+      i.style.borderColor = SHADOW_COLOR[s];
+      item.append(i, SHADOW_LABEL[s] + " · " + sol4(st.net) + (st.curve.length ? "" : " (še brez zaključkov)"));
+      legend.append(item);
+    }
+    $("#cmpCurveNote").textContent =
+      "Od " + time(t0) + " do zdaj · vsak lom je zaključen senčni posel · vse črte imajo isto lestvico, zato jih lahko primerjaš neposredno.";
+  }
+  // Zadnji senčni posli (filter po pravilih), največ 40.
+  const filter = $("#cmpFilter").value;
+  const body = $("#cmpTrades");
+  body.replaceChildren();
+  const listed = shadowTrades.filter((t) => filter === "all" || t.strategy === filter).slice(0, 40);
+  for (const t of listed) {
+    const tr = document.createElement("tr");
+    const peakPct = t.entry_price > 0 && Number.isFinite(t.peak) ? (100 * t.peak) / t.entry_price - 100 : null;
+    const netPct = t.status === "closed" && t.size_sol > 0 ? (100 * t.pnl_net_sol) / t.size_sol : null;
+    const cells = [
+      time(t.opened_at),
+      SHADOW_LABEL[t.strategy] || t.strategy,
+      t.symbol || t.token?.slice(0, 6) || "?",
+      Number.isFinite(t.entry_mcap) ? compact(t.entry_mcap) : money(t.entry_price),
+      peakPct === null ? "-" : "+" + peakPct.toLocaleString("sl-SI", { maximumFractionDigits: 0 }) + " %" + (t.half_sold ? " · pol prodano" : ""),
+      t.status === "closed" ? (t.outcome || "Zaključeno") + " · " + time(t.closed_at) : "ODPRT · zadnji vzorec " + new Date(t.last_observed || t.opened_at).toLocaleTimeString("sl-SI"),
+      t.status === "closed" ? sol4(t.pnl_net_sol) + " (" + pct1(netPct) + ")" : "-",
+    ];
+    cells.forEach((c, i) => {
+      const td = document.createElement("td");
+      td.textContent = c;
+      if (i === 1) td.style.color = SHADOW_COLOR[t.strategy] || "";
+      if (i === 6 && netPct !== null) td.className = tone(netPct);
+      if (i === 6 || i === 3) td.style.whiteSpace = "nowrap";
+      tr.append(td);
+    });
+    if (t.entry_reason) tr.title = "Razlog vstopa: " + t.entry_reason;
+    body.append(tr);
+  }
+  $("#cmpTradesNote").textContent = listed.length
+    ? "Prikazanih " + listed.length + " od " + shadowTrades.filter((t) => filter === "all" || t.strategy === filter).length + " · Vstop MC = market cap ob vstopu · Vrh = najvišja cena med poslom glede na vstop · s kazalcem nad vrstico vidiš razlog vstopa."
+    : "V izbranem obdobju ni senčnih poslov za ta filter.";
+}
+$("#cmpPeriod").onchange = loadShadow;
+$("#cmpFilter").onchange = renderComparison;
