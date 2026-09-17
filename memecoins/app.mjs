@@ -141,6 +141,7 @@ function draw() {
   if (interruptedNow) save();
   dashboard();
   watching();
+  renderOpenTrades();
   renderBoardGraph();
   $("#autoPanel").hidden = mode === "practice";
   const c = current();
@@ -212,10 +213,10 @@ function draw() {
   journal();
 }
 // Graf: os v market capu (kot Axiom), cena v drobnem tisku. Riše samo črte, ki jih razloži legenda.
-function chart(c, target = "#chart", legendTarget = "#chartLegend") {
-  const svg = $(target);
+function chart(c, target = "#chart", legendTarget = "#chartLegend", opts = {}) {
+  const svg = typeof target === "string" ? $(target) : target;
   svg.replaceChildren();
-  const legend = $(legendTarget);
+  const legend = typeof legendTarget === "string" ? $(legendTarget) : legendTarget;
   if (legend) legend.replaceChildren();
   const add = (tag, attrs, text) => {
     const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
@@ -225,7 +226,8 @@ function chart(c, target = "#chart", legendTarget = "#chartLegend") {
     return el;
   };
   const h = c?.history || [];
-  const p = h.slice(-80).filter((v) => Number.isFinite(v.p) && v.p > 0);
+  // Pri odprtem poslu pokažemo pot od 5 min pred vstopom naprej (največ 160 posnetkov), sicer zadnjih 80.
+  const p = (opts.from ? h.filter((v) => v.t >= opts.from - 5 * 60000).slice(-160) : h.slice(-80)).filter((v) => Number.isFinite(v.p) && v.p > 0);
   if (p.length < 2) {
     add("text", { x: 25, y: 110, fill: "#a7b7ca" }, "Čakam na drugi cenovni posnetek (30 s) …");
     return;
@@ -234,14 +236,14 @@ function chart(c, target = "#chart", legendTarget = "#chartLegend") {
     ep = fresh(c) && !c.practice ? entryPoint(c.history) : null,
     open = trades.find((t) => !t.deletedAt && !t.interrupted && !t.closed && t.id === c.id);
   const lines = [];
-  if (sig.levels) {
+  if (sig.levels && !opts.simple) {
     lines.push({ key: "support", value: sig.levels.support, color: "#edc687", dash: "6 5", label: "Podpora (najnižja cena v oknu)" });
     lines.push({ key: "resistance", value: sig.levels.resistance, color: "#bba7f8", dash: "6 5", label: "Odpor (najvišja cena v oknu)" });
   }
   if (open) {
     lines.push({ key: "entry", value: open.entry, color: "#e2e8f0", dash: "", label: "Tvoj vstop " + mcText(c, open.entry) });
     lines.push({ key: "target", value: open.target, color: "#62e4b3", dash: "2 4", label: "Cilj +10 % " + mcText(c, open.target) });
-    lines.push({ key: "stop", value: open.stop, color: "#ff858e", dash: "2 4", label: "Meja izgube −5 % " + mcText(c, open.stop) });
+    lines.push({ key: "stop", value: open.stop, color: "#ff858e", dash: "2 4", label: "Meja izgube -5 % " + mcText(c, open.stop) });
   } else if (ep?.state === "ready") {
     lines.push({ key: "buy", value: ep.price, color: "#ffffff", dash: "", width: 2.5, label: "Vstopna točka: bot vstopi, če naslednja cena preseže " + mcText(c, ep.price) });
   }
@@ -824,7 +826,7 @@ function watching() {
   const filtered = ranked.filter((x) => $("#boardFilter").value !== "fresh" || fresh(x.c));
   const columns = new Map();
   const chosen = [];
-  for (const title of ["Zbiranje podatkov", "Čakanje na vstop", "Brez signala", "Demo odprt"]) {
+  for (const title of ["Zbiranje podatkov", "Čakanje na vstop", "Brez signala"]) {
     const items = filtered.filter((x) => boardColumn(x) === title);
     const col = document.createElement("section");
     col.className = "boardColumn";
@@ -900,7 +902,7 @@ function watching() {
     d.append(b);
     host.append(d);
     const state = chosen.find((x) => x.c.id === c.id);
-    if (state) {
+    if (state && !state.open) {
       const card = document.createElement("article");
       const h = document.createElement("h3");
       h.textContent = c.symbol;
@@ -1083,8 +1085,8 @@ function dashboard() {
     p.className = m.pnl === null ? "neutral" : tone(m.pnl);
     positions.append(p);
     const b = document.createElement("button");
-    b.textContent = m.trade.interrupted ? "Preglej prekinitev" : "Preglej posel";
-    b.onclick = () => reviewTrade(m.trade.key);
+    b.textContent = m.trade.interrupted ? "Preglej prekinitev" : "Pokaži graf";
+    b.onclick = () => (m.trade.interrupted ? reviewTrade(m.trade.key) : showOpenTrades());
     positions.append(b);
   }
   $("#dashActivity").textContent =
@@ -1654,3 +1656,156 @@ function renderComparison() {
 }
 $("#cmpPeriod").onchange = loadShadow;
 $("#cmpFilter").onchange = renderComparison;
+
+
+// Odprti demo posli: vrsta kartic z grafi na vrhu zavihka Kaj program spremlja.
+// Vsaka kartica: rezultat v živo, graf s črtami VSTOPIL / CILJ / MEJA, razdalja do cilja in meje, ročni izstop.
+let confirmClose = null,
+  confirmCloseTimer = null;
+function showOpenTrades() {
+  navigate("watching", "live");
+  $("#openRow").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function manualClose(t, feedbackEl) {
+  const c = coins.get(t.id);
+  if (!c || !(c.price > 0)) {
+    feedbackEl.textContent = "Ni znane cene za ta kovanec, izstop ni mogoč.";
+    return;
+  }
+  const stale = !fresh(c);
+  closeAt(t, c.price, c.time, stale ? "Ročni izstop (po zadnji znani ceni)" : "Ročni izstop");
+  confirmClose = null;
+  $("#feedback").textContent = "Ročni izstop zabeležen za " + t.symbol + " po " + mcText(c, c.price) + " · neto " + signed(t.pnl) + " SOL.";
+  draw();
+}
+function renderOpenTrades() {
+  const row = $("#openRow"),
+    host = $("#openCards");
+  if (!row || !host) return;
+  const open = trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && !t.practice).sort((a, b) => b.opened - a.opened);
+  row.hidden = !open.length;
+  if (!open.length) {
+    host.replaceChildren();
+    return;
+  }
+  if ($("#watching").hidden) return; // ne rišemo skritih grafov
+  $("#openRowTitle").textContent = "Odprti demo posli · " + open.length;
+  host.replaceChildren();
+  for (const t of open) {
+    const c = coins.get(t.id);
+    const price = c?.price,
+      live = c && fresh(c) && price > 0,
+      pnl = c && price > 0 ? result(t.entry, price, tradeSize(t)) : null,
+      pct = pnl === null ? null : (pnl / tradeSize(t)) * 100;
+    const card = document.createElement("article");
+    card.className = "openCard" + (pnl !== null && pnl < 0 ? " losing" : "");
+    const head = document.createElement("div");
+    head.className = "row";
+    const left = document.createElement("div");
+    const h = document.createElement("h3");
+    h.textContent = t.symbol;
+    const kind = document.createElement("small");
+    kind.className = "muted";
+    kind.textContent = (t.automatic ? "samodejni vstop" : "ročni vstop") + " · " + t.reason.replace("Lastna odločitev · ", "") + " · " + new Date(t.opened).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit" });
+    left.append(h, kind);
+    const pnlEl = document.createElement("div");
+    pnlEl.className = "pnl " + (pnl === null ? "neutral" : tone(pnl));
+    pnlEl.textContent = pnl === null ? "brez cene" : pct1(pct);
+    const pnlSol = document.createElement("small");
+    pnlSol.textContent = pnl === null ? "čakam na posnetek" : signed(pnl) + " SOL" + (live ? "" : " · podatki zastareli");
+    pnlEl.append(pnlSol);
+    head.append(left, pnlEl);
+    card.append(head);
+    const mc = document.createElement("p");
+    mc.className = "cardMc";
+    const minutes = Math.max(0, Math.round((Date.now() - t.opened) / 60000));
+    mc.textContent =
+      (c && Number.isFinite(c.mcap) ? "MC zdaj " + compact(c.mcap) : "MC zdaj neznan") +
+      " · vstop " +
+      (Number.isFinite(t.entryMcap) ? compact(t.entryMcap) : money(t.entry)) +
+      " · odprt " +
+      (minutes < 60 ? minutes + " min" : Math.floor(minutes / 60) + " h " + (minutes % 60) + " min") +
+      " · vložek " +
+      tradeSize(t).toLocaleString("sl-SI") +
+      " SOL";
+    card.append(mc);
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "chart");
+    svg.setAttribute("viewBox", "0 0 700 230");
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Cena posla " + t.symbol + " z vstopom, ciljem in mejo izgube");
+    card.append(svg);
+    const legend = document.createElement("div");
+    legend.className = "legend";
+    card.append(legend);
+    if (c) chart(c, svg, legend, { from: t.opened, simple: true });
+    else {
+      const ns = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      ns.setAttribute("x", 25);
+      ns.setAttribute("y", 110);
+      ns.setAttribute("fill", "#a7b7ca");
+      ns.textContent = "Strežnik za ta par še nima posnetkov v zadnji uri.";
+      svg.append(ns);
+    }
+    const dist = document.createElement("p");
+    dist.className = "dist";
+    if (price > 0) {
+      const toTarget = (t.target / price - 1) * 100,
+        toStop = (t.stop / price - 1) * 100;
+      dist.append("Do cilja še ");
+      const b1 = document.createElement("b");
+      b1.className = "positive";
+      b1.textContent = pct1(toTarget);
+      dist.append(b1, " (" + mcText(c, t.target) + ") · do meje ");
+      const b2 = document.createElement("b");
+      b2.className = "negative";
+      b2.textContent = pct1(toStop);
+      dist.append(b2, " (" + mcText(c, t.stop) + ")" + (live ? "" : " · zadnji posnetek " + new Date(c.time).toLocaleTimeString("sl-SI")));
+    } else dist.textContent = "Brez sveže cene: cilj " + money(t.target) + ", meja " + money(t.stop) + ".";
+    card.append(dist);
+    const actions = document.createElement("div");
+    actions.className = "actions";
+    const closeBtn = document.createElement("button");
+    const confirming = confirmClose === t.key;
+    closeBtn.textContent = confirming ? "Potrdi izstop po " + (c ? mcText(c, price) : "zadnji ceni") : "Zapri zdaj";
+    closeBtn.className = confirming ? "primary" : "";
+    closeBtn.disabled = !c || !(price > 0);
+    const fb = document.createElement("small");
+    fb.className = "muted";
+    closeBtn.onclick = () => {
+      if (confirmClose === t.key) {
+        clearTimeout(confirmCloseTimer);
+        manualClose(t, fb);
+        return;
+      }
+      confirmClose = t.key;
+      clearTimeout(confirmCloseTimer);
+      confirmCloseTimer = setTimeout(() => {
+        confirmClose = null;
+        renderOpenTrades();
+      }, 8000);
+      renderOpenTrades();
+    };
+    actions.append(closeBtn);
+    const link = document.createElement("a");
+    link.href = "https://dexscreener.com/solana/" + t.id;
+    link.target = "_blank";
+    link.rel = "noreferrer";
+    link.textContent = "DEX Screener";
+    actions.append(link);
+    const copy = document.createElement("button");
+    copy.textContent = "Kopiraj CA";
+    copy.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(t.token);
+        copy.textContent = "Kopirano";
+        setTimeout(() => (copy.textContent = "Kopiraj CA"), 1500);
+      } catch {
+        fb.textContent = "Kopiranje ni uspelo: " + t.token;
+      }
+    };
+    actions.append(copy, fb);
+    card.append(actions);
+    host.append(card);
+  }
+}
