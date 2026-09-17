@@ -917,11 +917,11 @@ function watching() {
   $("#watchStatus").textContent =
     `Posodobitev pogleda: ${time(Date.now())}. Zadnji prejem vira: ${last ? time(last) : "še čakamo"}. Samodejni demo vstopi: ${$("#auto").checked ? "vključeni" : "izključeni"}.`;
   const collectRow = $("#collectRow"),
-    chips = $("#collectChips"),
     waitCards = $("#waitCards"),
     waitEmpty = $("#waitEmpty");
-  chips.replaceChildren();
+  $("#watchRows").replaceChildren();
   waitCards.replaceChildren();
+  collectRow.hidden = false;
   if (!coins.size) {
     $("#watchEmpty").textContent = "Še ni kandidatov. Počakaj na povezavo.";
     host.textContent = "Še ni kandidatov. Vir morda še nalaga podatke ali ni dosegljiv. Poskusi Živi izbor > Osveži.";
@@ -933,24 +933,68 @@ function watching() {
   }
   const ranked = [...coins.values()].map((c) => ({ c, ...cardState(c) })).sort((a, b) => b.rank - a.rank || a.c.id.localeCompare(b.c.id));
   const filtered = ranked.filter((x) => $("#boardFilter").value !== "fresh" || fresh(x.c));
-  const hiddenCount = filtered.filter((x) => boardColumn(x) === "Brez signala").length;
-  // 1) Zbiranje podatkov: čipi z napredkom
-  const collecting = filtered.filter((x) => x.collect);
-  collectRow.hidden = !collecting.length;
-  $("#collectCount").textContent = collecting.length;
-  for (const { c } of collecting) {
-    const chip = document.createElement("span");
-    const b = document.createElement("b");
-    b.textContent = c.symbol;
-    const bar = document.createElement("i");
-    const fill = document.createElement("em");
-    fill.style.width = Math.min(100, (c.history.length / 16) * 100) + "%";
-    bar.append(fill);
-    chip.append(b, document.createTextNode(" " + Math.min(c.history.length, 16) + "/16 · MC " + compact(c.mcap) + " · " + age(c.created) + " "), bar);
-    chip.title = "Poglej graf";
-    chip.style.cursor = "pointer";
-    chip.onclick = () => openBoardGraph(c.id);
-    chips.append(chip);
+  const hidden = filtered.filter((x) => boardColumn(x) === "Brez signala" && !fresh(x.c));
+  const hiddenCount = hidden.length;
+  // 1) Opazovanje (pod Čakanjem na vstop): tabela vseh svežih kovancev, ki niso pripravljeni na vstop
+  const others = filtered.filter((x) => fresh(x.c) && !x.open && boardColumn(x) !== "Čakanje na vstop");
+  const order = (x) => (x.collect ? 0 : x.filterReason ? 1 : 2);
+  others.sort((a, b) => order(a) - order(b) || b.rank - a.rank || (b.c.volume || 0) - (a.c.volume || 0));
+  const rowsHost = $("#watchRows");
+  rowsHost.replaceChildren();
+  $("#collectCount").textContent = others.length;
+  $("#collectEmpty").hidden = !!others.length;
+  $("#collectEmpty").textContent = "Trenutno ni drugih kovancev s svežimi podatki.";
+  for (const x of others) {
+    const c = x.c;
+    const tr = document.createElement("tr");
+    tr.className = x.young ? "young" : x.collect ? "collect" : x.filterReason ? "filtered" : "";
+    const ageMin = c.created ? (Date.now() - c.created) / 60000 : null;
+    const stateText = x.young
+      ? "Premlad · vstop od " + FILTER.minAge + ". min"
+      : x.collect
+        ? "Zbiranje " + Math.min(c.history.length, 16) + "/16"
+        : x.filterReason
+          ? "Izven filtra: " + x.filterReason.replace(/ \(.*\)$/, "")
+          : !c.liquidity || c.liquidity < 10000
+            ? "Likvidnost pod 10K"
+            : !(c.volume > 0)
+              ? "Brez prometa 5 min"
+              : x.title;
+    const cells = [
+      ["sym", c.symbol],
+      ["state", stateText],
+      ["num", ageMin === null ? "-" : ageMin < 60 ? Math.floor(ageMin) + " min" : ageMin < 1440 ? Math.floor(ageMin / 60) + " h " + Math.floor(ageMin % 60) + " min" : Math.floor(ageMin / 1440) + " d"],
+      ["num", Number.isFinite(c.mcap) ? compact(c.mcap) : "-"],
+      ["num", Number.isFinite(c.liquidity) ? compact(c.liquidity) : "-"],
+      ["num", Number.isFinite(c.volume) ? compact(c.volume) : "-"],
+      ["num", Number.isFinite(c.buys) ? c.buys + " / " + (c.sells ?? 0) : "-"],
+      ["num " + (Number.isFinite(c.change1h) ? tone(c.change1h) : ""), Number.isFinite(c.change1h) ? pct1(c.change1h) : "-"],
+    ];
+    for (const [cls, text] of cells) {
+      const td = document.createElement("td");
+      td.className = cls;
+      td.textContent = text;
+      tr.append(td);
+    }
+    if (x.collect) {
+      const mini = document.createElement("i");
+      mini.className = "mini";
+      const em = document.createElement("em");
+      em.style.width = (x.young ? Math.min(100, (ageMin / FILTER.minAge) * 100) : Math.min(100, (c.history.length / 16) * 100)) + "%";
+      mini.append(em);
+      tr.children[1].append(mini);
+    }
+    const act = document.createElement("td");
+    const a = document.createElement("a");
+    a.href = "https://dexscreener.com/solana/" + c.id;
+    a.target = "_blank";
+    a.rel = "noreferrer";
+    a.textContent = "DEX";
+    a.onclick = (e) => e.stopPropagation();
+    act.append(a);
+    tr.append(act);
+    tr.onclick = () => openBoardGraph(c.id);
+    rowsHost.append(tr);
   }
   // 2) Čakanje na vstop: kartice z grafom (podpora, odpor, vstopna točka)
   const waiting = filtered.filter((x) => boardColumn(x) === "Čakanje na vstop");
@@ -1046,7 +1090,7 @@ function watching() {
     (ranked.some((x) => x.rank >= 10)
       ? "Kartice se ob novih podatkih samodejno premaknejo. Razvrstitev ni ocena dobička."
       : "Trenutno ni kandidata za vstop. Program zbira podatke ali čaka na izpolnjene filtre.") +
-    (hiddenCount ? " Skritih " + hiddenCount + " kovancev brez signala (brez svežih podatkov, prenizka likvidnost ali izven filtra); vsi so v seznamu spodaj." : "");
+    (hiddenCount ? " " + hiddenCount + " kovancev brez svežih podatkov (izpadli iz izbora) je skritih; so v seznamu na dnu." : "");
   // 3) Podroben seznam vseh kandidatov (razpirljiv, na dnu)
   for (const { c } of ranked) {
     const d = document.createElement("details");
@@ -1112,11 +1156,21 @@ function cardState(c) {
             ? "Ni dovolj podatkov o likvidnosti ali je prenizka."
             : "V zadnjih petih minutah ni prometa.",
     };
+  const ageMin = c.created ? (Date.now() - c.created) / 60000 : null;
+  if (ageMin !== null && ageMin < FILTER.minAge)
+    return {
+      rank: 2 + ageMin / FILTER.minAge,
+      collect: true,
+      young: true,
+      title: "Premlad za vstop",
+      reason: "Par je star " + Math.floor(ageMin) + " min. Bot vstopa šele od " + FILTER.minAge + ". minute naprej (čez " + Math.ceil(FILTER.minAge - ageMin) + " min).",
+    };
   const blocked = entryFilter(c);
   if (blocked)
     return {
       rank: 0,
       filtered: true,
+      filterReason: blocked,
       title: "Izven filtra vstopov",
       reason: "Bot sam ne vstopi: " + blocked + ". Ročni vstop je dovoljen.",
     };
