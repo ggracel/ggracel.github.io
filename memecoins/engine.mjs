@@ -47,7 +47,10 @@ export function entryPoint(points,now=Date.now()){
  const ready=candidates.filter(c=>c.ready).sort((x,y)=>x.price-y.price);
  if(ready.length)return {state:'ready',pattern:ready[0].name,price:ready[0].price,last,support,resistance:res,alternatives:ready.slice(1)};
  const closest=[...candidates].sort((x,y)=>x.missing.length-y.missing.length)[0];
- return {state:'waiting',pattern:closest.name,missing:closest.missing,last,support,resistance:res};
+ // Ocena za graf, ko pogoj še ni izpolnjen: kam mora cena najprej priti (zone) in kje bi bil potem približen vstop (estimate).
+ const zone=closest.name==='Odboj od podpore'?[support*.98,support*1.02]:closest.name==='Preboj in retest'?[res*.99,res*1.02]:null;
+ const estimate=closest.name==='Odboj od podpore'?support*1.015:closest.name==='Preboj in retest'?res*1.01:last*1.01;
+ return {state:'waiting',pattern:closest.name,missing:closest.missing,last,support,resistance:res,zone,estimate};
 }
 
 // ---------- Profili izstopa (v1.1). Vstopi ostajajo pravila v1.0, spremeni se samo, kako se posel zapre. ----------

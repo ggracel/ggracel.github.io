@@ -4,7 +4,7 @@ const HISTORY_MIN = 60;
 let lastSnapshotT = 0,
   primed = false,
   noData = false;
-import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint, PROFILES, DEFAULT_PROFILE, exitPlan, stepExit, markToMarket } from "./engine.mjs?v=6";
+import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint, PROFILES, DEFAULT_PROFILE, exitPlan, stepExit, markToMarket } from "./engine.mjs?v=7";
 const $ = (s) => document.querySelector(s),
   money = (x) =>
     Number.isFinite(x)
@@ -324,8 +324,11 @@ function chart(c, target = "#chart", legendTarget = "#chartLegend", opts = {}) {
   if (open) lines.push(...tradeLines(open, c));
   else if (ep?.state === "ready") {
     lines.push({ key: "buy", value: ep.price, color: "#ffffff", dash: "", width: 2.5, label: "Vstopna točka: bot vstopi, če naslednja cena preseže " + mcText(c, ep.price) });
+  } else if (ep?.state === "waiting" && Number.isFinite(ep.estimate)) {
+    if (ep.zone) lines.push({ key: "zone", zone: ep.zone, color: "#edc687", label: "Območje, kamor mora cena najprej priti (" + mcText(c, ep.zone[0]) + " do " + mcText(c, ep.zone[1]) + ")" });
+    lines.push({ key: "buy", tag: "VSTOP ~", value: ep.estimate, color: "#ffffff", dash: "2 5", width: 2, label: "Ocenjen vstop ~" + mcText(c, ep.estimate) + " (" + ep.pattern + "; točna cena se določi, ko je pogoj izpolnjen)" });
   }
-  const refs = lines.map((l) => l.value).filter((v) => Number.isFinite(v)),
+  const refs = lines.flatMap((l) => (l.zone ? l.zone : [l.value])).filter((v) => Number.isFinite(v)),
     min = Math.min(...p.map((v) => v.p), ...refs),
     max = Math.max(...p.map((v) => v.p), ...refs),
     pad = (max - min || max * 0.01) * 0.12,
@@ -342,6 +345,11 @@ function chart(c, target = "#chart", legendTarget = "#chartLegend", opts = {}) {
   add("text", { x: 110, y: 218, fill: "#a7b7ca", "font-size": 12 }, new Date(p[0].t).toLocaleTimeString("sl-SI"));
   add("text", { x: 600, y: 218, fill: "#a7b7ca", "font-size": 12 }, new Date(p.at(-1).t).toLocaleTimeString("sl-SI"));
   for (const l of lines) {
+    if (l.zone) {
+      add("rect", { x: 110, width: 570, y: y(l.zone[1]), height: Math.max(2, y(l.zone[0]) - y(l.zone[1])), fill: l.color, opacity: 0.16 });
+      add("text", { x: 114, y: y(l.zone[1]) - 3, fill: l.color, "font-size": 10, "font-weight": 700 }, "CENA MORA SEM");
+      continue;
+    }
     if (!Number.isFinite(l.value)) continue;
     add("line", { x1: 110, x2: 680, y1: y(l.value), y2: y(l.value), stroke: l.color, "stroke-width": l.width || 1.5, "stroke-dasharray": l.dash });
     const tag = l.tag ?? (l.key === "buy" ? "VSTOP" : l.key === "target" ? "CILJ" : l.key === "stop" ? "MEJA" : l.key === "entry" ? "VSTOPIL" : "");
@@ -362,6 +370,12 @@ function chart(c, target = "#chart", legendTarget = "#chartLegend", opts = {}) {
       const sw = document.createElement("i");
       sw.style.borderTopColor = it.color;
       sw.style.borderTopStyle = it.dash ? "dashed" : "solid";
+      if (it.zone) {
+        sw.style.borderTop = "0";
+        sw.style.height = "10px";
+        sw.style.background = it.color;
+        sw.style.opacity = "0.5";
+      }
       span.append(sw, document.createTextNode(it.label));
       legend.append(span);
     }
@@ -435,7 +449,7 @@ function renderEntry(c, target) {
   } else if (ep.state === "ready") {
     el.textContent = `Bot vstopi, če naslednja cena (čez 30 s) preseže ${mcText(c, ep.price)} (cena ${money(ep.price)}) · vzorec: ${ep.pattern}. Zdaj: ${mcText(c, ep.last)}.`;
     el.classList.add("ready");
-  } else el.textContent = `Vstopne točke še ni. Najbližje je vzorec "${ep.pattern}", manjka: ${ep.missing.join("; ")}. Zdaj: ${mcText(c, ep.last)} · podpora ${mcText(c, ep.support)} · odpor ${mcText(c, ep.resistance)}.`;
+  } else el.textContent = `Vstopne točke še ni. Najbližje je vzorec "${ep.pattern}", manjka: ${ep.missing.join("; ")}. ${Number.isFinite(ep.estimate) ? "Ocenjen vstop, ko bo pogoj izpolnjen: ~" + mcText(c, ep.estimate) + " (na grafu VSTOP ~). " : ""}Zdaj: ${mcText(c, ep.last)} · podpora ${mcText(c, ep.support)} · odpor ${mcText(c, ep.resistance)}.`;
 }
 
 // Kontrolni seznam pogojev za vse tri vzorce (✓ izpolnjeno / ○ čaka).
@@ -1050,7 +1064,7 @@ function watching() {
         : ep?.state === "ready"
           ? "Vstop, če naslednja cena preseže " + mcText(c, ep.price) + " (" + ep.pattern + "). Zdaj " + mcText(c, ep.last) + "."
           : ep?.state === "waiting"
-            ? "Najbližje: " + ep.pattern + ". Manjka: " + ep.missing.join("; ") + "."
+            ? "Najbližje: " + ep.pattern + ". Manjka: " + ep.missing.join("; ") + "." + (Number.isFinite(ep.estimate) ? " Ocenjen vstop, ko bo pogoj izpolnjen: ~" + mcText(c, ep.estimate) + "." : "")
             : state.reason;
     card.append(line);
     if (isOpen) {
