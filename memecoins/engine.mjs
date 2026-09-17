@@ -17,7 +17,7 @@ export function overview(trades,{now=Date.now(),period='all',quality='all',rate=
  const day=new Date(now);day.setHours(0,0,0,0);const since=period==='today'?day.getTime():period==='24h'?now-86400000:-Infinity;
  const events=trades.filter(t=>!t.practice&&!t.deletedAt&&t.interrupted),live=trades.filter(t=>!t.practice&&!t.deletedAt&&!t.interrupted),eligible=live.filter(t=>t.closed&&t.closed>=since&&t.closed<=now&&Number.isFinite(t.pnl)),excluded=events.length,closed=live.filter(t=>t.closed&&t.closed>=since&&t.closed<=now&&Number.isFinite(t.pnl)&&(quality!=='continuous'||!t.interrupted)).sort((a,b)=>a.closed-b.closed),open=live.filter(t=>!t.closed);
  const wins=closed.filter(t=>t.pnl>0).length,losses=closed.filter(t=>t.pnl<0).length;let net=0;const curve=closed.map(t=>({t:t.closed,pnl:(net+=t.pnl)}));
- const marks=open.map(t=>{const quote=prices.get(t.id);return {trade:t,pnl:!t.interrupted&&quote?.fresh&&Number.isFinite(quote.price)&&quote.price>0?result(t.entry,quote.price,tradeSize(t)):null};});
+ const marks=open.map(t=>{const quote=prices.get(t.id);return {trade:t,pnl:!t.interrupted&&quote?.fresh&&Number.isFinite(quote.price)&&quote.price>0?markToMarket(t,quote.price):null};});
  return {events,excluded,closed,open,wins,losses,flat:closed.length-wins-losses,net,usd:Number.isFinite(rate)&&rate>0?net*rate:null,success:closed.length?wins/closed.length:null,curve,marks,unrealized:marks.some(m=>m.pnl===null)?null:marks.reduce((s,m)=>s+m.pnl,0)};
 }
 
@@ -49,3 +49,43 @@ export function entryPoint(points,now=Date.now()){
  const closest=[...candidates].sort((x,y)=>x.missing.length-y.missing.length)[0];
  return {state:'waiting',pattern:closest.name,missing:closest.missing,last,support,resistance:res};
 }
+
+// ---------- Profili izstopa (v1.1). Vstopi ostajajo pravila v1.0, spremeni se samo, kako se posel zapre. ----------
+// halfAt: pri tem dobičku proda polovico in premakne mejo na vstop; trail: ostanek proda, ko cena pade toliko s svojega vrha;
+// hardStop: trda meja, dokler sledilna meja ni višja. Številke "na tvojih poslih" so iz 123 demo poslov 16. do 17. 9. 2026.
+export const PROFILES={
+ varen:{key:'varen',name:'Varen',halfAt:0.20,trail:0.15,hardStop:0.08,tagline:'Manjše izgube, dobiček pobere zgodaj.',
+  how:'Ko je posel +20 %, proda polovico in premakne mejo na vstopno ceno (od tu naprej ta posel ne more več končati v izgubi). Drugo polovico pusti teči in jo proda, ko cena pade 15 % s svojega vrha. Če gre cena takoj navzdol, zapre pri -8 %.',
+  who:'Zate, če hočeš čim manj hudih izgub in ti je bolj važno, da dobiček pobereš, kot da ujameš velik skok.',
+  stats:{win:33,avgWin:34,avgLoss:-14,perTrade:1.7}},
+ srednje:{key:'srednje',name:'Srednje',halfAt:0.25,trail:0.20,hardStop:0.12,tagline:'Ravnotežje. Isti izstop, kot ga senca testira pri v2.0.',
+  how:'Ko je posel +25 %, proda polovico in premakne mejo na vstopno ceno. Drugo polovico proda, ko cena pade 20 % s svojega vrha. Če gre cena takoj navzdol, zapre pri -12 %.',
+  who:'Zate, če hočeš pustiti dobitnikom nekaj prostora, ampak vseeno zakleniti del dobička, ko pride. Na tvojih dosedanjih poslih je dal najboljši rezultat.',
+  stats:{win:37,avgWin:41,avgLoss:-18,perTrade:3.8}},
+ agresivno:{key:'agresivno',name:'Agresivno',halfAt:null,trail:0.20,hardStop:0.10,tagline:'Redki, a veliki dobitki. Večji nihaji.',
+  how:'Ne prodaja po delih. Drži celoten posel, dokler cena ne pade 20 % s svojega vrha, in šele takrat proda vse. Če gre cena takoj navzdol, zapre pri -10 %.',
+  who:'Zate, če ti ne bo težko gledati, da je večina poslov izgubnih (le okoli četrtina je dobitnih), ker so dobitniki veliki. Dnevni rezultat bolj niha.',
+  stats:{win:24,avgWin:55,avgLoss:-14,perTrade:2.6}}
+};
+export const DEFAULT_PROFILE='srednje';
+export function profileOf(t){return t?.plan?PROFILES[t.profile]||null:null;}
+// Začetne ravni za nov posel po profilu (stari posli brez t.plan ostanejo na fiksnem cilju +10 % / meji -5 %).
+export function exitPlan(profileKey,entry){
+ const p=PROFILES[profileKey]||PROFILES[DEFAULT_PROFILE];
+ return {profile:p.key,plan:{halfAt:p.halfAt,trail:p.trail,hardStop:p.hardStop},stop:entry*(1-p.hardStop),target:p.halfAt?entry*(1+p.halfAt):null,peak:entry,halfSold:false,ruleVersion:'1.1'};
+}
+// En korak izstopne logike za en nov posnetek. Vrne besedilo razloga, če se posel zapre, sicer null.
+export function stepExit(t,price){
+ if(!t.plan){ if(price<=t.stop)return 'Meja izgube'; if(price>=t.target)return 'Cilj'; return null; }
+ t.peak=Math.max(t.peak||t.entry,price);
+ if(t.plan.halfAt&&!t.halfSold&&price>=t.entry*(1+t.plan.halfAt)){t.halfSold=true;t.halfPrice=price;t.stop=Math.max(t.stop,t.entry);}
+ if(!t.plan.halfAt||t.halfSold)t.stop=Math.max(t.stop,t.peak*(1-t.plan.trail));
+ if(price<=t.stop){
+  const hard=t.entry*(1-t.plan.hardStop);
+  if(t.halfSold)return price>=t.entry?'Sledilna meja (dobiček)':'Sledilna meja pod vstopom';
+  return t.stop>hard*1.0001?(price>=t.entry?'Sledilna meja (dobiček)':'Sledilna meja'):'Trda meja -'+Math.round(t.plan.hardStop*100)+' %';
+ }
+ return null;
+}
+// Rezultat posla pri dani ceni, upoštevajoč morebitno že prodano polovico.
+export function markToMarket(t,price){const size=tradeSize(t);return t.halfSold&&Number.isFinite(t.halfPrice)?0.5*result(t.entry,t.halfPrice,size)+0.5*result(t.entry,price,size):result(t.entry,price,size);}

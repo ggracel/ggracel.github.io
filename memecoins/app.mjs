@@ -4,7 +4,7 @@ const HISTORY_MIN = 60;
 let lastSnapshotT = 0,
   primed = false,
   noData = false;
-import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint } from "./engine.mjs?v=4";
+import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint, PROFILES, DEFAULT_PROFILE, exitPlan, stepExit, markToMarket } from "./engine.mjs?v=5";
 const $ = (s) => document.querySelector(s),
   money = (x) =>
     Number.isFinite(x)
@@ -49,9 +49,12 @@ function save() {
   scheduleRemote();
 }
 let stake = 0.1,
-  boardSelected = null;
+  boardSelected = null,
+  profile = DEFAULT_PROFILE;
 try {
   stake = parseStake(localStorage.getItem("solana-stake-v1")) || 0.1;
+  const p = localStorage.getItem("solana-profile-v1");
+  if (PROFILES[p]) profile = p;
 } catch {}
 
 // Dnevnik in nastavitve so na profilu (Supabase tabela memecoin_state, vsak uporabnik samo svojo vrstico).
@@ -74,7 +77,7 @@ async function loadRemote() {
     } = await db.auth.getUser();
     if (!user) return;
     remoteUser = user;
-    const { data, error } = await db.from("memecoin_state").select("trades,stake,auto_entries,updated_at").eq("user_id", user.id).maybeSingle();
+    const { data, error } = await db.from("memecoin_state").select("trades,stake,auto_entries,profile,updated_at").eq("user_id", user.id).maybeSingle();
     if (error) throw error;
     const remote = Array.isArray(data?.trades) ? data.trades : [];
     const remoteKeys = new Set(remote.map((t) => t.key));
@@ -83,6 +86,7 @@ async function loadRemote() {
     if (data) {
       const st = Number(data.stake);
       if (Number.isFinite(st) && st > 0) stake = st;
+      if (PROFILES[data.profile]) profile = data.profile;
       remoteAuto = !!data.auto_entries;
     }
     if (!data || added) await pushRemote(true);
@@ -145,7 +149,7 @@ async function pushRemote(force = false) {
     const { data } = await db.from("memecoin_state").select("trades").eq("user_id", remoteUser.id).maybeSingle();
     if (Array.isArray(data?.trades)) trades = mergeTrades(trades, data.trades);
   } catch {}
-  const row = { user_id: remoteUser.id, trades, stake, auto_entries: !!$("#auto")?.checked };
+  const row = { user_id: remoteUser.id, trades, stake, auto_entries: !!$("#auto")?.checked, profile };
   const fingerprint = JSON.stringify(row);
   if (!force && fingerprint === lastPushed) return; // nič novega, ne pošiljaj vsakih 30 s
   try {
@@ -285,11 +289,8 @@ function chart(c, target = "#chart", legendTarget = "#chartLegend", opts = {}) {
     lines.push({ key: "support", value: sig.levels.support, color: "#edc687", dash: "6 5", label: "Podpora (najnižja cena v oknu)" });
     lines.push({ key: "resistance", value: sig.levels.resistance, color: "#bba7f8", dash: "6 5", label: "Odpor (najvišja cena v oknu)" });
   }
-  if (open) {
-    lines.push({ key: "entry", value: open.entry, color: "#e2e8f0", dash: "", label: "Tvoj vstop " + mcText(c, open.entry) });
-    lines.push({ key: "target", value: open.target, color: "#62e4b3", dash: "2 4", label: "Cilj +10 % " + mcText(c, open.target) });
-    lines.push({ key: "stop", value: open.stop, color: "#ff858e", dash: "2 4", label: "Meja izgube -5 % " + mcText(c, open.stop) });
-  } else if (ep?.state === "ready") {
+  if (open) lines.push(...tradeLines(open, c));
+  else if (ep?.state === "ready") {
     lines.push({ key: "buy", value: ep.price, color: "#ffffff", dash: "", width: 2.5, label: "Vstopna točka: bot vstopi, če naslednja cena preseže " + mcText(c, ep.price) });
   }
   const refs = lines.map((l) => l.value).filter((v) => Number.isFinite(v)),
@@ -311,7 +312,7 @@ function chart(c, target = "#chart", legendTarget = "#chartLegend", opts = {}) {
   for (const l of lines) {
     if (!Number.isFinite(l.value)) continue;
     add("line", { x1: 110, x2: 680, y1: y(l.value), y2: y(l.value), stroke: l.color, "stroke-width": l.width || 1.5, "stroke-dasharray": l.dash });
-    const tag = l.key === "buy" ? "VSTOP" : l.key === "target" ? "CILJ" : l.key === "stop" ? "MEJA" : l.key === "entry" ? "VSTOPIL" : "";
+    const tag = l.tag ?? (l.key === "buy" ? "VSTOP" : l.key === "target" ? "CILJ" : l.key === "stop" ? "MEJA" : l.key === "entry" ? "VSTOPIL" : "");
     if (tag) add("text", { x: 676, y: y(l.value) - 4, fill: l.color, "font-size": 10, "text-anchor": "end", "font-weight": 700 }, tag);
   }
   add("polyline", {
@@ -335,6 +336,36 @@ function chart(c, target = "#chart", legendTarget = "#chartLegend", opts = {}) {
   }
 }
 
+// Opis ravni odprtega posla: stari posli (fiksni cilj/meja) in posli s profilom (pol prodaje, sledilna meja).
+function tradeLevels(t, c) {
+  const p = t.plan;
+  if (!p) return { kind: "fixed", targetLabel: "Cilj +10 %", stopLabel: "Meja -5 %", targetValue: t.target, stopValue: t.stop, trailing: false, summary: "cilj " + mcText(c, t.target) + " (+10 %) · meja " + mcText(c, t.stop) + " (-5 %). Zapre se ob prvi ceni čez eno od njiju." };
+  const trailing = !p.halfAt || t.halfSold;
+  const stopLabel = trailing ? "Sledilna meja" : "Trda meja -" + Math.round(p.hardStop * 100) + " %";
+  const targetLabel = !p.halfAt ? "Vrh" : t.halfSold ? "Pol prodano" : "Pol prodaje +" + Math.round(p.halfAt * 100) + " %";
+  const targetValue = !p.halfAt ? Math.max(t.peak || t.entry, t.entry) : t.halfSold ? t.halfPrice : t.target;
+  const name = (PROFILES[t.profile] || {}).name || t.profile;
+  const summary =
+    (p.halfAt
+      ? t.halfSold
+        ? "polovica že prodana pri " + mcText(c, t.halfPrice) + " · ostanek proda, ko cena pade " + Math.round(p.trail * 100) + " % z vrha (zdaj meja " + mcText(c, t.stop) + ")"
+        : "pol proda pri " + mcText(c, t.target) + " (+" + Math.round(p.halfAt * 100) + " %), potem sledi vrhu · trda meja " + mcText(c, t.stop) + " (-" + Math.round(p.hardStop * 100) + " %)"
+      : "brez cilja: proda, ko cena pade " + Math.round(p.trail * 100) + " % z vrha (zdaj meja " + mcText(c, t.stop) + ")") + " · profil " + name + ".";
+  return { kind: "profile", targetLabel, stopLabel, targetValue, stopValue: t.stop, trailing, summary };
+}
+function tradeLines(t, c) {
+  const L = tradeLevels(t, c);
+  const lines = [{ key: "entry", value: t.entry, color: "#e2e8f0", dash: "", label: "Tvoj vstop " + mcText(c, t.entry) }];
+  if (L.kind === "fixed") {
+    lines.push({ key: "target", value: t.target, color: "#62e4b3", dash: "2 4", label: "Cilj +10 % " + mcText(c, t.target) });
+    lines.push({ key: "stop", value: t.stop, color: "#ff858e", dash: "2 4", label: "Meja izgube -5 % " + mcText(c, t.stop) });
+    return lines;
+  }
+  if (t.plan.halfAt && !t.halfSold) lines.push({ key: "target", tag: "POL", value: t.target, color: "#62e4b3", dash: "2 4", label: "Pol prodaje +" + Math.round(t.plan.halfAt * 100) + " % " + mcText(c, t.target) });
+  if (t.halfSold) lines.push({ key: "half", tag: "POL ✓", value: t.halfPrice, color: "#8beacb", dash: "1 5", label: "Pol prodano " + mcText(c, t.halfPrice) });
+  lines.push({ key: "stop", tag: L.trailing ? "SLED" : "MEJA", value: t.stop, color: L.trailing ? "#ecbf69" : "#ff858e", dash: "2 4", label: (L.trailing ? "Sledilna meja " : "Trda meja ") + mcText(c, t.stop) });
+  return lines;
+}
 // "Kaj bot čaka": ena jasna poved za laika, nad grafom.
 function renderEntry(c, target) {
   const el = $(target);
@@ -346,7 +377,7 @@ function renderEntry(c, target) {
   }
   const open = trades.find((t) => !t.deletedAt && !t.interrupted && !t.closed && t.id === c.id);
   if (open) {
-    el.textContent = `Demo je odprt · vstop ${mcText(c, open.entry)} · cilj ${mcText(c, open.target)} (+10 %) · meja ${mcText(c, open.stop)} (−5 %). Zapre se ob prvi ceni čez eno od njiju.`;
+    el.textContent = "Demo je odprt · vstop " + mcText(c, open.entry) + " · " + tradeLevels(open, c).summary;
     el.classList.add("open");
     return;
   }
@@ -469,8 +500,8 @@ function renderTools(c) {
 function closeAt(t, price, tm, reason) {
   t.closed = Date.now();
   t.exit = price;
-  t.pnl = result(t.entry, t.exit, tradeSize(t));
-  t.outcome = reason;
+  t.pnl = markToMarket(t, price);
+  t.outcome = reason + (t.halfSold && Number.isFinite(t.halfPrice) ? " · pol prodano pri " + pct1((t.halfPrice / t.entry - 1) * 100) : "");
   t.exitObserved = tm || Date.now();
   save();
 }
@@ -524,8 +555,8 @@ function applyTradeLogic(c, tm) {
     if (tm - t.lastObserved > 75000) interruptTrade(t, "Strežnik za ta par ni imel podatkov več kot 75 sekund");
     t.lastObserved = tm;
     if (!t.interrupted) {
-      if (price <= t.stop) closeAt(t, price, tm, "Meja izgube");
-      else if (price >= t.target) closeAt(t, price, tm, "Cilj");
+      const why = stepExit(t, price);
+      if (why) closeAt(t, price, tm, why);
     }
   }
   const s = signal(c);
@@ -560,12 +591,9 @@ async function reconcileOpenTrades() {
         }
         prev = tm;
         t.lastObserved = tm;
-        if (r.price <= t.stop) {
-          closeAt(t, r.price, tm, "Meja izgube");
-          break;
-        }
-        if (r.price >= t.target) {
-          closeAt(t, r.price, tm, "Cilj");
+        const why = stepExit(t, r.price);
+        if (why) {
+          closeAt(t, r.price, tm, why);
           break;
         }
       }
@@ -697,10 +725,8 @@ function enter(c, s, automatic) {
     lastObserved: c.time || Date.now(),
     entry: c.price,
     entryMcap: Number.isFinite(c.mcap) ? c.mcap : null,
-    target: c.price * 1.1,
-    stop: c.price * 0.95,
+    ...exitPlan(profile, c.price),
     reason: automatic ? s.name : "Lastna odločitev · " + s.name,
-    ruleVersion: "1.0",
     automatic,
     signalAt: c.time || Date.now(),
     sizeSOL: stake,
@@ -1273,7 +1299,7 @@ function renderReview() {
     return;
   }
   const c = coins.get(t.id);
-  add("p", "Vstop " + mcText(c, t.entry) + " (" + money(t.entry) + ") · cilj " + mcText(c, t.target) + " · meja izgube " + mcText(c, t.stop));
+  add("p", "Vstop " + mcText(c, t.entry) + " (" + money(t.entry) + ") · " + tradeLevels(t, c).summary);
   if (fresh(c)) {
     add("p", "Nova opažena cena: " + mcText(c, c.price) + " (" + money(c.price) + ") · prejeto " + time(c.time));
     add(
@@ -1418,18 +1444,8 @@ function manualEntry(c, feedback) {
     return false;
   }
   if (!enter(c, signal(c), false)) return false;
-  $(feedback).textContent =
-    "Ročni demo zabeležen za " +
-    c.symbol +
-    " · " +
-    stake.toLocaleString("sl-SI") +
-    " SOL. Vstop " +
-    mcText(c, c.price) +
-    " · cilj " +
-    mcText(c, c.price * 1.1) +
-    " (+10 %) · meja izgube " +
-    mcText(c, c.price * 0.95) +
-    " (−5 %).";
+  const just = trades.at(-1);
+  $(feedback).textContent = "Ročni demo zabeležen za " + c.symbol + " · " + stake.toLocaleString("sl-SI") + " SOL. Vstop " + mcText(c, c.price) + " · " + tradeLevels(just, c).summary;
   draw();
   return true;
 }
@@ -1748,7 +1764,7 @@ function renderOpenTrades() {
     const c = coins.get(t.id);
     const price = c?.price,
       live = c && fresh(c) && price > 0,
-      pnl = c && price > 0 ? result(t.entry, price, tradeSize(t)) : null,
+      pnl = c && price > 0 ? markToMarket(t, price) : null,
       pct = pnl === null ? null : (pnl / tradeSize(t)) * 100,
       minutes = Math.max(0, Math.round((Date.now() - t.opened) / 60000)),
       dur = minutes < 60 ? minutes + " min" : Math.floor(minutes / 60) + " h " + (minutes % 60) + " min";
@@ -1758,8 +1774,9 @@ function renderOpenTrades() {
     const name = el("div", "ocName");
     const h = el("h3", "", t.symbol);
     const pill = el("span", "pill " + (t.automatic ? "auto" : "manual"), t.automatic ? "SAMODEJNO" : "ROČNO");
+    const prof = el("span", "pill profile", t.plan ? (PROFILES[t.profile]?.name || t.profile).toUpperCase() : "FIKSNO +10 / -5");
     const title = el("div", "ocTitle");
-    title.append(h, pill);
+    title.append(h, pill, prof);
     name.append(title, el("small", "", t.reason.replace("Lastna odločitev · ", "") + " · vstop " + new Date(t.opened).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit" }) + " · odprt " + dur));
     const res = el("div", "ocPnl " + (pnl === null ? "neutral" : tone(pnl)));
     res.append(el("strong", "", pnl === null ? "brez cene" : pct1(pct)), el("small", "", pnl === null ? "čakam na posnetek" : sol4(pnl) + " · vložek " + tradeSize(t).toLocaleString("sl-SI") + " SOL"));
@@ -1773,23 +1790,41 @@ function renderOpenTrades() {
       if (note) d.append(el("em", "", note));
       return d;
     };
-    const toTarget = price > 0 ? (t.target / price - 1) * 100 : null,
-      toStop = price > 0 ? (t.stop / price - 1) * 100 : null;
+    const L = tradeLevels(t, c);
+    // desni rob traku: fiksni cilj / raven delne prodaje / vrh (ko meja sledi vrhu)
+    const rightRaw = L.kind === "fixed" ? t.target : t.plan.halfAt && !t.halfSold ? t.target : Math.max(t.peak || t.entry, price || 0);
+    const right = Number.isFinite(rightRaw) && rightRaw > t.stop * 1.002 ? rightRaw : t.stop * 1.05;
+    const toTarget = price > 0 && L.kind === "fixed" ? (t.target / price - 1) * 100 : null,
+      toStop = price > 0 ? (t.stop / price - 1) * 100 : null,
+      peakPct = t.plan && t.peak > 0 ? (t.peak / t.entry - 1) * 100 : null;
+    const targetNote =
+      L.kind === "fixed"
+        ? toTarget === null
+          ? ""
+          : "še " + pct1(toTarget)
+        : !t.plan.halfAt
+          ? "najvišje " + pct1(peakPct) + " · sled " + Math.round(t.plan.trail * 100) + " %"
+          : t.halfSold
+            ? "zaklenjeno " + pct1((t.halfPrice / t.entry - 1) * 100)
+            : price > 0
+              ? "še " + pct1((t.target / price - 1) * 100)
+              : "";
     stats.append(
       tile("now", "MC zdaj", c && Number.isFinite(c.mcap) ? compact(c.mcap) : "-", live ? "posnetek " + new Date(c.time).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : c ? "zastarelo · " + new Date(c.time).toLocaleTimeString("sl-SI") : "ni podatkov"),
       tile("entry", "Vstop", Number.isFinite(t.entryMcap) ? compact(t.entryMcap) : money(t.entry), money(t.entry) + " / kovanec"),
-      tile("target", "Cilj +10 %", c ? mcText(c, t.target).replace("MC ", "") : money(t.target), toTarget === null ? "" : "še " + pct1(toTarget)),
-      tile("stop", "Meja -5 %", c ? mcText(c, t.stop).replace("MC ", "") : money(t.stop), toStop === null ? "" : pct1(toStop) + " do meje"),
+      tile("target", L.targetLabel, c && Number.isFinite(L.targetValue) ? mcText(c, L.targetValue).replace("MC ", "") : money(L.targetValue), targetNote),
+      tile("stop", L.stopLabel, c ? mcText(c, t.stop).replace("MC ", "") : money(t.stop), toStop === null ? "" : pct1(toStop) + " do meje" + (L.trailing ? " · sledi vrhu" : "")),
     );
     card.append(stats);
-    // trak: kje je cena med mejo (levo) in ciljem (desno)
+    // trak: kje je cena med mejo (levo) in ciljem / vrhom (desno)
     const track = el("div", "ocTrack");
-    const span = t.target - t.stop;
+    const span = right - t.stop || 1;
     const pos = (v) => Math.max(0, Math.min(100, ((v - t.stop) / span) * 100));
+    const entryOnTrack = t.entry >= t.stop && t.entry <= right;
     const entryMark = el("span", "trackEntry");
     entryMark.style.left = pos(t.entry) + "%";
     entryMark.title = "Vstop";
-    track.append(entryMark);
+    if (entryOnTrack) track.append(entryMark);
     if (price > 0) {
       const now = el("span", "trackNow " + (pnl >= 0 ? "positive" : "negative"));
       now.style.left = pos(price) + "%";
@@ -1799,7 +1834,9 @@ function renderOpenTrades() {
     const labels = el("div", "trackLabels");
     const lEntry = el("span", "lEntry", "VSTOP");
     lEntry.style.left = pos(t.entry) + "%";
-    labels.append(el("span", "negative lStop", "MEJA -5 %"), lEntry, el("span", "positive lTarget", "CILJ +10 %"));
+    labels.append(el("span", "negative lStop", L.kind === "fixed" ? "MEJA -5 %" : L.trailing ? "SLEDILNA MEJA" : "MEJA -" + Math.round(t.plan.hardStop * 100) + " %"));
+    if (entryOnTrack) labels.append(lEntry);
+    labels.append(el("span", "positive lTarget", L.kind === "fixed" ? "CILJ +10 %" : t.plan.halfAt && !t.halfSold ? "POL +" + Math.round(t.plan.halfAt * 100) + " %" : "VRH"));
     const trackWrap = el("div", "ocTrackWrap");
     trackWrap.append(track, labels);
     card.append(trackWrap);
@@ -1861,3 +1898,80 @@ function renderOpenTrades() {
     host.append(card);
   }
 }
+
+// Profil izstopa: izbira v Živem izboru z razlago, shranjeno na profil (memecoin_state.profile) in lokalno.
+function renderProfile() {
+  const p = PROFILES[profile] || PROFILES[DEFAULT_PROFILE];
+  for (const b of document.querySelectorAll("#profileButtons button")) {
+    const on = b.dataset.profile === p.key;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-checked", on ? "true" : "false");
+  }
+  $("#rulesSummary").textContent =
+    "Največ 5 odprtih poslov, en na kovanec. Vstop: pravila v1.0 (vzorci Odboj, Višje dno, Preboj/retest). Izstop za nove posle: profil " +
+    p.name +
+    ". Odprti posli obdržijo profil, s katerim so bili odprti.";
+  const box = $("#profileInfo");
+  if (!box) return;
+  box.replaceChildren();
+  const mk = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  };
+  const left = mk("div");
+  const h = mk("h4", "", p.name + " ");
+  h.append(mk("span", "pill", p.tagline));
+  left.append(h);
+  const how = mk("p");
+  how.append(mk("b", "", "Kako deluje: "), p.how);
+  const who = mk("p");
+  who.append(mk("b", "", "Za koga: "), p.who);
+  left.append(how, who);
+  const grid = mk("div", "pStats");
+  for (const [label, value, cls] of [
+    ["Dobitni posli", p.stats.win + " %", ""],
+    ["Povp. dobiček", "+" + p.stats.avgWin + " %", "positive"],
+    ["Povp. izguba", p.stats.avgLoss + " %", "negative"],
+    ["Na posel", pct1(p.stats.perTrade), p.stats.perTrade > 0 ? "positive" : "negative"],
+  ]) {
+    const d = mk("div");
+    d.append(mk("small", "", label), mk("strong", cls, value));
+    grid.append(d);
+  }
+  left.append(grid);
+  left.append(mk("p", "note", "Številke: 123 tvojih demo poslov (16. do 17. 9. 2026) z istimi vstopi, odigrani s tem profilom, stroški 1 % zdrsa + 0,5 % provizije na stran. En dan podatkov, zato so optimistične; senčni test jih bo preveril."));
+  const right = mk("div");
+  right.append(mk("h4", "", "Vsi trije na istih poslih"));
+  const table = mk("table");
+  const thead = mk("thead");
+  const hr = mk("tr");
+  for (const t of ["Profil", "Dobitni", "Povp. +", "Povp. -", "Na posel"]) hr.append(mk("th", "", t));
+  thead.append(hr);
+  table.append(thead);
+  const tb = mk("tbody");
+  for (const q of Object.values(PROFILES)) {
+    const tr = mk("tr", q.key === p.key ? "current" : "");
+    tr.append(mk("td", "", q.name), mk("td", "", q.stats.win + " %"), mk("td", "positive", "+" + q.stats.avgWin + " %"), mk("td", "negative", q.stats.avgLoss + " %"), mk("td", q.stats.perTrade > 0 ? "positive" : "negative", pct1(q.stats.perTrade)));
+    tb.append(tr);
+  }
+  table.append(tb);
+  right.append(table);
+  right.append(mk("p", "note", "Za primerjavo: dosedanji fiksni cilj +10 % / meja -5 % je na istih poslih dal 42 % dobitnih, +17 % / -13 %, -0,5 % na posel. Meja -5 % je v resnici izstopila povprečno pri -11 %, ker cena med posnetkoma preskoči."));
+  right.append(mk("p", "note", "Vstopi so pri vseh profilih enaki. Profil se uporabi ob vstopu; že odprti posli se ne spremenijo. Senčni test na strežniku teče ločeno in se s to izbiro ne spremeni."));
+  box.append(left, right);
+}
+for (const b of document.querySelectorAll("#profileButtons button"))
+  b.onclick = () => {
+    if (!PROFILES[b.dataset.profile]) return;
+    profile = b.dataset.profile;
+    try {
+      localStorage.setItem("solana-profile-v1", profile);
+    } catch {}
+    renderProfile();
+    $("#stakeMessage").textContent = "Profil " + PROFILES[profile].name + " velja za nove demo posle (shranjeno na profil).";
+    scheduleRemote();
+    draw();
+  };
+renderProfile();

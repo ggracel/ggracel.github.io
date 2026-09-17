@@ -9,7 +9,7 @@ Teče kot statična stran na GitHub Pages (ta mapa), podatke in logiko na strež
 | --- | --- | --- |
 | `index.html` | ta mapa | prijava (Supabase auth, ena prijava za vse foqs. aplikacije), postavitev strani, CSS |
 | `app.mjs` | ta mapa | vsa logika v brskalniku: branje posnetkov, grafi, dnevnik, sinhronizacija profila, zavihek Primerjava |
-| `engine.mjs` | ta mapa | pravila v1.0 (vzorci Odboj, Višje dno, Preboj/retest), vstopna točka, izračun rezultata |
+| `engine.mjs` | ta mapa | pravila v1.0 (vzorci Odboj, Višje dno, Preboj/retest), vstopna točka, profili izstopa, izračun rezultata |
 | edge funkcija `collect` | Supabase, `supabase/functions/collect` (index.ts + shadow.ts) | vsakih 30 s pobere pare z DEX Screener, zapiše posnetke in požene senčni test |
 | edge funkcija `market` | Supabase | starejši posrednik do DEX Screener, aplikacija ga ne uporablja več |
 | cron `memecoin-collect` | Supabase pg_cron | vsakih 30 s pokliče `collect` (net.http_post s ključem `x-collect-key`) |
@@ -20,7 +20,7 @@ Izvorna koda edge funkcij ni v tem repozitoriju (repo je javen, funkcija pa vseb
 ## Tabele (Supabase, shema public)
 
 - `memecoin_snapshots` (PK pair + t): cena, mcap, likvidnost, promet 5 min / 1 h, nakupi in prodaje 5 min / 1 h, sprememba 5 min / 1 h, `liq_base` (količina kovanca v likvidnosti), čas nastanka para, slika, url. Piše jih samo `collect` (service role). Branje: prijavljeni uporabniki.
-- `memecoin_state` (PK user_id): dnevnik, vložek in stikalo samodejnih vstopov enega uporabnika. RLS: vsak vidi in piše samo svojo vrstico.
+- `memecoin_state` (PK user_id): dnevnik, vložek, stikalo samodejnih vstopov in profil izstopa enega uporabnika. RLS: vsak vidi in piše samo svojo vrstico.
 - `memecoin_watch`: pari z odprtim demo poslom, da jih `collect` spremlja tudi, ko izpadejo iz izbora DEX Screener. Vnos poteče po 12 h.
 - `memecoin_shadow_trades`: senčni posli štirih strategij (glej spodaj). Piše `collect`, bere aplikacija (zavihek Primerjava). RLS: branje samo za e-poštne naslove na seznamu v politiki.
 - `memecoin_holder_checks` (PK token): predpomnjeno preverjanje imetnikov (top 10, največji imetnik, sumljivi grozdi), veljavno 10 min.
@@ -32,6 +32,18 @@ Izvorna koda edge funkcij ni v tem repozitoriju (repo je javen, funkcija pa vseb
 3. Isti klic požene `runShadow` (shadow.ts): naloži zadnjih 22 min posnetkov in odprte senčne posle, zapre kar je treba zapreti in odpre nove posle po pravilih vsake strategije.
 4. Brskalnik ob odprtju naloži zadnjo uro posnetkov, potem vsakih 30 s samo nove vrstice. Pravila v1.0 za demo posle tečejo v brskalniku; odprte posle ob odprtju preigra po zgodovini s strežnika, zato osvežitev strani ne izgubi ničesar.
 5. Dnevnik in nastavitve gredo ob vsaki spremembi v `memecoin_state` (isti profil v vseh brskalnikih). localStorage je samo predpomnilnik.
+
+## Profili izstopa (Živi izbor > Profil izstopa)
+
+Vstopi so pri vseh profilih enaki (pravila v1.0 v `engine.mjs`), profil določa samo, kako se demo posel zapre. Definicije so v `engine.mjs` (`PROFILES`, `exitPlan`, `stepExit`), izbira se shrani v `memecoin_state.profile`. Vsak posel ob vstopu dobi svoj načrt (`plan`), zato sprememba profila ne vpliva na že odprte posle. Stari posli brez `plan` ostanejo na fiksnem cilju +10 % / meji -5 %.
+
+| Profil | Delna prodaja | Sledilna meja | Trda meja |
+| --- | --- | --- | --- |
+| Varen | pol pri +20 %, meja na vstop | 15 % pod vrhom | -8 % |
+| Srednje (privzeto) | pol pri +25 %, meja na vstop | 20 % pod vrhom | -12 % |
+| Agresivno | brez | 20 % pod vrhom od začetka | -10 % |
+
+Številke v razlagi (dobitni posli, povprečen dobiček/izguba, na posel) so iz simulacije na 123 demo poslih 16. do 17. 9. 2026 (`memecoins-research/exits/sim.py` v Claude seji); so optimistične, ker so pravila izbrana na istih podatkih.
 
 ## Senčni test (zavihek Primerjava)
 
