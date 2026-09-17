@@ -925,7 +925,8 @@ function watching() {
   const filtered = ranked.filter((x) => $("#boardFilter").value !== "fresh" || fresh(x.c));
   const columns = new Map();
   const chosen = [];
-  for (const title of ["Zbiranje podatkov", "Čakanje na vstop", "Brez signala"]) {
+  const hiddenCount = filtered.filter((x) => boardColumn(x) === "Brez signala").length;
+  for (const title of ["Zbiranje podatkov", "Čakanje na vstop"]) {
     const items = filtered.filter((x) => boardColumn(x) === title);
     const col = document.createElement("section");
     col.className = "boardColumn";
@@ -942,9 +943,11 @@ function watching() {
     top.append(col);
     chosen.push(...items.slice(0, showAllColumns ? items.length : 3));
   }
-  $("#watchEmpty").textContent = ranked.some((x) => x.rank >= 10)
-    ? "Kartice se ob novih podatkih samodejno premaknejo. Razvrstitev ni ocena dobička."
-    : "Trenutno ni kandidata za vstop. Program zbira podatke ali čaka na izpolnjene filtre.";
+  $("#watchEmpty").textContent =
+    (ranked.some((x) => x.rank >= 10)
+      ? "Kartice se ob novih podatkih samodejno premaknejo. Razvrstitev ni ocena dobička."
+      : "Trenutno ni kandidata za vstop. Program zbira podatke ali čaka na izpolnjene filtre.") +
+    (hiddenCount ? " Skritih " + hiddenCount + " kovancev brez signala (brez svežih podatkov, prenizka likvidnost ali izven filtra); vsi so v seznamu spodaj." : "");
   for (const { c } of ranked) {
     const d = document.createElement("details");
     d.dataset.id = c.id;
