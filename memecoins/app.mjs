@@ -77,15 +77,9 @@ async function loadRemote() {
     const { data, error } = await db.from("memecoin_state").select("trades,stake,auto_entries,updated_at").eq("user_id", user.id).maybeSingle();
     if (error) throw error;
     const remote = Array.isArray(data?.trades) ? data.trades : [];
-    // Združitev: pri istem ključu velja profil; kar je samo v tem brskalniku (star dnevnik), gre na profil.
-    const byKey = new Map(remote.map((t) => [t.key, t]));
-    let added = 0;
-    for (const t of trades)
-      if (t.key && !byKey.has(t.key)) {
-        byKey.set(t.key, t);
-        added++;
-      }
-    trades = [...byKey.values()].sort((a, b) => (a.opened || 0) - (b.opened || 0));
+    const remoteKeys = new Set(remote.map((t) => t.key));
+    const added = trades.filter((t) => t.key && !remoteKeys.has(t.key)).length;
+    trades = mergeTrades(trades, remote);
     if (data) {
       const st = Number(data.stake);
       if (Number.isFinite(st) && st > 0) stake = st;
@@ -97,9 +91,60 @@ async function loadRemote() {
     syncNote("Profil trenutno ni dosegljiv, uporabljam lokalni dnevnik.", true);
   }
 }
+// Združitev dveh dnevnikov (ta brskalnik + profil). Isti ključ: zmaga zapis, ki je dlje (izbrisan > zaključen > prekinjen > odprt),
+// pri enakem stanju tisti z novejšim opazovanjem. Obnova po izbrisu premaga starejši izbris.
+// Če sta na istem paru dva odprta posla (dva brskalnika sta vstopila hkrati), ostane samo prvi.
+function tradeRank(t) {
+  return t.deletedAt ? 3 : t.closed ? 2 : t.interrupted ? 1 : 0;
+}
+function pickTrade(a, b) {
+  if (a.deletedAt && (b.restoredAt || 0) > a.deletedAt) return b;
+  if (b.deletedAt && (a.restoredAt || 0) > b.deletedAt) return a;
+  const ra = tradeRank(a),
+    rb = tradeRank(b);
+  if (ra !== rb) return ra > rb ? a : b;
+  return (a.lastObserved || 0) >= (b.lastObserved || 0) ? a : b;
+}
+function mergeTrades(local, remote) {
+  const byKey = new Map();
+  for (const t of [...remote, ...local]) {
+    if (!t?.key) continue;
+    byKey.set(t.key, byKey.has(t.key) ? pickTrade(byKey.get(t.key), t) : t);
+  }
+  const merged = [...byKey.values()].sort((a, b) => (a.opened || 0) - (b.opened || 0));
+  const seenOpen = new Set();
+  for (const t of merged) {
+    if (t.deletedAt || t.closed || t.interrupted || t.practice) continue;
+    if (seenOpen.has(t.id)) {
+      t.deletedAt = Date.now();
+      t.deleteReason = "Podvojen vstop: isti kovanec je bil odprt v dveh brskalnikih hkrati.";
+    } else seenOpen.add(t.id);
+  }
+  return merged;
+}
+// Občasna ponovna združitev s profilom, da drug brskalnik (telefon, drug zavihek) vidi iste posle.
+async function syncRemote() {
+  if (!db || !remoteUser) return;
+  try {
+    const { data, error } = await db.from("memecoin_state").select("trades").eq("user_id", remoteUser.id).maybeSingle();
+    if (error || !Array.isArray(data?.trades)) return;
+    const before = JSON.stringify(trades);
+    trades = mergeTrades(trades, data.trades);
+    if (JSON.stringify(trades) !== before) {
+      save();
+      draw();
+    }
+  } catch {}
+}
+setInterval(syncRemote, 45000);
 let lastPushed = "";
 async function pushRemote(force = false) {
   if (!db || !remoteUser) return;
+  // Pred pisanjem še enkrat združimo s profilom, da ne povozimo poslov iz drugega brskalnika.
+  try {
+    const { data } = await db.from("memecoin_state").select("trades").eq("user_id", remoteUser.id).maybeSingle();
+    if (Array.isArray(data?.trades)) trades = mergeTrades(trades, data.trades);
+  } catch {}
   const row = { user_id: remoteUser.id, trades, stake, auto_entries: !!$("#auto")?.checked };
   const fingerprint = JSON.stringify(row);
   if (!force && fingerprint === lastPushed) return; // nič novega, ne pošiljaj vsakih 30 s
@@ -1292,6 +1337,7 @@ function renderDeleted() {
     b.textContent = "Obnovi zapis";
     b.onclick = () => {
       delete t.deletedAt;
+      t.restoredAt = Date.now();
       if (!t.closed) interruptTrade(t, "Obnovitev izbrisanega odprtega posla");
       save();
       draw();
@@ -1689,54 +1735,82 @@ function renderOpenTrades() {
     return;
   }
   if ($("#watching").hidden) return; // ne rišemo skritih grafov
-  $("#openRowTitle").textContent = "Odprti demo posli · " + open.length;
+  $("#openRowTitle").textContent = "Odprti demo posli";
+  $("#openRowCount").textContent = open.length;
   host.replaceChildren();
+  const el = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  };
   for (const t of open) {
     const c = coins.get(t.id);
     const price = c?.price,
       live = c && fresh(c) && price > 0,
       pnl = c && price > 0 ? result(t.entry, price, tradeSize(t)) : null,
-      pct = pnl === null ? null : (pnl / tradeSize(t)) * 100;
-    const card = document.createElement("article");
-    card.className = "openCard" + (pnl !== null && pnl < 0 ? " losing" : "");
-    const head = document.createElement("div");
-    head.className = "row";
-    const left = document.createElement("div");
-    const h = document.createElement("h3");
-    h.textContent = t.symbol;
-    const kind = document.createElement("small");
-    kind.className = "muted";
-    kind.textContent = (t.automatic ? "samodejni vstop" : "ročni vstop") + " · " + t.reason.replace("Lastna odločitev · ", "") + " · " + new Date(t.opened).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit" });
-    left.append(h, kind);
-    const pnlEl = document.createElement("div");
-    pnlEl.className = "pnl " + (pnl === null ? "neutral" : tone(pnl));
-    pnlEl.textContent = pnl === null ? "brez cene" : pct1(pct);
-    const pnlSol = document.createElement("small");
-    pnlSol.textContent = pnl === null ? "čakam na posnetek" : signed(pnl) + " SOL" + (live ? "" : " · podatki zastareli");
-    pnlEl.append(pnlSol);
-    head.append(left, pnlEl);
+      pct = pnl === null ? null : (pnl / tradeSize(t)) * 100,
+      minutes = Math.max(0, Math.round((Date.now() - t.opened) / 60000)),
+      dur = minutes < 60 ? minutes + " min" : Math.floor(minutes / 60) + " h " + (minutes % 60) + " min";
+    const card = el("article", "openCard " + (pnl === null ? "flat" : pnl >= 0 ? "up" : "down"));
+    // glava: ime + oznake levo, rezultat desno
+    const head = el("div", "ocHead");
+    const name = el("div", "ocName");
+    const h = el("h3", "", t.symbol);
+    const pill = el("span", "pill " + (t.automatic ? "auto" : "manual"), t.automatic ? "SAMODEJNO" : "ROČNO");
+    const title = el("div", "ocTitle");
+    title.append(h, pill);
+    name.append(title, el("small", "", t.reason.replace("Lastna odločitev · ", "") + " · vstop " + new Date(t.opened).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit" }) + " · odprt " + dur));
+    const res = el("div", "ocPnl " + (pnl === null ? "neutral" : tone(pnl)));
+    res.append(el("strong", "", pnl === null ? "brez cene" : pct1(pct)), el("small", "", pnl === null ? "čakam na posnetek" : sol4(pnl) + " · vložek " + tradeSize(t).toLocaleString("sl-SI") + " SOL"));
+    head.append(name, res);
     card.append(head);
-    const mc = document.createElement("p");
-    mc.className = "cardMc";
-    const minutes = Math.max(0, Math.round((Date.now() - t.opened) / 60000));
-    mc.textContent =
-      (c && Number.isFinite(c.mcap) ? "MC zdaj " + compact(c.mcap) : "MC zdaj neznan") +
-      " · vstop " +
-      (Number.isFinite(t.entryMcap) ? compact(t.entryMcap) : money(t.entry)) +
-      " · odprt " +
-      (minutes < 60 ? minutes + " min" : Math.floor(minutes / 60) + " h " + (minutes % 60) + " min") +
-      " · vložek " +
-      tradeSize(t).toLocaleString("sl-SI") +
-      " SOL";
-    card.append(mc);
+    // štiri ploščice: MC zdaj, vstop, cilj, meja
+    const stats = el("div", "ocStats");
+    const tile = (cls, label, value, note) => {
+      const d = el("div", "tile " + cls);
+      d.append(el("small", "", label), el("strong", "", value));
+      if (note) d.append(el("em", "", note));
+      return d;
+    };
+    const toTarget = price > 0 ? (t.target / price - 1) * 100 : null,
+      toStop = price > 0 ? (t.stop / price - 1) * 100 : null;
+    stats.append(
+      tile("now", "MC zdaj", c && Number.isFinite(c.mcap) ? compact(c.mcap) : "-", live ? "posnetek " + new Date(c.time).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : c ? "zastarelo · " + new Date(c.time).toLocaleTimeString("sl-SI") : "ni podatkov"),
+      tile("entry", "Vstop", Number.isFinite(t.entryMcap) ? compact(t.entryMcap) : money(t.entry), money(t.entry) + " / kovanec"),
+      tile("target", "Cilj +10 %", c ? mcText(c, t.target).replace("MC ", "") : money(t.target), toTarget === null ? "" : "še " + pct1(toTarget)),
+      tile("stop", "Meja -5 %", c ? mcText(c, t.stop).replace("MC ", "") : money(t.stop), toStop === null ? "" : pct1(toStop) + " do meje"),
+    );
+    card.append(stats);
+    // trak: kje je cena med mejo (levo) in ciljem (desno)
+    const track = el("div", "ocTrack");
+    const span = t.target - t.stop;
+    const pos = (v) => Math.max(0, Math.min(100, ((v - t.stop) / span) * 100));
+    const entryMark = el("span", "trackEntry");
+    entryMark.style.left = pos(t.entry) + "%";
+    entryMark.title = "Vstop";
+    track.append(entryMark);
+    if (price > 0) {
+      const now = el("span", "trackNow " + (pnl >= 0 ? "positive" : "negative"));
+      now.style.left = pos(price) + "%";
+      now.title = "Trenutna cena";
+      track.append(now);
+    }
+    const labels = el("div", "trackLabels");
+    const lEntry = el("span", "lEntry", "VSTOP");
+    lEntry.style.left = pos(t.entry) + "%";
+    labels.append(el("span", "negative lStop", "MEJA -5 %"), lEntry, el("span", "positive lTarget", "CILJ +10 %"));
+    const trackWrap = el("div", "ocTrackWrap");
+    trackWrap.append(track, labels);
+    card.append(trackWrap);
+    // graf
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("class", "chart");
     svg.setAttribute("viewBox", "0 0 700 230");
     svg.setAttribute("role", "img");
     svg.setAttribute("aria-label", "Cena posla " + t.symbol + " z vstopom, ciljem in mejo izgube");
     card.append(svg);
-    const legend = document.createElement("div");
-    legend.className = "legend";
+    const legend = el("div", "legend");
     card.append(legend);
     if (c) chart(c, svg, legend, { from: t.opened, simple: true });
     else {
@@ -1747,31 +1821,12 @@ function renderOpenTrades() {
       ns.textContent = "Strežnik za ta par še nima posnetkov v zadnji uri.";
       svg.append(ns);
     }
-    const dist = document.createElement("p");
-    dist.className = "dist";
-    if (price > 0) {
-      const toTarget = (t.target / price - 1) * 100,
-        toStop = (t.stop / price - 1) * 100;
-      dist.append("Do cilja še ");
-      const b1 = document.createElement("b");
-      b1.className = "positive";
-      b1.textContent = pct1(toTarget);
-      dist.append(b1, " (" + mcText(c, t.target) + ") · do meje ");
-      const b2 = document.createElement("b");
-      b2.className = "negative";
-      b2.textContent = pct1(toStop);
-      dist.append(b2, " (" + mcText(c, t.stop) + ")" + (live ? "" : " · zadnji posnetek " + new Date(c.time).toLocaleTimeString("sl-SI")));
-    } else dist.textContent = "Brez sveže cene: cilj " + money(t.target) + ", meja " + money(t.stop) + ".";
-    card.append(dist);
-    const actions = document.createElement("div");
-    actions.className = "actions";
-    const closeBtn = document.createElement("button");
-    const confirming = confirmClose === t.key;
-    closeBtn.textContent = confirming ? "Potrdi izstop po " + (c ? mcText(c, price) : "zadnji ceni") : "Zapri zdaj";
-    closeBtn.className = confirming ? "primary" : "";
+    // noga: gumbi
+    const foot = el("div", "ocFoot");
+    const actions = el("div", "actions");
+    const closeBtn = el("button", confirmClose === t.key ? "danger" : "", confirmClose === t.key ? "Potrdi izstop po " + (c ? mcText(c, price) : "zadnji ceni") : "Zapri zdaj");
     closeBtn.disabled = !c || !(price > 0);
-    const fb = document.createElement("small");
-    fb.className = "muted";
+    const fb = el("small", "muted");
     closeBtn.onclick = () => {
       if (confirmClose === t.key) {
         clearTimeout(confirmCloseTimer);
@@ -1786,15 +1841,11 @@ function renderOpenTrades() {
       }, 8000);
       renderOpenTrades();
     };
-    actions.append(closeBtn);
-    const link = document.createElement("a");
+    const link = el("a", "", "DEX Screener");
     link.href = "https://dexscreener.com/solana/" + t.id;
     link.target = "_blank";
     link.rel = "noreferrer";
-    link.textContent = "DEX Screener";
-    actions.append(link);
-    const copy = document.createElement("button");
-    copy.textContent = "Kopiraj CA";
+    const copy = el("button", "ghost", "Kopiraj CA");
     copy.onclick = async () => {
       try {
         await navigator.clipboard.writeText(t.token);
@@ -1804,8 +1855,9 @@ function renderOpenTrades() {
         fb.textContent = "Kopiranje ni uspelo: " + t.token;
       }
     };
-    actions.append(copy, fb);
-    card.append(actions);
+    actions.append(closeBtn, link, copy);
+    foot.append(actions, fb);
+    card.append(foot);
     host.append(card);
   }
 }
