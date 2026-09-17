@@ -4,7 +4,7 @@ const HISTORY_MIN = 60;
 let lastSnapshotT = 0,
   primed = false,
   noData = false;
-import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint, PROFILES, DEFAULT_PROFILE, exitPlan, stepExit, markToMarket } from "./engine.mjs?v=5";
+import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint, PROFILES, DEFAULT_PROFILE, exitPlan, stepExit, markToMarket } from "./engine.mjs?v=6";
 const $ = (s) => document.querySelector(s),
   money = (x) =>
     Number.isFinite(x)
@@ -172,6 +172,20 @@ function current() {
 }
 function fresh(c) {
   return c && (c.practice || (healthy && Date.now() - c.time < 75000));
+}
+// Filter vstopov v1.2 (samo za samodejne vstope in opozorila): iz 161 demo poslov 16. do 17. 9. 2026 so bili vstopi
+// v pare, stare 30 do 90 min, ki v zadnji uri niso bili v minusu, edini z jasno pozitivnim pričakovanjem.
+// Vrne razlog, zakaj kovanec NE gre skozi filter, ali null.
+const FILTER = { minAge: 30, maxAge: 90, minMcap: 20000, maxMcap: 300000 };
+function entryFilter(c) {
+  if (!c || c.practice) return null;
+  if (!c.created) return "starost para ni znana";
+  const age = (Date.now() - c.created) / 60000;
+  if (age < FILTER.minAge) return "par je mlajši od " + FILTER.minAge + " min (" + Math.floor(age) + " min)";
+  if (age > FILTER.maxAge) return "par je starejši od " + FILTER.maxAge + " min (" + (age < 1440 ? Math.floor(age / 60) + " h " + Math.floor(age % 60) + " min" : Math.floor(age / 1440) + " d") + ")";
+  if (Number.isFinite(c.change1h) && c.change1h < 0) return "v zadnji uri je v minusu (" + pct1(c.change1h) + ")";
+  if (Number.isFinite(c.mcap) && (c.mcap < FILTER.minMcap || c.mcap > FILTER.maxMcap)) return "MC izven 20K do 300K $ (" + compact(c.mcap) + ")";
+  return null;
 }
 function signal(c) {
   if (!fresh(c)) return { name: "Premor", reason: "Ni svežih podatkov. Demo vstop in samodejni izstop sta ustavljena." };
@@ -389,6 +403,11 @@ function renderEntry(c, target) {
     el.textContent = "Ta kovanec ne gre skozi filtre bota: potrebuje vsaj 10.000 $ likvidnosti in promet v zadnjih 5 minutah. Vstopa ne bo.";
     return;
   }
+  const blocked = entryFilter(c);
+  if (blocked) {
+    el.textContent = "Izven filtra vstopov: " + blocked + ". Bot sam ne bo vstopil (filter v1.2: starost 30 do 90 min, brez minusa na 1 h, MC 20K do 300K). Ročni vstop je dovoljen.";
+    return;
+  }
   const ep = entryPoint(c.history);
   if (ep.state === "collecting") el.textContent = `Zbiram podatke: ${ep.have}/16 posnetkov. Vstopna točka se pokaže čez približno ${Math.ceil(((16 - ep.have) * 30) / 60)} min.`;
   else if (ep.state === "paused") el.textContent = "Premor: v podatkih je vrzel. Vstopna točka se izračuna, ko je 16 posnetkov spet neprekinjenih.";
@@ -414,10 +433,14 @@ function renderConditions(c, target) {
     if (cls) el.className = cls;
     host.append(el);
   };
+  const ageMin = c.created ? (Date.now() - c.created) / 60000 : null;
   const filters = [
     [fresh(c), "sveža cena (mlajša od 75 s)"],
     [c.liquidity >= 10000, "likvidnost vsaj 10.000 $ (zdaj " + compact(c.liquidity) + ")"],
     [c.volume > 0, "promet v zadnjih 5 min (zdaj " + compact(c.volume) + ")"],
+    [ageMin !== null && ageMin >= FILTER.minAge && ageMin <= FILTER.maxAge, "starost para 30 do 90 min (zdaj " + (ageMin === null ? "neznana" : ageMin < 120 ? Math.floor(ageMin) + " min" : Math.floor(ageMin / 60) + " h") + ")"],
+    [!Number.isFinite(c.change1h) || c.change1h >= 0, "v zadnji uri ni v minusu (zdaj " + (Number.isFinite(c.change1h) ? pct1(c.change1h) : "ni podatka") + ")"],
+    [!Number.isFinite(c.mcap) || (c.mcap >= FILTER.minMcap && c.mcap <= FILTER.maxMcap), "MC 20K do 300K $ (zdaj " + compact(c.mcap) + ")"],
     [c.history.length >= 16, "16 zaporednih posnetkov (zdaj " + Math.min(c.history.length, 16) + "/16)"],
   ];
   const h = document.createElement("h4");
@@ -519,6 +542,9 @@ function coinFromRow(r, history) {
     liquidity: r.liquidity,
     volume: r.volume5m,
     created: r.pair_created_ms,
+    change1h: Number.isFinite(r.change1h) ? r.change1h : null,
+    buys: Number.isFinite(r.buys5m) ? r.buys5m : null,
+    sells: Number.isFinite(r.sells5m) ? r.sells5m : null,
     image: r.image || "",
     url: r.url || "https://dexscreener.com/solana/" + r.pair,
     time: new Date(r.t).getTime(),
@@ -541,7 +567,7 @@ async function fetchRows(sinceMs) {
   return pagedRows(() =>
     db
       .from("memecoin_snapshots")
-      .select("pair,t,token,symbol,name,price,mcap,liquidity,volume5m,pair_created_ms,image,url")
+      .select("pair,t,token,symbol,name,price,mcap,liquidity,volume5m,pair_created_ms,image,url,change1h,buys5m,sells5m")
       .gt("t", new Date(sinceMs).toISOString())
       .order("t", { ascending: true })
       .order("pair", { ascending: true }),
@@ -560,8 +586,10 @@ function applyTradeLogic(c, tm) {
     }
   }
   const s = signal(c);
+  const blocked = s.signal ? entryFilter(c) : null;
   if (
     s.signal &&
+    !blocked &&
     $("#auto").checked &&
     !trades.some((t) => !t.deletedAt && !t.interrupted && !t.closed && t.id === id) &&
     trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && !t.practice).length < 5
@@ -569,7 +597,7 @@ function applyTradeLogic(c, tm) {
     enter(c, s, true);
   }
   if (s.signal && Date.now() - (announced.get(id) || 0) > 300000) {
-    alerts.unshift(`${time(Date.now())} · ${c.symbol} · ${s.name}`);
+    alerts.unshift(`${time(Date.now())} · ${c.symbol} · ${s.name}` + (blocked ? " · brez vstopa, izven filtra: " + blocked : ""));
     announced.set(id, Date.now());
   }
 }
@@ -1056,6 +1084,14 @@ function cardState(c) {
             ? "Ni dovolj podatkov o likvidnosti ali je prenizka."
             : "V zadnjih petih minutah ni prometa.",
     };
+  const blocked = entryFilter(c);
+  if (blocked)
+    return {
+      rank: 0,
+      filtered: true,
+      title: "Izven filtra vstopov",
+      reason: "Bot sam ne vstopi: " + blocked + ". Ročni vstop je dovoljen.",
+    };
   if (c.history.length < 16)
     return {
       rank: 1 + c.history.length / 16,
@@ -1478,9 +1514,9 @@ function renderBoardGraph() {
 
 // Primerjava: senčni posli, ki jih strežnik (edge funkcija collect, datoteka shadow.ts) piše v tabelo memecoin_shadow_trades.
 // Brskalnik jih samo bere in sešteje. Pravila so v strežniku zamrznjena; tu se nič ne odloča.
-const SHADOW_STRATEGIES = ["v1.0", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj"];
-const SHADOW_LABEL = { "v1.0": "v1.0 (trenutna)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj" };
-const SHADOW_COLOR = { "v1.0": "#9fb0c8", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff" };
+const SHADOW_STRATEGIES = ["v1.0", "v1.2-filter", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj"];
+const SHADOW_LABEL = { "v1.0": "v1.0 (staro: +10 / -5)", "v1.2-filter": "v1.2 (v aplikaciji)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj" };
+const SHADOW_COLOR = { "v1.0": "#9fb0c8", "v1.2-filter": "#f0a6ff", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff" };
 const SHADOW_START = Date.parse("2026-09-17T06:44:00Z"); // zagon senčnega testa (collect v3, prvi senčni posel)
 const SHADOW_MIN_TRADES = 100,
   SHADOW_MIN_DAYS = 14,
@@ -1813,7 +1849,7 @@ function renderOpenTrades() {
       tile("now", "MC zdaj", c && Number.isFinite(c.mcap) ? compact(c.mcap) : "-", live ? "posnetek " + new Date(c.time).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : c ? "zastarelo · " + new Date(c.time).toLocaleTimeString("sl-SI") : "ni podatkov"),
       tile("entry", "Vstop", Number.isFinite(t.entryMcap) ? compact(t.entryMcap) : money(t.entry), money(t.entry) + " / kovanec"),
       tile("target", L.targetLabel, c && Number.isFinite(L.targetValue) ? mcText(c, L.targetValue).replace("MC ", "") : money(L.targetValue), targetNote),
-      tile("stop", L.stopLabel, c ? mcText(c, t.stop).replace("MC ", "") : money(t.stop), toStop === null ? "" : pct1(toStop) + " do meje" + (L.trailing ? " · sledi vrhu" : "")),
+      tile("stop", L.stopLabel + (L.trailing ? " (sledi vrhu)" : ""), c ? mcText(c, t.stop).replace("MC ", "") : money(t.stop), toStop === null ? "" : pct1(toStop) + " do meje"),
     );
     card.append(stats);
     // trak: kje je cena med mejo (levo) in ciljem / vrhom (desno)
@@ -1908,7 +1944,7 @@ function renderProfile() {
     b.setAttribute("aria-checked", on ? "true" : "false");
   }
   $("#rulesSummary").textContent =
-    "Največ 5 odprtih poslov, en na kovanec. Vstop: pravila v1.0 (vzorci Odboj, Višje dno, Preboj/retest). Izstop za nove posle: profil " +
+    "Največ 5 odprtih poslov, en na kovanec. Vstop: vzorci v1.0 (Odboj, Višje dno, Preboj/retest) + filter v1.2 (starost 30 do 90 min, v zadnji uri ni v minusu, MC 20K do 300K). Izstop za nove posle: profil " +
     p.name +
     ". Odprti posli obdržijo profil, s katerim so bili odprti.";
   const box = $("#profileInfo");

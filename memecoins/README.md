@@ -33,6 +33,10 @@ Izvorna koda edge funkcij ni v tem repozitoriju (repo je javen, funkcija pa vseb
 4. Brskalnik ob odprtju naloži zadnjo uro posnetkov, potem vsakih 30 s samo nove vrstice. Pravila v1.0 za demo posle tečejo v brskalniku; odprte posle ob odprtju preigra po zgodovini s strežnika, zato osvežitev strani ne izgubi ničesar.
 5. Dnevnik in nastavitve gredo ob vsaki spremembi v `memecoin_state` (isti profil v vseh brskalnikih). localStorage je samo predpomnilnik.
 
+## Filter vstopov v1.2 (samodejni vstopi)
+
+Vzorci ostajajo v1.0, samodejni vstop pa gre samo v pare, ki so stari 30 do 90 min, v zadnji uri niso v minusu (DEX Screener `priceChange.h1 >= 0`) in imajo MC 20K do 300K $. Ročni vstop je dovoljen vedno. Razlog: na 161 demo poslih (16. do 17. 9. 2026) so bili vstopi zunaj teh mej v povprečju izgubni (starejši od 90 min: -8,6 % na posel; kovanec v minusu na 1 h: -10,9 % na posel), znotraj njih pa jasno dobičkonosni. Filter je v `app.mjs` (`entryFilter`, `FILTER`) in v senci (`filterV12` v shadow.ts, strategija `v1.2-filter`).
+
 ## Profili izstopa (Živi izbor > Profil izstopa)
 
 Vstopi so pri vseh profilih enaki (pravila v1.0 v `engine.mjs`), profil določa samo, kako se demo posel zapre. Definicije so v `engine.mjs` (`PROFILES`, `exitPlan`, `stepExit`), izbira se shrani v `memecoin_state.profile`. Vsak posel ob vstopu dobi svoj načrt (`plan`), zato sprememba profila ne vpliva na že odprte posle. Stari posli brez `plan` ostanejo na fiksnem cilju +10 % / meji -5 %.
@@ -51,12 +55,13 @@ Vstopi so pri vseh profilih enaki (pravila v1.0 v `engine.mjs`), profil določa 
 
 | Strategija | Izbor kovancev | Vstop | Izstop |
 | --- | --- | --- | --- |
-| `v1.0` | kot v aplikaciji (likvidnost nad 10K $) | vzorci Odboj, Višje dno, Preboj/retest | cilj +10 %, meja -5 % |
+| `v1.0` | likvidnost nad 10K $ | vzorci Odboj, Višje dno, Preboj/retest | cilj +10 %, meja -5 % |
+| `v1.2-filter` | kot v aplikaciji: likvidnost nad 10K $ + filter v1.2 (starost 30 do 90 min, 1 h ni v minusu, MC 20K do 300K) | vzorci v1.0 | profil Srednje: pol pri +25 %, meja na vstop, sledilna meja 20 % pod vrhom, trda meja -12 % |
 | `v2.0` | starost 5 do 90 min, MC 8K do 80K $, likvidnost nad 10K $ in vsaj 15 % MC, promet 5 min vsaj 20 % likvidnosti, vsaj 15 nakupov, nakupi/prodaje vsaj 1,2, sprememba 1 h do +150 % | vrnitev po padcu 35 do 55 % s prejšnjega vrha (rast pred tem vsaj 40 %), največ 12 % nad dnom, zadnji posnetek višji od prejšnjega; preverjanje imetnikov (top 10 do 30 %, največji do 8 %, brez grozdov) | rug izhod (likvidnost -25 % v 5 min ali prodaje 2x nakupi), pol prodaje pri +25 % in nato meja na vstopu, sledilna meja 20 % pod vrhom, meja izgube -12 %, časovna meja 15 min če vrh pod +8 % |
 | `v2.0-brez-holderjev` | kot v2.0 | kot v2.0 brez preverjanja imetnikov | kot v2.0 |
 | `v2.1-preboj` | kot v2.0 | preboj 15-minutnega vrha za 3 do 10 % ob nakupi/prodaje vsaj 1,5 in prometu vsaj 30 % likvidnosti | kot v2.0 |
 
-Skupno za vse: vložek 0,07 SOL na posel, portfelj 0,3 SOL, stroški 1,5 % zdrsa in 1 % provizije na vsaki strani plus 0,00001 SOL, največ 3 odprti posli (v1.0: 5), en posel na kovanec, 30 min premora po zaprtju istega kovanca, dnevna zavora (ustavi se pri -15 % portfelja ali treh zaporednih mejah izgube), zaprtje "Vrzel podatkov" če para ni v posnetkih več kot 75 s.
+Skupno za vse: vložek 0,07 SOL na posel, portfelj 0,3 SOL, stroški 1,5 % zdrsa in 1 % provizije na vsaki strani plus 0,00001 SOL, en posel na kovanec, zaprtje "Vrzel podatkov" če para ni v posnetkih več kot 75 s. Samo v2.x: največ 3 odprti posli (v1.x: 5), 30 min premora po zaprtju istega kovanca, dnevna zavora pri -15 % portfelja in 60 min premora po treh zaporednih mejah izgube. Preverjanje imetnikov (v2.0, v2.1) gre prek javnih RPC (mainnet-beta, publicnode, drpc); če vsi odpovejo, vstop ni blokiran, posel pa ima v `checks.holders.error` zabeleženo napako.
 
 Kriteriji za preklop aplikacije na nova pravila: vsaj 100 zaključenih poslov ali 14 dni, faktor dobička nad 1,3, pričakovanje nad +2 % na posel. Med testom se pravila ne spreminjajo.
 

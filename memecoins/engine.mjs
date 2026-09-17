@@ -72,7 +72,7 @@ export function profileOf(t){return t?.plan?PROFILES[t.profile]||null:null;}
 // Začetne ravni za nov posel po profilu (stari posli brez t.plan ostanejo na fiksnem cilju +10 % / meji -5 %).
 export function exitPlan(profileKey,entry){
  const p=PROFILES[profileKey]||PROFILES[DEFAULT_PROFILE];
- return {profile:p.key,plan:{halfAt:p.halfAt,trail:p.trail,hardStop:p.hardStop},stop:entry*(1-p.hardStop),target:p.halfAt?entry*(1+p.halfAt):null,peak:entry,halfSold:false,ruleVersion:'1.1'};
+ return {profile:p.key,plan:{halfAt:p.halfAt,trail:p.trail,hardStop:p.hardStop},stop:entry*(1-p.hardStop),target:p.halfAt?entry*(1+p.halfAt):null,peak:entry,halfSold:false,ruleVersion:'1.2'};
 }
 // En korak izstopne logike za en nov posnetek. Vrne besedilo razloga, če se posel zapre, sicer null.
 export function stepExit(t,price){
