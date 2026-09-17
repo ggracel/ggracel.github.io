@@ -44,7 +44,7 @@ const gate=document.getElementById('loginGate'),msg=document.getElementById('log
 window.memecoinsClient=sb;
 window.memecoinsSession=async()=>{const {data}=await sb.auth.getSession();return data.session;};
 window.memecoinsDenied=async()=>{await sb.auth.signOut();sessionStorage.setItem('memecoins-denied','1');location.reload();};
-async function start(){if(started)return;started=true;gate.hidden=true;document.getElementById('logout').hidden=false;await import('./app.mjs?v=5');}
+async function start(){if(started)return;started=true;gate.hidden=true;document.getElementById('logout').hidden=false;await import('./app.mjs?v=6');}
 document.getElementById('loginBtn').onclick=async()=>{const email=document.getElementById('loginEmail').value.trim(),pass=document.getElementById('loginPass').value;if(!email||!pass){msg.textContent='Vpiši email in geslo.';return;}msg.textContent='Prijavljam ...';const {error}=await sb.auth.signInWithPassword({email,password:pass});if(error){msg.textContent='Prijava ni uspela: '+error.message;return;}start();};
 document.getElementById('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('loginBtn').click();});
 document.getElementById('logout').onclick=async()=>{await sb.auth.signOut();location.reload();};

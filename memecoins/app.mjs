@@ -447,15 +447,27 @@ function coinFromRow(r, history) {
     history,
   };
 }
+// Supabase vrne največ 1000 vrstic na klic, zato beremo po straneh (urejeno po t in pair, da so strani stabilne).
+const PAGE = 1000;
+async function pagedRows(build, maxPages = 8) {
+  const all = [];
+  for (let page = 0; page < maxPages; page++) {
+    const { data, error } = await build().range(page * PAGE, page * PAGE + PAGE - 1);
+    if (error) throw error;
+    all.push(...(data || []));
+    if (!data || data.length < PAGE) break;
+  }
+  return all;
+}
 async function fetchRows(sinceMs) {
-  const { data, error } = await db
-    .from("memecoin_snapshots")
-    .select("pair,t,token,symbol,name,price,mcap,liquidity,volume5m,pair_created_ms,image,url")
-    .gt("t", new Date(sinceMs).toISOString())
-    .order("t", { ascending: true })
-    .limit(5000);
-  if (error) throw error;
-  return data || [];
+  return pagedRows(() =>
+    db
+      .from("memecoin_snapshots")
+      .select("pair,t,token,symbol,name,price,mcap,liquidity,volume5m,pair_created_ms,image,url")
+      .gt("t", new Date(sinceMs).toISOString())
+      .order("t", { ascending: true })
+      .order("pair", { ascending: true }),
+  );
 }
 // Pravila za en nov posnetek kovanca c ob času tm: zapiranje odprtih poslov, samodejni vstop, opozorila.
 function applyTradeLogic(c, tm) {
@@ -489,16 +501,11 @@ async function reconcileOpenTrades() {
   for (const t of trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && !t.practice)) {
     try {
       const from = t.lastObserved || t.opened;
-      const { data, error } = await db
-        .from("memecoin_snapshots")
-        .select("t,price")
-        .eq("pair", t.id)
-        .gt("t", new Date(from).toISOString())
-        .order("t", { ascending: true })
-        .limit(5000);
-      if (error) throw error;
+      const data = await pagedRows(() =>
+        db.from("memecoin_snapshots").select("t,price").eq("pair", t.id).gt("t", new Date(from).toISOString()).order("t", { ascending: true }),
+      );
       let prev = from;
-      for (const r of data || []) {
+      for (const r of data) {
         const tm = new Date(r.t).getTime();
         if (tm - prev > 75000) {
           interruptTrade(t, "Strežnik za ta par ni imel podatkov več kot 75 sekund");
@@ -1410,7 +1417,7 @@ function renderBoardGraph() {
 const SHADOW_STRATEGIES = ["v1.0", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj"];
 const SHADOW_LABEL = { "v1.0": "v1.0 (trenutna)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj" };
 const SHADOW_COLOR = { "v1.0": "#9fb0c8", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff" };
-const SHADOW_START = Date.parse("2026-09-16T20:07:00Z"); // zagon senčnega testa (collect v2)
+const SHADOW_START = Date.parse("2026-09-17T06:44:00Z"); // zagon senčnega testa (collect v3, prvi senčni posel)
 const SHADOW_MIN_TRADES = 100,
   SHADOW_MIN_DAYS = 14,
   SHADOW_MIN_PF = 1.3,
@@ -1496,7 +1503,7 @@ function renderComparison() {
   } else if (!total) {
     statusEl.className = "notice";
     statusEl.textContent =
-      "Senčni test teče od 16. 9. 2026 (dan " +
+      "Senčni test teče od 17. 9. 2026 (dan " +
       Math.max(1, Math.ceil(daysRun)) +
       " od " +
       SHADOW_MIN_DAYS +
@@ -1504,7 +1511,7 @@ function renderComparison() {
   } else {
     statusEl.className = "notice connected";
     statusEl.textContent =
-      "Senčni test teče od 16. 9. 2026 · dan " +
+      "Senčni test teče od 17. 9. 2026 · dan " +
       Math.max(1, Math.ceil(daysRun)) +
       " od " +
       SHADOW_MIN_DAYS +
