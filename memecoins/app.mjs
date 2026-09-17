@@ -897,12 +897,14 @@ $("#auto").onchange = () => {
 
 $("#watch").onclick = () => navigate("watching", "live");
 let watchSignature = "",
-  showAllColumns = false;
+  showAllColumns = false,
+  waitOpen = new Map(); // pair -> true/false (ročno odprt/zaprt graf); privzeto so odprti prvi štirje
 function watching() {
   const signature = JSON.stringify([
     [...coins.values()].map((c) => [c.id, c.time, fresh(c)]),
     healthy,
     showAllColumns,
+    [...waitOpen.entries()],
     $("#boardFilter").value,
     $("#auto").checked,
     trades.map((t) => [t.key, t.closed, t.interrupted, t.signalAt]),
@@ -910,44 +912,142 @@ function watching() {
   if (signature === watchSignature) return;
   watchSignature = signature;
   const host = $("#watchCards");
-  const top = $("#watchTop");
-  const expanded = new Set([...document.querySelectorAll("#watchCards details[open], #watchTop details[open]")].map((d) => d.dataset.id));
+  const expanded = new Set([...document.querySelectorAll("#watchCards details[open], #waitCards details[open]")].map((d) => d.dataset.id));
   host.replaceChildren();
-  top.replaceChildren();
   $("#watchStatus").textContent =
     `Posodobitev pogleda: ${time(Date.now())}. Zadnji prejem vira: ${last ? time(last) : "še čakamo"}. Samodejni demo vstopi: ${$("#auto").checked ? "vključeni" : "izključeni"}.`;
+  const collectRow = $("#collectRow"),
+    chips = $("#collectChips"),
+    waitCards = $("#waitCards"),
+    waitEmpty = $("#waitEmpty");
+  chips.replaceChildren();
+  waitCards.replaceChildren();
   if (!coins.size) {
-    $("#watchEmpty").textContent = "Še ni kandidatov. Počakaj na povezavo .";
-    host.textContent = "Še ni kandidatov. Vir morda še nalaga podatke ali ni dosegljiv. Poskusi Živi izbor → Osveži .";
+    $("#watchEmpty").textContent = "Še ni kandidatov. Počakaj na povezavo.";
+    host.textContent = "Še ni kandidatov. Vir morda še nalaga podatke ali ni dosegljiv. Poskusi Živi izbor > Osveži.";
+    collectRow.hidden = true;
+    waitEmpty.hidden = false;
+    waitEmpty.textContent = "Še ni podatkov.";
+    $("#waitCount").textContent = "0";
     return;
   }
   const ranked = [...coins.values()].map((c) => ({ c, ...cardState(c) })).sort((a, b) => b.rank - a.rank || a.c.id.localeCompare(b.c.id));
   const filtered = ranked.filter((x) => $("#boardFilter").value !== "fresh" || fresh(x.c));
-  const columns = new Map();
-  const chosen = [];
   const hiddenCount = filtered.filter((x) => boardColumn(x) === "Brez signala").length;
-  for (const title of ["Zbiranje podatkov", "Čakanje na vstop"]) {
-    const items = filtered.filter((x) => boardColumn(x) === title);
-    const col = document.createElement("section");
-    col.className = "boardColumn";
-    const h = document.createElement("h3");
-    h.textContent = title + " · " + items.length;
-    col.append(h);
-    if (!items.length) {
-      const p = document.createElement("p");
-      p.className = "muted";
-      p.textContent = "Trenutno ni kovancev.";
-      col.append(p);
-    }
-    columns.set(title, col);
-    top.append(col);
-    chosen.push(...items.slice(0, showAllColumns ? items.length : 3));
+  // 1) Zbiranje podatkov: čipi z napredkom
+  const collecting = filtered.filter((x) => x.collect);
+  collectRow.hidden = !collecting.length;
+  $("#collectCount").textContent = collecting.length;
+  for (const { c } of collecting) {
+    const chip = document.createElement("span");
+    const b = document.createElement("b");
+    b.textContent = c.symbol;
+    const bar = document.createElement("i");
+    const fill = document.createElement("em");
+    fill.style.width = Math.min(100, (c.history.length / 16) * 100) + "%";
+    bar.append(fill);
+    chip.append(b, document.createTextNode(" " + Math.min(c.history.length, 16) + "/16 · MC " + compact(c.mcap) + " · " + age(c.created) + " "), bar);
+    chip.title = "Poglej graf";
+    chip.style.cursor = "pointer";
+    chip.onclick = () => openBoardGraph(c.id);
+    chips.append(chip);
   }
+  // 2) Čakanje na vstop: kartice z grafom (podpora, odpor, vstopna točka)
+  const waiting = filtered.filter((x) => boardColumn(x) === "Čakanje na vstop");
+  $("#waitCount").textContent = waiting.length;
+  waitEmpty.hidden = !!waiting.length;
+  waitEmpty.textContent = "Trenutno noben kovanec ne čaka na vstop. Bot zbira podatke ali pa nobeden ne gre skozi filtre.";
+  const shown = showAllColumns ? waiting : waiting.slice(0, 6);
+  $("#boardMore").hidden = waiting.length <= 6;
+  $("#boardMore").textContent = showAllColumns ? "Pokaži manj" : "Pokaži vseh " + waiting.length;
+  shown.forEach((state, idx) => {
+    const c = state.c;
+    const ep = fresh(c) && c.history.length >= 16 ? entryPoint(c.history) : null;
+    const isOpen = waitOpen.has(c.id) ? waitOpen.get(c.id) : idx < 4;
+    const card = document.createElement("article");
+    card.className = "waitCard" + (ep?.state === "signal" ? " signal" : ep?.state === "ready" ? " ready" : "");
+    const head = document.createElement("div");
+    head.className = "wcHead";
+    const left = document.createElement("div");
+    const h = document.createElement("h3");
+    h.textContent = c.symbol;
+    const meta = document.createElement("small");
+    meta.className = "wcMeta";
+    meta.textContent = (Number.isFinite(c.mcap) ? "MC " + compact(c.mcap) : money(c.price)) + " · " + age(c.created) + " · likv. " + compact(c.liquidity) + (Number.isFinite(c.change1h) ? " · 1 h " + pct1(c.change1h) : "");
+    left.append(h, meta);
+    const st = document.createElement("div");
+    st.className = "wcState";
+    st.textContent = state.title;
+    head.append(left, st);
+    card.append(head);
+    const line = document.createElement("p");
+    line.className = "entryLine" + (ep?.state === "ready" || ep?.state === "signal" ? " ready" : "");
+    line.textContent =
+      ep?.state === "signal"
+        ? "Vzorec " + ep.pattern + " je izpolnjen pri " + mcText(c, ep.price) + ". " + ($("#auto").checked ? "Samodejni vstop se sproži ob tem prejemu." : "Samodejni vstopi so izključeni.")
+        : ep?.state === "ready"
+          ? "Vstop, če naslednja cena preseže " + mcText(c, ep.price) + " (" + ep.pattern + "). Zdaj " + mcText(c, ep.last) + "."
+          : ep?.state === "waiting"
+            ? "Najbližje: " + ep.pattern + ". Manjka: " + ep.missing.join("; ") + "."
+            : state.reason;
+    card.append(line);
+    if (isOpen) {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("class", "chart");
+      svg.setAttribute("viewBox", "0 0 700 230");
+      svg.setAttribute("role", "img");
+      svg.setAttribute("aria-label", "Cena " + c.symbol + " s podporo, odporom in vstopno točko");
+      const legend = document.createElement("div");
+      legend.className = "legend";
+      card.append(svg, legend);
+      chart(c, svg, legend);
+      const det = document.createElement("details");
+      det.dataset.id = "wait-" + c.id;
+      det.open = expanded.has(det.dataset.id);
+      const sum = document.createElement("summary");
+      sum.textContent = "Kaj bot preverja (✓ izpolnjeno / ○ čaka)";
+      det.append(sum);
+      const cond = document.createElement("div");
+      cond.className = "conditions";
+      cond.id = "cond-" + c.id;
+      det.append(cond);
+      card.append(det);
+    }
+    const foot = document.createElement("div");
+    foot.className = "wcFoot";
+    const toggle = document.createElement("button");
+    toggle.className = "ghost";
+    toggle.textContent = isOpen ? "Skrij graf" : "Pokaži graf";
+    toggle.onclick = () => {
+      waitOpen.set(c.id, !isOpen);
+      watching();
+    };
+    const manual = document.createElement("button");
+    manual.className = "primary";
+    manual.textContent = "Ročni demo vstop";
+    manual.disabled = !!manualBlock(c);
+    manual.title = manualBlock(c) || "Vstop po trenutni ceni z izbranim profilom";
+    const fb = document.createElement("small");
+    fb.className = "muted";
+    fb.id = "wfb-" + c.id;
+    manual.onclick = () => manualEntry(c, "#wfb-" + CSS.escape(c.id));
+    const link = document.createElement("a");
+    link.href = "https://dexscreener.com/solana/" + c.id;
+    link.target = "_blank";
+    link.rel = "noreferrer";
+    link.textContent = "DEX Screener";
+    link.className = "linkBtn";
+    foot.append(toggle, manual, link, fb);
+    card.append(foot);
+    waitCards.append(card);
+    if (isOpen) renderConditions(c, "#cond-" + CSS.escape(c.id));
+  });
   $("#watchEmpty").textContent =
     (ranked.some((x) => x.rank >= 10)
       ? "Kartice se ob novih podatkih samodejno premaknejo. Razvrstitev ni ocena dobička."
       : "Trenutno ni kandidata za vstop. Program zbira podatke ali čaka na izpolnjene filtre.") +
     (hiddenCount ? " Skritih " + hiddenCount + " kovancev brez signala (brez svežih podatkov, prenizka likvidnost ali izven filtra); vsi so v seznamu spodaj." : "");
+  // 3) Podroben seznam vseh kandidatov (razpirljiv, na dnu)
   for (const { c } of ranked) {
     const d = document.createElement("details");
     d.dataset.id = c.id;
@@ -965,100 +1065,25 @@ function watching() {
     add("Kovanec: " + c.token + " · par: " + c.id);
     add("Zadnji prejem: " + time(c.time) + " · " + Math.min(c.history.length, 16) + "/16 potrebnih posnetkov.");
     add((fresh(c) ? "Izpolnjeno: " : "Manjka: ") + "svež odgovor vira (manj kot 75 sekund). Dejanska zakasnitev ponudnika ni znana.");
-    add(
-      (c.liquidity >= 10000 ? "Izpolnjeno: " : "Manjka: ") +
-        "vsaj 10.000 USD likvidnosti; trenutno " +
-        money(c.liquidity) +
-        ". Likvidnost pomeni sredstva v trgovalnem paru.",
-    );
+    add((c.liquidity >= 10000 ? "Izpolnjeno: " : "Manjka: ") + "vsaj 10.000 USD likvidnosti; trenutno " + money(c.liquidity) + ". Likvidnost pomeni sredstva v trgovalnem paru.");
     add((c.volume > 0 ? "Izpolnjeno: " : "Manjka: ") + "pozitiven promet v zadnjih 5 minutah; trenutno " + money(c.volume) + ".");
+    const blocked = entryFilter(c);
+    add((blocked ? "Manjka: " : "Izpolnjeno: ") + "filter vstopov v1.2" + (blocked ? " (" + blocked + ")" : "") + ".");
     if (sig.checks) {
-      add(
-        "Podpora: " +
-          money(sig.levels.support) +
-          " · Odpor: " +
-          money(sig.levels.resistance) +
-          ". To sta najnižja in najvišja cena prvih desetih od zadnjih 16 posnetkov.",
-      );
       for (const group of sig.checks) {
         const h = document.createElement("h3");
         h.textContent = group.name;
         d.append(h);
         for (const item of group.items) add((item.ok ? "Izpolnjeno: " : "Manjka: ") + item.label);
       }
-    } else
-      add("Cenovnih vzorcev trenutno ne preverjamo: najprej morajo biti izpolnjeni zgornji filtri in zbranih 16 neprekinjenih posnetkov.");
+    } else add("Cenovnih vzorcev trenutno ne preverjamo: najprej morajo biti izpolnjeni zgornji filtri in zbranih 16 neprekinjenih posnetkov.");
     const open = trades.find((t) => !t.deletedAt && !t.interrupted && !t.closed && t.id === c.id);
-    if (open)
-      add(
-        `Demo že odprt: ${open.reason}, ${time(open.opened)} (${open.automatic ? "samodejno" : "ročno"}). ${open.interrupted ? "Spremljanje je bilo prekinjeno; izid v vrzeli je neznan." : "Čakamo na cilj ali mejo izgube."}`,
-      );
-    else if (!sig.signal) add("Brez demo vstopa: vzorec ali podatkovni pogoji še niso izpolnjeni.");
-    else if (!$("#auto").checked) add("Vzorec je izpolnjen. Samodejni demo vstopi so izključeni; možen je ročni pregled na grafu.");
-    else if (trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && !t.practice).length >= 5)
-      add("Samodejni demo čaka: odprtih je že pet poslov.");
-    else add("Pogoji za samodejni demo so izpolnjeni. Ponovno jih preverimo ob naslednjem prejemu podatkov.");
+    if (open) add(`Demo že odprt: ${open.reason}, ${time(open.opened)} (${open.automatic ? "samodejno" : "ročno"}).`);
     const b = document.createElement("button");
     b.textContent = "Poglej cenovni graf";
     b.onclick = () => openBoardGraph(c.id);
     d.append(b);
     host.append(d);
-    const state = chosen.find((x) => x.c.id === c.id);
-    if (state && !state.open) {
-      const card = document.createElement("article");
-      const h = document.createElement("h3");
-      h.textContent = c.symbol;
-      card.append(h);
-      const title = document.createElement("strong");
-      title.textContent = state.title;
-      card.append(title);
-      const mcLine = document.createElement("p");
-      mcLine.className = "cardMc";
-      mcLine.textContent = (Number.isFinite(c.mcap) ? "MC " + compact(c.mcap) : money(c.price)) + " · " + age(c.created) + " · likv. " + compact(c.liquidity);
-      card.append(mcLine);
-      const reason = document.createElement("p");
-      reason.textContent = state.reason;
-      card.append(reason);
-      if (!state.open && !state.collect && fresh(c) && c.history.length >= 16 && c.liquidity >= 10000 && c.volume > 0) {
-        const ep = entryPoint(c.history);
-        const e = document.createElement("p");
-        e.className = "cardEntry";
-        e.textContent =
-          ep.state === "ready"
-            ? "Vstop, če naslednja cena > " + mcText(c, ep.price) + " (" + ep.pattern + ")"
-            : ep.state === "signal"
-              ? "Vzorec izpolnjen: " + ep.pattern
-              : ep.state === "waiting"
-                ? "Manjka: " + ep.missing[0]
-                : "";
-        if (e.textContent) card.append(e);
-      }
-      if (state.collect) {
-        const bar = document.createElement("progress");
-        bar.max = 16;
-        bar.value = Math.min(c.history.length, 16);
-        bar.setAttribute("aria-label", "Napredek zbiranja");
-        card.append(bar);
-      }
-      const action = document.createElement("button");
-      action.textContent = state.open ? "Poglej demo posel" : "Poglej graf";
-      action.onclick = () => {
-        if (state.open) navigate("journal", "live");
-        else openBoardGraph(c.id);
-      };
-      card.append(action);
-      const more = document.createElement("details");
-      more.dataset.id = "top-" + c.id;
-      more.open = expanded.has(more.dataset.id);
-      const label = document.createElement("summary");
-      label.textContent = "Podrobnosti";
-      more.append(label);
-      for (const child of d.children) {
-        if (child.tagName !== "SUMMARY" && child.tagName !== "BUTTON") more.append(child.cloneNode(true));
-      }
-      card.append(more);
-      columns.get(boardColumn(state)).append(card);
-    }
   }
 }
 
