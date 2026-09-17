@@ -60,6 +60,7 @@ try {
 // Dnevnik in nastavitve so na profilu (Supabase tabela memecoin_state, vsak uporabnik samo svojo vrstico).
 // Brskalnik je samo predpomnilnik: ob prijavi naložimo profil, vsaka sprememba gre nazaj gor.
 const db = window.memecoinsClient || null;
+const OWNER_KEY = "solana-owner-v1";
 let remoteUser = null,
   remoteAuto = null,
   syncTimer = null;
@@ -77,6 +78,23 @@ async function loadRemote() {
     } = await db.auth.getUser();
     if (!user) return;
     remoteUser = user;
+    // Lokalni predpomnilnik velja samo, če pripada istemu računu. Če se je v tem brskalniku prijavil kdo drug
+    // (ali je predpomnilnik iz starejše različice brez lastnika), ga zavržemo in velja izključno profil.
+    let owner = null;
+    try {
+      owner = localStorage.getItem(OWNER_KEY);
+    } catch {}
+    const localTrusted = owner === user.id;
+    if (!localTrusted) {
+      trades = [];
+      stake = 0.1;
+      profile = DEFAULT_PROFILE;
+      try {
+        localStorage.setItem(OWNER_KEY, user.id);
+        localStorage.removeItem("solana-demo-v1");
+        localStorage.removeItem("solana-auto-v1");
+      } catch {}
+    }
     const { data, error } = await db.from("memecoin_state").select("trades,stake,auto_entries,profile,updated_at").eq("user_id", user.id).maybeSingle();
     if (error) throw error;
     const remote = Array.isArray(data?.trades) ? data.trades : [];

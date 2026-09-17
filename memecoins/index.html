@@ -44,7 +44,7 @@ const gate=document.getElementById('loginGate'),msg=document.getElementById('log
 window.memecoinsClient=sb;
 window.memecoinsSession=async()=>{const {data}=await sb.auth.getSession();return data.session;};
 window.memecoinsDenied=async()=>{await sb.auth.signOut();sessionStorage.setItem('memecoins-denied','1');location.reload();};
-async function start(){if(started)return;started=true;gate.hidden=true;document.getElementById('logout').hidden=false;await import('./app.mjs?v=14');}
+async function start(){if(started)return;started=true;gate.hidden=true;document.getElementById('logout').hidden=false;await import('./app.mjs?v=15');}
 const say=(text,cls)=>{msg.textContent=text;msg.className='muted '+(cls||'');};
 const creds=()=>({email:document.getElementById('loginEmail').value.trim(),pass:document.getElementById('loginPass').value});
 const prevod=(m)=>/invalid login credentials/i.test(m)?'napačen email ali geslo':/email not confirmed/i.test(m)?'email še ni potrjen, preveri pošto':/already registered/i.test(m)?'ta email je že registriran, uporabi Prijavo ali Pozabljeno geslo':/rate limit|too many/i.test(m)?'preveč poskusov, počakaj minuto':/password should be at least/i.test(m)?'geslo mora imeti vsaj 6 znakov':m;
@@ -54,7 +54,7 @@ document.getElementById('forgotBtn').onclick=async()=>{const {email}=creds();if(
 document.getElementById('setPassBtn').onclick=async()=>{const pass=document.getElementById('newPass').value;if(!pass||pass.length<6){say('Geslo mora imeti vsaj 6 znakov.','err');return;}say('Shranjujem ...');const {error}=await sb.auth.updateUser({password:pass});if(error){say('Ni uspelo: '+prevod(error.message),'err');return;}history.replaceState(null,'',location.pathname);say('Geslo je shranjeno. Prijavljen si.','ok');setTimeout(start,600);};
 document.getElementById('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('loginBtn').click();});
 document.getElementById('newPass').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('setPassBtn').click();});
-document.getElementById('logout').onclick=async()=>{await sb.auth.signOut();location.reload();};
+document.getElementById('logout').onclick=async()=>{try{for(const k of ['solana-demo-v1','solana-stake-v1','solana-auto-v1','solana-profile-v1','solana-owner-v1'])localStorage.removeItem(k);}catch{}await sb.auth.signOut();location.reload();};
 // Povezava iz e-pošte (pozabljeno geslo): Supabase vrne #access_token...&type=recovery in sproži PASSWORD_RECOVERY.
 const recoveryLink=/type=recovery/.test(location.hash);
 function showRecover(){gate.hidden=false;document.getElementById('authForm').hidden=true;document.getElementById('recoverForm').hidden=false;say('');}
