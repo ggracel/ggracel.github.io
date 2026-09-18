@@ -757,6 +757,7 @@ function navigate(v, m = mode) {
     );
   status();
   draw();
+  renderExportReminder();
 }
 $("#live").onclick = () => navigate("market", "live");
 $("#history").onclick = () => navigate("journal");
@@ -862,7 +863,7 @@ function journal() {
   $("#stats").textContent =
     `Živi demo: ${closed.length} zaključenih · povprečni dobitek ${avg(win)} SOL · povprečna izguba ${avg(loss)} SOL · povprečni neto posel ${avg(closed)} SOL · največji padec zaključenega stanja ${dd.toFixed(6)} SOL. Odprte izgube niso vključene v ta padec. Začetno virtualno stanje za to metriko: 0 SOL; brez omejenega demo proračuna. Učenje pravil še ni izvedeno.`;
 }
-$("#export").onclick = () => {
+function exportJournal() {
   const blob = new Blob(
     [
       JSON.stringify(
@@ -882,7 +883,33 @@ $("#export").onclick = () => {
   a.download = "demo-dnevnik.json";
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-};
+}
+for (const id of ["export", "cmpExport", "journalExport"]) {
+  const b = $("#" + id);
+  if (b) b.onclick = exportJournal;
+}
+
+// Opozorilo, da se bliža konec senčnega testa. Pokaže se 3 dni prej in odšteva.
+// Izvoza ne sprožimo sami, samo pokažemo gumb; klikne ga uporabnik.
+function renderExportReminder() {
+  const daysRun = (Date.now() - SHADOW_START) / 86400000;
+  const due = daysRun >= SHADOW_MIN_DAYS;
+  const show = daysRun >= SHADOW_MIN_DAYS - SHADOW_WARN_DAYS;
+  const left = Math.max(1, Math.ceil(SHADOW_MIN_DAYS - daysRun));
+  const dni = left === 1 ? "1 dan" : left === 2 ? "2 dneva" : left + " dni";
+  const text = due
+    ? "Senčni test je dopolnil " + SHADOW_MIN_DAYS + " dni. Čas za izvoz dnevnika in pošiljanje."
+    : "Senčni test se konča čez " + dni + ". Pripravi izvoz dnevnika za pošiljanje.";
+  for (const id of ["cmpExportNote", "journalExportNote"]) {
+    const el = $("#" + id);
+    if (!el) continue;
+    el.hidden = !show;
+    el.className = "notice exportNote" + (due ? " due" : "");
+    const span = el.querySelector("span");
+    if (span) span.textContent = text;
+  }
+}
+renderExportReminder();
 try {
   const saved = localStorage.getItem("solana-auto-v1");
   $("#auto").checked = saved === "on";
@@ -1635,7 +1662,12 @@ const SHADOW_START = Date.parse("2026-09-17T06:44:00Z"); // zagon senčnega test
 const SHADOW_MIN_TRADES = 100,
   SHADOW_MIN_DAYS = 14,
   SHADOW_MIN_PF = 1.3,
-  SHADOW_MIN_EXP = 2;
+  SHADOW_MIN_EXP = 2,
+  // Najmanj toliko zaključenih poslov, preden sploh izrečemo sodbo "pod ciljem".
+  // Brez tega bi na dan 14 vsa pravila padla, tudi tista s komaj nekaj posli.
+  SHADOW_MIN_JUDGE = 30,
+  // Koliko dni prej opozorimo, da se bliža konec testa.
+  SHADOW_WARN_DAYS = 3;
 let shadowTrades = [],
   shadowError = "",
   shadowBusy = false;
@@ -1707,6 +1739,7 @@ function shadowStats(list) {
 
 function renderComparison() {
   if ($("#comparison").hidden) return;
+  renderExportReminder();
   const daysRun = (Date.now() - SHADOW_START) / 86400000;
   const statusEl = $("#cmpStatus");
   const total = shadowTrades.length,
@@ -1744,7 +1777,7 @@ function renderComparison() {
     const st = stats.get(s);
     const tr = document.createElement("tr");
     if (s === lead && st.net > 0) tr.className = "lead";
-    const enough = st.closed.length >= SHADOW_MIN_TRADES || daysRun >= SHADOW_MIN_DAYS;
+    const enough = st.closed.length >= SHADOW_MIN_TRADES || (daysRun >= SHADOW_MIN_DAYS && st.closed.length >= SHADOW_MIN_JUDGE);
     const pfOk = st.pf !== null && st.pf > SHADOW_MIN_PF,
       expOk = st.expectancy !== null && st.expectancy > SHADOW_MIN_EXP;
     const ok = enough && pfOk && expOk;
@@ -1755,7 +1788,9 @@ function renderComparison() {
       : !st.closed.length
         ? "○ ni poslov"
         : !enough
-          ? "○ " + st.closed.length + "/" + SHADOW_MIN_TRADES + " poslov" + (pfOk && expOk ? " (vmes v redu)" : "")
+          ? daysRun >= SHADOW_MIN_DAYS
+            ? "○ " + st.closed.length + " poslov v " + SHADOW_MIN_DAYS + " dneh, premalo za sodbo"
+            : "○ " + st.closed.length + "/" + SHADOW_MIN_TRADES + " poslov" + (pfOk && expOk ? " (vmes v redu)" : "")
           : "✗ " + [!pfOk ? "faktor" : "", !expOk ? "pričakovanje" : ""].filter(Boolean).join(" in ") + " pod ciljem";
     const cells = [
       SHADOW_LABEL[s],
