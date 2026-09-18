@@ -41,13 +41,13 @@ Vzorci ostajajo v1.0, samodejni vstop pa gre samo v pare, ki so stari 30 do 90 m
 
 Vstopi so pri vseh profilih enaki (pravila v1.0 v `engine.mjs`), profil določa samo, kako se demo posel zapre. Definicije so v `engine.mjs` (`PROFILES`, `exitPlan`, `stepExit`), izbira se shrani v `memecoin_state.profile`. Vsak posel ob vstopu dobi svoj načrt (`plan`), zato sprememba profila ne vpliva na že odprte posle. Stari posli brez `plan` ostanejo na fiksnem cilju +10 % / meji -5 %.
 
-| Profil | Delna prodaja | Sledilna meja | Trda meja |
-| --- | --- | --- | --- |
-| Varen | pol pri +20 %, meja na vstop | 15 % pod vrhom | -8 % |
-| Srednje (privzeto) | pol pri +25 %, meja na vstop | 20 % pod vrhom | -12 % |
-| Agresivno | brez | 20 % pod vrhom od začetka | -10 % |
+| Profil | Delna prodaja | Sledilna meja | Trda meja | Izmerjeno na posel |
+| --- | --- | --- | --- | --- |
+| Varen | pol pri +15 %, meja na vstop | 12 % pod vrhom | -8 % | -3,3 % |
+| Srednje (privzeto) | pol pri +20 %, meja na vstop | 15 % pod vrhom | -12 % | -4,1 % |
+| Agresivno | brez | 20 % pod vrhom od začetka | -10 % | -3,9 % |
 
-Številke v razlagi (dobitni posli, povprečen dobiček/izguba, na posel) so iz simulacije na 123 demo poslih 16. do 17. 9. 2026 (`memecoins-research/exits/sim.py` v Claude seji); so optimistične, ker so pravila izbrana na istih podatkih.
+Številke so iz simulacije na 616 resničnih poslih (senčni posli v1.0 in v1.2, 17. do 18. 9. 2026), s stroški 1 % zdrsa in 0,5 % provizije na stran. **Vsi trije profili so v minusu.** Preizkušenih je bilo še enajst drugih kombinacij cilja, sledilne meje in trde meje; najboljša je bila -3,3 % na posel, nobena ni pozitivna. Pri Agresivnem je bila različica z delno prodajo pri +30 % slabša (-4,6 %) od sedanje brez delne prodaje, ker odreže redke velike skoke. Zaključek: prednosti ni v izstopu, ampak v vstopu.
 
 ## Senčni test (zavihek Primerjava)
 

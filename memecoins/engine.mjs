@@ -57,18 +57,18 @@ export function entryPoint(points,now=Date.now()){
 // halfAt: pri tem dobičku proda polovico in premakne mejo na vstop; trail: ostanek proda, ko cena pade toliko s svojega vrha;
 // hardStop: trda meja, dokler sledilna meja ni višja. Številke "na tvojih poslih" so iz 123 demo poslov 16. do 17. 9. 2026.
 export const PROFILES={
- varen:{key:'varen',name:'Varen',halfAt:0.20,trail:0.15,hardStop:0.08,tagline:'Manjše izgube, dobiček pobere zgodaj.',
-  how:'Ko je posel +20 %, proda polovico in premakne mejo na vstopno ceno (od tu naprej ta posel ne more več končati v izgubi). Drugo polovico pusti teči in jo proda, ko cena pade 15 % s svojega vrha. Če gre cena takoj navzdol, zapre pri -8 %.',
-  who:'Zate, če hočeš čim manj hudih izgub in ti je bolj važno, da dobiček pobereš, kot da ujameš velik skok.',
-  stats:{win:33,avgWin:34,avgLoss:-14,perTrade:1.7}},
- srednje:{key:'srednje',name:'Srednje',halfAt:0.25,trail:0.20,hardStop:0.12,tagline:'Ravnotežje. Isti izstop, kot ga senca testira pri v2.0.',
-  how:'Ko je posel +25 %, proda polovico in premakne mejo na vstopno ceno. Drugo polovico proda, ko cena pade 20 % s svojega vrha. Če gre cena takoj navzdol, zapre pri -12 %.',
-  who:'Zate, če hočeš pustiti dobitnikom nekaj prostora, ampak vseeno zakleniti del dobička, ko pride. Na tvojih dosedanjih poslih je dal najboljši rezultat.',
-  stats:{win:37,avgWin:41,avgLoss:-18,perTrade:3.8}},
+ varen:{key:'varen',name:'Varen',halfAt:0.15,trail:0.12,hardStop:0.08,tagline:'Najmanj slab od treh. Dobiček pobere zgodaj.',
+  how:'Ko je posel +15 %, proda polovico in premakne mejo na vstopno ceno (od tu naprej ta posel ne more več končati v izgubi). Drugo polovico proda, ko cena pade 12 % s svojega vrha. Če gre cena takoj navzdol, zapre pri -8 %.',
+  who:'Zate, če hočeš čim manj hudih izgub. Na izmerjenih poslih je to najmanj slaba od treh možnosti, ampak še vedno v minusu.',
+  stats:{win:36,avgWin:20.0,avgLoss:-16.4,perTrade:-3.31}},
+ srednje:{key:'srednje',name:'Srednje',halfAt:0.20,trail:0.15,hardStop:0.12,tagline:'Vmesna pot. Malo več prostora dobitnikom.',
+  how:'Ko je posel +20 %, proda polovico in premakne mejo na vstopno ceno. Drugo polovico proda, ko cena pade 15 % s svojega vrha. Če gre cena takoj navzdol, zapre pri -12 %.',
+  who:'Zate, če hočeš pustiti dobitnikom nekaj prostora in vseeno zakleniti del dobička, ko pride.',
+  stats:{win:36,avgWin:23.2,avgLoss:-19.3,perTrade:-4.06}},
  agresivno:{key:'agresivno',name:'Agresivno',halfAt:null,trail:0.20,hardStop:0.10,tagline:'Redki, a veliki dobitki. Večji nihaji.',
   how:'Ne prodaja po delih. Drži celoten posel, dokler cena ne pade 20 % s svojega vrha, in šele takrat proda vse. Če gre cena takoj navzdol, zapre pri -10 %.',
-  who:'Zate, če ti ne bo težko gledati, da je večina poslov izgubnih (le okoli četrtina je dobitnih), ker so dobitniki veliki. Dnevni rezultat bolj niha.',
-  stats:{win:24,avgWin:55,avgLoss:-14,perTrade:2.6}}
+  who:'Zate, če ti ne bo težko gledati, da je večina poslov izgubnih (le okoli četrtina je dobitnih), ker so dobitniki veliki. Preizkusil sem tudi različico z delno prodajo pri +30 % in je bila slabša, ker odreže prav tiste redke velike skoke, ki edini kaj prinesejo.',
+  stats:{win:27,avgWin:32.2,avgLoss:-17.0,perTrade:-3.89}}
 };
 export const DEFAULT_PROFILE='srednje';
 export function profileOf(t){return t?.plan?PROFILES[t.profile]||null:null;}

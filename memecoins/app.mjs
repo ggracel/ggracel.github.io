@@ -4,7 +4,7 @@ const HISTORY_MIN = 60;
 let lastSnapshotT = 0,
   primed = false,
   noData = false;
-import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint, PROFILES, DEFAULT_PROFILE, exitPlan, stepExit, markToMarket } from "./engine.mjs?v=7";
+import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint, PROFILES, DEFAULT_PROFILE, exitPlan, stepExit, markToMarket } from "./engine.mjs?v=8";
 const $ = (s) => document.querySelector(s),
   money = (x) =>
     Number.isFinite(x)
@@ -2112,8 +2112,8 @@ function renderProfile() {
   const grid = mk("div", "pStats");
   for (const [label, value, cls] of [
     ["Dobitni posli", p.stats.win + " %", ""],
-    ["Povp. dobiček", "+" + p.stats.avgWin + " %", "positive"],
-    ["Povp. izguba", p.stats.avgLoss + " %", "negative"],
+    ["Povp. dobiček", pct1(p.stats.avgWin), "positive"],
+    ["Povp. izguba", pct1(p.stats.avgLoss), "negative"],
     ["Na posel", pct1(p.stats.perTrade), p.stats.perTrade > 0 ? "positive" : "negative"],
   ]) {
     const d = mk("div");
@@ -2121,7 +2121,7 @@ function renderProfile() {
     grid.append(d);
   }
   left.append(grid);
-  left.append(mk("p", "note", "Številke: 123 tvojih demo poslov (16. do 17. 9. 2026) z istimi vstopi, odigrani s tem profilom, stroški 1 % zdrsa + 0,5 % provizije na stran. En dan podatkov, zato so optimistične; senčni test jih bo preveril."));
+  left.append(mk("p", "note", "Številke so izmerjene na 616 resničnih poslih (17. do 18. 9. 2026), odigranih s tem profilom, s stroški 1 % zdrsa in 0,5 % provizije na stran. Vsi trije profili so v minusu: profil izbere samo, kako hitro izgubljaš, ne ali izgubljaš."));
   const right = mk("div");
   right.append(mk("h4", "", "Vsi trije na istih poslih"));
   const table = mk("table");
@@ -2133,12 +2133,12 @@ function renderProfile() {
   const tb = mk("tbody");
   for (const q of Object.values(PROFILES)) {
     const tr = mk("tr", q.key === p.key ? "current" : "");
-    tr.append(mk("td", "", q.name), mk("td", "", q.stats.win + " %"), mk("td", "positive", "+" + q.stats.avgWin + " %"), mk("td", "negative", q.stats.avgLoss + " %"), mk("td", q.stats.perTrade > 0 ? "positive" : "negative", pct1(q.stats.perTrade)));
+    tr.append(mk("td", "", q.name), mk("td", "", q.stats.win + " %"), mk("td", "positive", pct1(q.stats.avgWin)), mk("td", "negative", pct1(q.stats.avgLoss)), mk("td", q.stats.perTrade > 0 ? "positive" : "negative", pct1(q.stats.perTrade)));
     tb.append(tr);
   }
   table.append(tb);
   right.append(table);
-  right.append(mk("p", "note", "Za primerjavo: dosedanji fiksni cilj +10 % / meja -5 % je na istih poslih dal 42 % dobitnih, +17 % / -13 %, -0,5 % na posel. Meja -5 % je v resnici izstopila povprečno pri -11 %, ker cena med posnetkoma preskoči."));
+  right.append(mk("p", "note", "Za primerjavo: prvotni fiksni cilj +10 % / meja -5 % je na istih poslih dal -4,5 % na posel. Preizkusil sem še enajst drugih kombinacij cilja in meje; najboljša je bila -3,3 % na posel. Nobena ni pozitivna, ker prednosti ni v izstopu, ampak v vstopu."));
   right.append(mk("p", "note", "Vstopi so pri vseh profilih enaki. Profil se uporabi ob vstopu; že odprti posli se ne spremenijo. Senčni test na strežniku teče ločeno in se s to izbiro ne spremeni."));
   box.append(left, right);
 }
