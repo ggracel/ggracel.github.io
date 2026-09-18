@@ -1942,8 +1942,12 @@ function renderOpenTrades() {
     };
     const L = tradeLevels(t, c);
     // desni rob traku: fiksni cilj / raven delne prodaje / vrh (ko meja sledi vrhu)
-    const rightRaw = L.kind === "fixed" ? t.target : t.plan.halfAt && !t.halfSold ? t.target : Math.max(t.peak || t.entry, price || 0);
+    // Desni rob traku: kam mora cena naprej. Pri sledilni meji vzamemo vrh, ampak vsaj 25 % nad vstopom,
+    // sicer se pri poslu, ki še ni bil v plusu, vrh in vstop prekrijeta na istem robu.
+    const trailing = L.kind !== "fixed" && !(t.plan.halfAt && !t.halfSold);
+    const rightRaw = trailing ? Math.max(t.peak || t.entry, t.entry * 1.25, price || 0) : t.target;
     const right = Number.isFinite(rightRaw) && rightRaw > t.stop * 1.002 ? rightRaw : t.stop * 1.05;
+    const peakPctNow = t.entry > 0 && Number.isFinite(t.peak) ? (t.peak / t.entry - 1) * 100 : null;
     const toTarget = price > 0 && L.kind === "fixed" ? (t.target / price - 1) * 100 : null,
       toStop = price > 0 ? (t.stop / price - 1) * 100 : null,
       peakPct = t.plan && t.peak > 0 ? (t.peak / t.entry - 1) * 100 : null;
@@ -1966,27 +1970,53 @@ function renderOpenTrades() {
       tile("stop", L.stopLabel + (L.trailing ? " (sledi vrhu)" : ""), c ? mcText(c, t.stop).replace("MC ", "") : money(t.stop), toStop === null ? "" : pct1(toStop) + " do meje"),
     );
     card.append(stats);
-    // trak: kje je cena med mejo (levo) in ciljem / vrhom (desno)
+    // Trak: levo meja izgube, desno cilj oziroma vrh, pika je trenutna cena.
     const track = el("div", "ocTrack");
     const span = right - t.stop || 1;
     const pos = (v) => Math.max(0, Math.min(100, ((v - t.stop) / span) * 100));
-    const entryOnTrack = t.entry >= t.stop && t.entry <= right;
-    const entryMark = el("span", "trackEntry");
-    entryMark.style.left = pos(t.entry) + "%";
-    entryMark.title = "Vstop";
-    if (entryOnTrack) track.append(entryMark);
-    if (price > 0) {
-      const now = el("span", "trackNow " + (pnl >= 0 ? "positive" : "negative"));
-      now.style.left = pos(price) + "%";
-      now.title = "Trenutna cena";
-      track.append(now);
-    }
+    const clamp = (v) => Math.max(2, Math.min(98, pos(v))); // da se krogec ne odreže na robu
+    const mark = (cls, value, title) => {
+      const m = el("span", cls);
+      m.style.left = clamp(value) + "%";
+      m.title = title;
+      track.append(m);
+      return m;
+    };
+    const entryPos = pos(t.entry);
+    const entryOnTrack = t.entry > t.stop && t.entry < right;
+    if (entryOnTrack) mark("trackEntry", t.entry, "Vstop " + mcText(c, t.entry));
+    // vrh označimo le, kadar je znotraj traku in dovolj nad vstopom (sicer bi se zlil z vstopom ali robom)
+    if (trailing && peakPctNow !== null && peakPctNow > 3 && t.peak < right * 0.97) mark("trackPeak", t.peak, "Najvišje " + pct1(peakPctNow));
+    if (price > 0) mark("trackNow " + (pnl >= 0 ? "positive" : "negative"), price, "Zdaj " + mcText(c, price));
+    // Oznake: levo in desno sta v vrstici (ne moreta trčiti), VSTOP se pokaže samo, kadar je dovolj stran od obeh robov.
     const labels = el("div", "trackLabels");
-    const lEntry = el("span", "lEntry", "VSTOP");
-    lEntry.style.left = pos(t.entry) + "%";
-    labels.append(el("span", "negative lStop", L.kind === "fixed" ? "MEJA -5 %" : L.trailing ? "SLEDILNA MEJA" : "MEJA -" + Math.round(t.plan.hardStop * 100) + " %"));
-    if (entryOnTrack) labels.append(lEntry);
-    labels.append(el("span", "positive lTarget", L.kind === "fixed" ? "CILJ +10 %" : t.plan.halfAt && !t.halfSold ? "POL +" + Math.round(t.plan.halfAt * 100) + " %" : "VRH"));
+    // Kadar je sledilna meja že nad vstopom, je tudi najslabši izid dobiček: to povemo v oznaki.
+    const stopPct = t.entry > 0 ? (t.stop / t.entry - 1) * 100 : null;
+    labels.append(
+      el(
+        "span",
+        (L.trailing && stopPct > 0 ? "positive" : "negative") + " lStop",
+        L.kind === "fixed" ? "MEJA -5 %" : L.trailing ? (stopPct > 0 ? "SLEDILNA MEJA " + pct1(stopPct) : "SLEDILNA MEJA") : "MEJA -" + Math.round(t.plan.hardStop * 100) + " %",
+      ),
+    );
+    if (entryOnTrack && entryPos > 20 && entryPos < 80) {
+      const lEntry = el("span", "lEntry", "VSTOP");
+      lEntry.style.left = entryPos + "%";
+      labels.append(lEntry);
+    }
+    labels.append(
+      el(
+        "span",
+        "positive lTarget",
+        L.kind === "fixed"
+          ? "CILJ +10 %"
+          : t.plan.halfAt && !t.halfSold
+            ? "POL +" + Math.round(t.plan.halfAt * 100) + " %"
+            : peakPctNow !== null && peakPctNow > 3
+              ? "VRH " + pct1(peakPctNow)
+              : "+25 %",
+      ),
+    );
     const trackWrap = el("div", "ocTrackWrap");
     trackWrap.append(track, labels);
     card.append(trackWrap);
