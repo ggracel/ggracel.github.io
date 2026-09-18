@@ -1,7 +1,7 @@
 /* foqs.habit service worker
    Served from /habit/ on GitHub Pages. Scope is /habit/ only.
    Cache name is unique so it never collides with the Ura+ app on the same origin. */
-const CACHE = 'foqs-habit-v12';
+const CACHE = 'foqs-habit-v13';
 const ASSETS = [
   './',
   './index.html',
