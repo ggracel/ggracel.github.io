@@ -890,7 +890,12 @@ document.addEventListener("click", (e) => {
   e.preventDefault();
   const v = b.dataset.goto;
   navigate(v, v === "market" ? "live" : mode);
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  const target = b.dataset.scroll ? $(b.dataset.scroll) : null;
+  if (target) {
+    // vrstico po ogledu pospravimo, da se ne vrača
+    if (b.dataset.scroll === "#novosti") markNewsSeen(true);
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  } else window.scrollTo({ top: 0, behavior: "smooth" });
 });
 $("#compare").onclick = () => {
   navigate("comparison", "live");
@@ -2511,6 +2516,115 @@ function renderOpenTrades() {
     host.append(card);
   }
 }
+
+// ---------- Kaj je novega ----------
+// En seznam za obe mesti: tiha vrstica pod statusom (pokaže samo zadnji vnos) in razdelek
+// "Kaj je novega" v zavihku Kako deluje (pokaže vse). Nov vnos dodaš tukaj na vrh in nič drugega.
+// id mora rasti; ob zaprtju vrstice se shrani zadnji viden id, zato se vrstica vrne šele ob naslednjem vnosu.
+const NEWS = [
+  {
+    id: 4,
+    date: "19. 9. 2026",
+    title: "Profil Agresivno ima novi meji",
+    short: "<b>Profil Agresivno je posodobljen.</b> Sled 20 % → 15 %, meja -10 % → -15 %. Velja za nove posle.",
+    body:
+      "Sled se je zožila z 20 % na 15 %, trda meja pa razširila z -10 % na -15 %. Bot torej proda prej po obratu in prenese globlji začetni padec. Velja za nove posle; že odprti obdržijo načrt, s katerim so bili odprti.",
+    tags: [["Sled 20 % → 15 %", ""], ["Meja -10 % → -15 %", ""], ["Izmerjeno na 233 poteh", "ok"]],
+  },
+  {
+    id: 3,
+    date: "19. 9. 2026",
+    title: "Zastavice pri kovancu",
+    body:
+      "Pri kovancu zdaj piše, kaj sonar o njem ve poleg cene: ali ima X in ali povezava pelje na objavo ali na profil, Telegram, spletno stran, plačano promocijo in likvidnost kot delež FDV. Nič od tega ne blokira vstopa in ne spreminja pravil, je samo opis.",
+    tags: [["Radar in Pozicije", ""]],
+  },
+  {
+    id: 2,
+    date: "19. 9. 2026",
+    title: "Nov videz nastavitev bota in zavihka Kako deluje",
+    body:
+      "Nastavitve bota so zdaj panel z drsnim stikalom in zloženimi razlagami, Kako deluje pa ima zemljevid zavihkov in besednjak. Bilanca ne ponavlja več seznama odprtih pozicij.",
+    tags: [],
+  },
+  {
+    id: 1,
+    date: "18. 9. 2026",
+    title: "Novo pravilo v senci: dip s kupci",
+    body:
+      "V Laboratoriju sta dve novi vrstici, v2.2 dip s kupci in njena široka različica. Tečeta samo v senci, na tvoje posle nimata vpliva.",
+    tags: [["Samo Laboratorij", ""]],
+  },
+];
+const NEWS_KEY = "solana-news-v1";
+function newsSeen() {
+  try {
+    return Number(localStorage.getItem(NEWS_KEY)) || 0;
+  } catch {
+    return 0;
+  }
+}
+function renderNewsBar() {
+  const bar = $("#newsBar");
+  if (!bar) return;
+  const latest = NEWS[0];
+  const show = !!latest && latest.id > newsSeen();
+  bar.hidden = !show;
+  if (!show) return;
+  $("#newsBarText").innerHTML = latest.short || latest.title;
+}
+function renderNewsLog() {
+  const host = $("#newsLog");
+  if (!host) return;
+  host.replaceChildren();
+  // Ob prvem ogledu je novo vse, zato oznaka ne pove nič in je ne rišemo.
+  const seen = newsSeen();
+  const fresh = (n) => seen > 0 && n.id > seen;
+  for (const n of NEWS) {
+    const item = document.createElement("div");
+    item.className = "nlItem" + (fresh(n) ? " fresh" : "");
+    const when = document.createElement("div");
+    when.className = "nlWhen";
+    when.textContent = n.date;
+    if (fresh(n)) {
+      const s = document.createElement("small");
+      s.textContent = "NOVO";
+      when.append(s);
+    }
+    const body = document.createElement("div");
+    body.className = "nlBody";
+    const h = document.createElement("h4");
+    h.textContent = n.title;
+    const p = document.createElement("p");
+    p.textContent = n.body;
+    body.append(h, p);
+    if (n.tags?.length) {
+      const tags = document.createElement("div");
+      tags.className = "nlTags";
+      for (const [text, cls] of n.tags) {
+        const t = document.createElement("span");
+        if (cls) t.className = cls;
+        t.textContent = text;
+        tags.append(t);
+      }
+      body.append(tags);
+    }
+    item.append(when, body);
+    host.append(item);
+  }
+}
+// keepLog: ko uporabnik klikne "Zakaj", vrstico pospravimo, oznake NOVO v dnevniku pa pustimo,
+// da vidi, kaj je pravzaprav novo. Izginejo ob naslednjem odprtju strani.
+function markNewsSeen(keepLog) {
+  try {
+    localStorage.setItem(NEWS_KEY, String(NEWS[0]?.id || 0));
+  } catch {}
+  renderNewsBar();
+  if (!keepLog) renderNewsLog();
+}
+$("#newsBarClose")?.addEventListener("click", () => markNewsSeen());
+renderNewsBar();
+renderNewsLog();
 
 // Zastavice kovanca: kaj sonar o njem ve poleg cene. Nič od tega ne blokira vstopa in ne vpliva na pravila;
 // barve so iz hitre meritve 19. 9. na 20 urah posnetkov (delež trenutkov, ki so dosegli +25 % pred -12 % v 30 min).
