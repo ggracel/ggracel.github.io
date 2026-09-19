@@ -1655,9 +1655,11 @@ function renderBoardGraph() {
 
 // Primerjava: senčni posli, ki jih strežnik (edge funkcija collect, datoteka shadow.ts) piše v tabelo memecoin_shadow_trades.
 // Brskalnik jih samo bere in sešteje. Pravila so v strežniku zamrznjena; tu se nič ne odloča.
-const SHADOW_STRATEGIES = ["v1.0", "v1.2-filter", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj"];
-const SHADOW_LABEL = { "v1.0": "v1.0 (staro: +10 / -5)", "v1.2-filter": "v1.2 (v aplikaciji)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj" };
-const SHADOW_COLOR = { "v1.0": "#9fb0c8", "v1.2-filter": "#f0a6ff", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff" };
+const SHADOW_STRATEGIES = ["v1.0", "v1.2-filter", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj", "v2.2-dip", "v2.2-dip-siroko"];
+// Ustavljene 19. 9. 2026: ne odpirajo novih poslov, zgodovina in odprti posli ostanejo (glej shadow.ts PAUSED).
+const SHADOW_PAUSED = { "v1.0": "19. 9.", "v2.0-brez-holderjev": "19. 9." };
+const SHADOW_LABEL = { "v1.0": "v1.0 (staro: +10 / -5)", "v1.2-filter": "v1.2 (v aplikaciji)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj", "v2.2-dip": "v2.2 dip s kupci", "v2.2-dip-siroko": "v2.2 dip s kupci, široko" };
+const SHADOW_COLOR = { "v1.0": "#9fb0c8", "v1.2-filter": "#f0a6ff", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff", "v2.2-dip": "#46bec5", "v2.2-dip-siroko": "#ff9f7a" };
 const SHADOW_START = Date.parse("2026-09-17T06:44:00Z"); // zagon senčnega testa (collect v3, prvi senčni posel)
 const SHADOW_MIN_TRADES = 100,
   SHADOW_MIN_DAYS = 14,
@@ -1793,7 +1795,7 @@ function renderComparison() {
             : "○ " + st.closed.length + "/" + SHADOW_MIN_TRADES + " poslov" + (pfOk && expOk ? " (vmes v redu)" : "")
           : "✗ " + [!pfOk ? "faktor" : "", !expOk ? "pričakovanje" : ""].filter(Boolean).join(" in ") + " pod ciljem";
     const cells = [
-      SHADOW_LABEL[s],
+      SHADOW_LABEL[s] + (SHADOW_PAUSED[s] ? " · ustavljen " + SHADOW_PAUSED[s] : ""),
       st.closed.length + " / " + st.open.length,
       st.winRate === null ? "-" : (st.winRate * 100).toLocaleString("sl-SI", { maximumFractionDigits: 0 }) + " % (" + st.wins + ")",
       pct1(st.avgWin),
