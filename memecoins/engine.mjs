@@ -55,20 +55,28 @@ export function entryPoint(points,now=Date.now()){
 
 // ---------- Profili izstopa (v1.1). Vstopi ostajajo pravila v1.0, spremeni se samo, kako se posel zapre. ----------
 // halfAt: pri tem dobičku proda polovico in premakne mejo na vstop; trail: ostanek proda, ko cena pade toliko s svojega vrha;
-// hardStop: trda meja, dokler sledilna meja ni višja. Številke "na tvojih poslih" so iz 123 demo poslov 16. do 17. 9. 2026.
+// hardStop: trda meja, dokler sledilna meja ni višja.
+// Vse tri stats številke so iz ISTE meritve (19. 9. 2026): ponovitev vseh treh profilov na istih 233 resničnih
+// 30-sekundnih cenovnih poteh (senčni vstopi v1.2, okno 18. do 19. 9.), da so med seboj primerljive. Razlike med
+// profili so znotraj merilne napake (standardna napaka okoli 2 odstotni točki), zato iz njih ne delaj razvrstitve.
+// Agresivno je 19. 9. 2026 na novo nastavljen: sled 20 -> 15 %, trda meja 10 -> 15 %. Številke so iz ponovitve na 233
+// resničnih 30-sekundnih cenovnih poteh (senčni vstopi v1.2, okno 18. do 19. 9.), z isto formulo kot spodnji stepExit
+// (vrh se začne pri vstopni ceni). Stara nastavitev da -6,75 % na posel, nova -3,44 %; drži v obeh polovicah obdobja.
+// Trda meja nad 15 % ne bi spremenila nič, ker sled 15 % od vstopa naprej vedno leži višje. Stare posle se od novih
+// loči po shranjenem t.plan.trail (0.20 staro, 0.15 novo); odprti posli obdržijo načrt, s katerim so bili odprti.
 export const PROFILES={
  varen:{key:'varen',name:'Varen',halfAt:0.15,trail:0.12,hardStop:0.08,tagline:'Najmanj slab od treh. Dobiček pobere zgodaj.',
   how:'Ko je posel +15 %, proda polovico in premakne mejo na vstopno ceno (od tu naprej ta posel ne more več končati v izgubi). Drugo polovico proda, ko cena pade 12 % s svojega vrha. Če gre cena takoj navzdol, zapre pri -8 %.',
   who:'Zate, če hočeš čim manj hudih izgub. Na izmerjenih poslih je to najmanj slaba od treh možnosti, ampak še vedno v minusu.',
-  stats:{win:36,avgWin:20.0,avgLoss:-16.4,perTrade:-3.31}},
+  stats:{win:36,avgWin:15.6,avgLoss:-17.7,perTrade:-5.66}},
  srednje:{key:'srednje',name:'Srednje',halfAt:0.20,trail:0.15,hardStop:0.12,tagline:'Vmesna pot. Malo več prostora dobitnikom.',
   how:'Ko je posel +20 %, proda polovico in premakne mejo na vstopno ceno. Drugo polovico proda, ko cena pade 15 % s svojega vrha. Če gre cena takoj navzdol, zapre pri -12 %.',
   who:'Zate, če hočeš pustiti dobitnikom nekaj prostora in vseeno zakleniti del dobička, ko pride.',
-  stats:{win:36,avgWin:23.2,avgLoss:-19.3,perTrade:-4.06}},
- agresivno:{key:'agresivno',name:'Agresivno',halfAt:null,trail:0.20,hardStop:0.10,tagline:'Redki, a veliki dobitki. Večji nihaji.',
-  how:'Ne prodaja po delih. Drži celoten posel, dokler cena ne pade 20 % s svojega vrha, in šele takrat proda vse. Če gre cena takoj navzdol, zapre pri -10 %.',
-  who:'Zate, če ti ne bo težko gledati, da je večina poslov izgubnih (le okoli četrtina je dobitnih), ker so dobitniki veliki. Preizkusil sem tudi različico z delno prodajo pri +30 % in je bila slabša, ker odreže prav tiste redke velike skoke, ki edini kaj prinesejo.',
-  stats:{win:27,avgWin:32.2,avgLoss:-17.0,perTrade:-3.89}}
+  stats:{win:35,avgWin:21.9,avgLoss:-21.7,perTrade:-6.37}},
+ agresivno:{key:'agresivno',name:'Agresivno',halfAt:null,trail:0.15,hardStop:0.15,tagline:'Redki, a veliki dobitki. Posodobljen 19. 9.',
+  how:'Ne prodaja po delih. Drži celoten posel, dokler cena ne pade 15 % s svojega vrha, in šele takrat proda vse. Če gre cena takoj navzdol, zapre pri -15 %.',
+  who:'Zate, če ti ne bo težko gledati, da je večina poslov izgubnih (okoli četrtina je dobitnih), ker so dobitniki veliki. Od 19. 9. pobira dobiček odločneje (sled 15 % namesto 20 %) in daje ceni več prostora navzdol (-15 % namesto -10 %). Razlog: meja pri -10 % se je ob prebitju izvedla povprečno pri -19,5 %, torej ni prihranila nič, samo pogosteje je vrgla ven posel, ki bi si opomogel. Delna prodaja in pobiranje dobička pri +40 % sta bila preizkušena in sta slabša, ker odrežeta redke velike skoke, ki edini kaj prinesejo.',
+  stats:{win:26,avgWin:40.1,avgLoss:-18.9,perTrade:-3.44}}
 };
 export const DEFAULT_PROFILE='srednje';
 export function profileOf(t){return t?.plan?PROFILES[t.profile]||null:null;}

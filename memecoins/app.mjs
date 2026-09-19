@@ -4,7 +4,7 @@ const HISTORY_MIN = 60;
 let lastSnapshotT = 0,
   primed = false,
   noData = false;
-import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint, PROFILES, DEFAULT_PROFILE, exitPlan, stepExit, markToMarket } from "./engine.mjs?v=8";
+import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint, PROFILES, DEFAULT_PROFILE, exitPlan, stepExit, markToMarket } from "./engine.mjs?v=9";
 // Konstante senčnega testa so tu zgoraj, ker jih berejo funkcije, ki se kličejo že ob nalaganju modula (TDZ).
 // Primerjava: senčni posli, ki jih strežnik (edge funkcija collect, datoteka shadow.ts) piše v tabelo memecoin_shadow_trades.
 // Brskalnik jih samo bere in sešteje. Pravila so v strežniku zamrznjena; tu se nič ne odloča.
@@ -2616,7 +2616,7 @@ function renderProfile() {
   const wrap = mk("div", "scroll");
   wrap.append(table);
   f2.append(wrap);
-  f2.append(mk("p", "note", "Izmerjeno na 616 resničnih poslih (17. do 18. 9. 2026), s stroški 1 % zdrsa in 0,5 % provizije na stran. Vsi trije profili so v minusu: profil izbere samo, kako hitro izgubljaš, ne ali izgubljaš."));
+  f2.append(mk("p", "note", "Vsi trije so izmerjeni na istih 233 resničnih cenovnih poteh (18. do 19. 9. 2026), s stroški 1 % zdrsa in 0,5 % provizije na stran, zato so med seboj primerljivi. Razlike med profili so znotraj merilne napake, tako da to ni lestvica. Agresivno je bil 19. 9. na novo nastavljen; s staro nastavitvijo je na istih poteh dajal -6,75 % na posel. Vsi trije so v minusu: profil izbere samo, kako hitro izgubljaš, ne ali izgubljaš."));
   f2.append(mk("p", "note", "Za primerjavo: prvotni fiksni cilj +10 % in meja -5 % sta na istih poslih dala -4,5 % na posel. Preizkusil sem še enajst drugih kombinacij; najboljša je bila -3,3 %. Nobena ni pozitivna, ker prednosti ni v izstopu, ampak v vstopu."));
 }
 for (const b of document.querySelectorAll("#profileButtons button"))
