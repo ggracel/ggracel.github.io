@@ -5,24 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#231F20" id="metaTheme">
+<meta name="theme-color" content="#141112" id="metaTheme">
 <title>Ura+</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23231F20'/><text x='46' y='66' font-size='50' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>U</text><circle cx='76' cy='62' r='9' fill='%2346BEC5'/></svg>">
 <style>
   :root{
-    --green:#2C9AA1; --green-d:#1D7A80; --green2:#46BEC5; --green-soft:#D8F1F3;
-    --ink:#231F20; --muted:#6E6A6B; --line:#E7E5E5; --bg:#F6F5F5; --card:#fff;
-    --amber:#d97706; --red:#dc2626;
-    --daybg:#f8fafc; --dayfut:#94a3b8; --planbg:#EFFAFB; --planbd:#8BD7DC; --planink:#46BEC5;
-    --hasbd:#B9E7EB; --chipbg:#F1EFEE; --tealwash:#EFFAFB; --tealbd:#C9ECEF;
-    --ring-a:#46BEC5; --ring-b:#B5E6EA; --ring-t:#E7E5E5;
-    --hdr1:#181516; --hdr2:#332E2F;
-    --hm0:#ECEAE9; --hm1:#C8EAEC; --hm2:#8FD8DC; --hm3:#46BEC5; --hm4:#22868D;
-    --shadow:0 1px 3px rgba(15,23,42,.05); --shadow2:0 10px 30px rgba(15,23,42,.10);
-  }
-  :root[data-theme="dark"]{
+    color-scheme:dark;
     --green:#5FC5CC; --green-d:#8FD8DC; --green2:#46BEC5; --green-soft:#20393B;
     --ink:#F2F0EF; --muted:#A5A0A1; --line:#3A3536; --bg:#1C1919; --card:#262223;
     --amber:#E2A24E; --red:#f87171;
@@ -212,10 +202,116 @@
     padding:10px 18px;border-radius:12px;font-size:14px;z-index:50;display:none;box-shadow:0 8px 20px rgba(0,0,0,.25);max-width:90vw}
   .toast button{background:none;border:none;color:#46BEC5;font-weight:800;font-size:14px;margin-left:12px;cursor:pointer;font-family:inherit}
   .warn{display:none;margin:10px 16px 0;background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.4);color:var(--amber);border-radius:12px;padding:10px 12px;font-size:12.5px}
+
+  /* ================= postavitev: mobile stolpec + namizna nadzorna plosca ================= */
+  .hdr-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .logo{order:1}
+  .hdr-actions{order:2;display:flex;gap:8px;align-items:center}
+  .hdr-top .mo-nav{order:3;width:100%}
+  .addb{display:none;background:var(--green2);border:none;color:#141112;font-weight:800;font-size:13px;
+    padding:9px 15px;border-radius:11px;cursor:pointer;font-family:inherit;white-space:nowrap}
+  #monthView{display:flex;flex-direction:column}
+  .colL,.colR{display:contents}
+  @media(max-width:1079px){
+    #ringCard{order:1} #stripCard{order:2} #extraCard{order:3} #achCard{order:4}
+    #storWarn{order:5} #calCard{order:6} #wkCard{order:7}
+  }
+  .deskonly{display:none}
+  .day .rng{display:none}
+  .ctitle{font-size:10px;letter-spacing:.5px;text-transform:uppercase;font-weight:700;color:var(--muted);margin-bottom:10px}
+  .ctitle span{color:var(--green)}
+
+  /* namizni moduli */
+  .kpi{background:var(--card);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);min-width:0}
+  .kpi small{display:block;color:var(--muted);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:800}
+  .kpi b{font-size:19px;font-variant-numeric:tabular-nums;display:block;margin-top:3px;line-height:1.15;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .kpi b.g{color:var(--green)}
+  .kpi i{font-style:normal;font-size:11.5px;color:var(--muted);display:block;margin-top:2px;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .quickrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;align-items:end;
+    background:var(--tealwash);border:1px solid var(--tealbd);border-radius:13px;padding:11px 12px}
+  .quickrow .qsave{grid-column:1/-1}
+  .quickrow label{margin:0 0 4px;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase}
+  .quickrow input{padding:9px 10px;font-size:14px;border-radius:9px;border-width:1px}
+  .qsave{background:var(--ink);color:var(--bg);border:none;border-radius:9px;padding:10px 16px;font-weight:800;
+    font-size:13.5px;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .etabwrap{max-height:420px;overflow:auto}
+  .etab{width:100%;border-collapse:collapse;font-size:12.5px}
+  .etab th{position:sticky;top:0;background:var(--card);text-align:left;font-size:9.5px;text-transform:uppercase;
+    letter-spacing:.09em;color:var(--muted);font-weight:800;padding:0 8px 7px;border-bottom:1px solid var(--line)}
+  .etab td{padding:7px 8px;border-bottom:1px dashed var(--line);font-variant-numeric:tabular-nums}
+  .etab tbody tr{cursor:pointer}
+  .etab tbody tr:hover td{background:var(--tealwash)}
+  .etab td.e{color:var(--green);font-weight:800}
+  .etab td.mut{color:var(--muted)}
+  .etab .pill{font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:99px;background:var(--chipbg);color:var(--muted)}
+  .etab .pill.pl{background:var(--planbg);color:var(--planink)}
+  .etab .pill.wt{background:rgba(217,119,6,.15);color:var(--amber)}
+  .etab .empty{color:var(--muted);text-align:center;padding:18px 0}
+  .mbars{display:flex;align-items:flex-end;gap:7px;height:116px}
+  .mb{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;justify-content:flex-end;min-width:0}
+  .mb .bar{width:100%;background:var(--ring-a);border-radius:5px 5px 2px 2px;min-height:3px}
+  .mb.cur .bar{background:var(--ink)}
+  .mb.zero .bar{background:var(--line)}
+  .mb small{font-size:9px;color:var(--muted);font-weight:700}
+  .mb .v{font-size:9.5px;font-weight:800;color:var(--green);white-space:nowrap}
+
+  @media(min-width:1080px){
+    .app{max-width:1560px;box-shadow:none;padding-bottom:30px}
+    .hdr{border-radius:20px;margin:16px 20px 0;padding:14px 20px}
+    .hdr-top{gap:16px;flex-wrap:nowrap}
+    .hdr-top .mo-nav{order:2;width:auto;margin-top:0;justify-content:flex-start}
+    .hdr-actions{order:3;margin-left:auto}
+    .addb{display:block}
+    .mo-nav .mo{max-width:none;min-width:132px}
+    .daycard{margin:14px 20px 0;border-radius:18px;padding:16px 18px}
+    #monthView{display:grid;grid-template-columns:minmax(0,1.32fr) minmax(0,1fr);gap:14px;
+      align-items:start;padding:14px 20px 0}
+    .colL,.colR{display:flex;flex-direction:column;gap:14px;min-width:0}
+    #kpiRow{grid-column:1/-1;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+    .colL>*,.colR>*{margin:0}
+    #stripCard{display:none}
+    .daycard .drow{max-width:560px}
+    .daycard .dmsg{font-size:16px}
+    .deskonly{display:block}
+    .day{aspect-ratio:auto;min-height:78px;align-items:flex-start;justify-content:flex-start;padding:7px 8px;gap:1px}
+    .day .dn{font-size:12px}
+    .day .hh{font-size:15px}
+    .day .ee{font-size:11.5px;color:var(--green)}
+    .day .rng{display:block;font-size:9.5px;color:var(--muted);margin-top:auto}
+    .day:active{transform:none}
+    .day:hover{box-shadow:var(--shadow2)}
+    .grid{gap:6px}
+    .dow{font-size:10px;margin-bottom:8px}
+    .cal-card{padding:16px 18px}
+    .ring{width:150px;height:150px}
+    .ring .in{width:116px;height:116px}
+    .ring .in b{font-size:22px}
+    .wchart{height:140px}
+    .fab{display:none}
+    .spacer{height:16px}
+    #yearView{max-width:1000px;margin:0 auto;padding-top:6px}
+    .ovl{align-items:center}
+    .sheet{border-radius:22px;max-width:520px;max-height:84vh}
+  }
+  @media(min-width:1080px) and (max-width:1379px){
+    #kpiRow{grid-template-columns:repeat(3,minmax(0,1fr))}
+  }
+  @media(min-width:1500px){
+    .quickrow{grid-template-columns:1.1fr .85fr .85fr .8fr auto}
+    .quickrow .qsave{grid-column:auto}
+  }
+  @media(min-width:1600px){
+    #kpiRow{gap:12px}
+    .kpi b{font-size:21px}
+  }
+
   @media (prefers-reduced-motion: reduce){
     *{animation:none!important;transition:none!important}
   }
 </style>
+<script defer src="/track.js?v=1"></script>
 </head>
 <body>
 <div class="app">
@@ -223,82 +319,127 @@
   <div class="hdr">
     <div class="hdr-top">
       <div class="logo">Ura<span style="color:#46BEC5">+</span><small>ure → denar</small></div>
-      <div style="display:flex;gap:8px;align-items:center">
+      <div class="hdr-actions">
         <button class="timerb" id="timerB" style="display:none" onclick="stopTimer()">⏱ 0:00</button>
         <div class="streakb" id="streakB" style="display:none"></div>
+        <button class="addb" onclick="openEntry(todayKey())">+ Dodaj ure</button>
         <button class="icon-btn" onclick="openSettings()" title="Nastavitve">⚙︎</button>
       </div>
-    </div>
-    <div class="mo-nav">
+      <div class="mo-nav">
       <button onclick="chMonth(-1)" id="navL">‹</button>
       <div class="mo" id="moLabel"></div>
       <button onclick="chMonth(1)" id="navR">›</button>
       <div class="viewt"><button id="vMes" class="on" onclick="setView('m')">Mesec</button><button id="vLet" onclick="setView('y')">Leto</button></div>
+      </div>
     </div>
   </div>
 
   <div class="daycard" id="dayCard" style="display:none"></div>
 
   <div id="monthView">
-  <div class="ring-card">
-    <div class="ring-flex">
-      <div class="ring" id="ring">
-        <div class="in">
-          <b id="rMoney">0 €</b>
-          <small id="rGoal">od 0 € cilja</small>
-          <span class="pct" id="rPct">0%</span>
+
+  <div id="kpiRow" class="deskonly">
+    <div class="kpi"><small>Zasluženo</small><b class="g" id="dEarn">-</b><i id="dEarnSub"></i></div>
+    <div class="kpi"><small>Ure</small><b id="dHours">-</b><i id="dHoursSub"></i></div>
+    <div class="kpi"><small>Še do cilja</small><b id="dLeft">-</b><i id="dLeftSub"></i></div>
+    <div class="kpi"><small>Projekcija</small><b id="dProj">-</b><i id="dProjSub">pri tem tempu</i></div>
+    <div class="kpi"><small>Danes</small><b id="dToday">-</b><i id="dTodaySub"></i></div>
+    <div class="kpi"><small>Ta teden</small><b id="dWeek">-</b><i id="dWeekSub"></i></div>
+  </div>
+
+  <div class="colL">
+    <div class="cal-card" id="calCard">
+      <div class="dow"><span>Pon</span><span>Tor</span><span>Sre</span><span>Čet</span><span>Pet</span><span class="we">Sob</span><span class="we">Ned</span></div>
+      <div class="grid" id="calGrid"></div>
+      <div class="cal-sum">
+        <span>Vnosov: <b id="sumDays">0</b></span>
+        <span>Skupaj: <b id="sumH">0 h</b> · <b id="sumE" style="color:var(--green)">0 €</b></span>
+      </div>
+    </div>
+
+    <div class="cal-card deskonly" id="quickCard">
+      <div class="ctitle">Hitri vnos</div>
+      <div class="quickrow">
+        <div><label for="qDate">Datum</label><input type="date" id="qDate" onchange="qCalc()"></div>
+        <div><label for="qFrom">Začetek</label><input type="time" id="qFrom" value="08:00" oninput="qCalc()"></div>
+        <div><label for="qTo">Konec</label><input type="time" id="qTo" value="16:00" oninput="qCalc()"></div>
+        <div><label for="qBreak">Pavza (min)</label><input type="number" id="qBreak" min="0" max="480" step="5" placeholder="0" oninput="qCalc()"></div>
+        <button class="qsave" id="qSave" onclick="quickSave()">Shrani</button>
+      </div>
+      <div class="ctitle" style="margin-top:18px">Vnosi meseca</div>
+      <div class="etabwrap">
+        <table class="etab">
+          <thead><tr><th>Dan</th><th>Datum</th><th>Od do</th><th>Pavza</th><th>Ure</th><th>€/h</th><th>Zaslužek</th><th></th></tr></thead>
+          <tbody id="entryRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="colR">
+    <div class="ring-card" id="ringCard">
+      <div class="ring-flex">
+        <div class="ring" id="ring">
+          <div class="in">
+            <b id="rMoney">0 €</b>
+            <small id="rGoal">od 0 € cilja</small>
+            <span class="pct" id="rPct">0%</span>
+          </div>
+        </div>
+        <div class="ring-side">
+          <div class="ks"><small>Ure ta mesec</small><b id="kHours">0 / 0 h</b></div>
+          <div class="ks"><small>Še do cilja</small><b id="kLeft">—</b></div>
+          <div class="ks" id="kPlanRow" style="display:none"><small>Planirano naprej</small><b id="kPlan">—</b></div>
+          <div class="ks" id="kPaceRow"><small>Pri tem tempu končaš z</small><b class="g" id="kPace">—</b></div>
+          <div class="ks" id="kCmpRow" style="display:none"><small>Prejšnji mesec do danes</small><b id="kCmp">—</b></div>
         </div>
       </div>
-      <div class="ring-side">
-        <div class="ks"><small>Ure ta mesec</small><b id="kHours">0 / 0 h</b></div>
-        <div class="ks"><small>Še do cilja</small><b id="kLeft">—</b></div>
-        <div class="ks" id="kPlanRow" style="display:none"><small>Planirano naprej</small><b id="kPlan">—</b></div>
-        <div class="ks" id="kPaceRow"><small>Pri tem tempu končaš z</small><b class="g" id="kPace">—</b></div>
-        <div class="ks" id="kCmpRow" style="display:none"><small>Prejšnji mesec do danes</small><b id="kCmp">—</b></div>
+      <div class="neto" id="netoLine" style="display:none"></div>
+      <div class="reward" id="rewardBox">
+        Delam za 🎯 <b id="rewName"></b>
+        <div class="bar"><i id="rewBar"></i></div>
+        <small style="color:var(--muted)" id="rewTxt"></small>
       </div>
+      <div class="goal-hit" id="goalHit">🎉 Mesečni cilj dosežen! Bravo!</div>
+      <div class="pacechip" id="paceChip"></div>
     </div>
-    <div class="neto" id="netoLine" style="display:none"></div>
-    <div class="reward" id="rewardBox">
-      Delam za 🎯 <b id="rewName"></b>
-      <div class="bar"><i id="rewBar"></i></div>
-      <small style="color:var(--muted)" id="rewTxt"></small>
+
+    <div class="strip" id="stripCard">
+      <div class="tile"><small>Danes</small><b id="tToday">—</b></div>
+      <div class="tile"><small>Ta teden</small><b id="tWeek">—</b></div>
+      <div class="tile"><small>Povpr./dan</small><b id="tAvg">—</b></div>
     </div>
-    <div class="goal-hit" id="goalHit">🎉 Mesečni cilj dosežen! Bravo!</div>
-    <div class="pacechip" id="paceChip"></div>
-  </div>
 
-  <div class="strip">
-    <div class="tile"><small>Danes</small><b id="tToday">—</b></div>
-    <div class="tile"><small>Ta teden</small><b id="tWeek">—</b></div>
-    <div class="tile"><small>Povpr./dan</small><b id="tAvg">—</b></div>
-  </div>
-
-  <div class="ach" id="extraCard" style="display:none">
-    <div class="at" id="xTitle">Vsaka ura šteje</div>
-    <div class="xrow" id="xRows"></div>
-  </div>
-
-  <div class="ach">
-    <div class="at">Dosežki</div>
-    <div class="bdgs" id="badges"></div>
-    <div class="recrow" id="recRow" style="display:none"></div>
-  </div>
-
-  <div class="warn" id="storWarn">⚠️ Ta brskalnik ne dovoli trajnega shranjevanja — podatki bodo izgubljeni ob zaprtju. Uporabi Chrome/Safari ali izvozi kopijo.</div>
-
-  <div class="cal-card">
-    <div class="dow"><span>Pon</span><span>Tor</span><span>Sre</span><span>Čet</span><span>Pet</span><span class="we">Sob</span><span class="we">Ned</span></div>
-    <div class="grid" id="calGrid"></div>
-    <div class="cal-sum">
-      <span>Vnosov: <b id="sumDays">0</b></span>
-      <span>Skupaj: <b id="sumH">0 h</b> · <b id="sumE" style="color:var(--green)">0 €</b></span>
+    <div class="ach" id="extraCard" style="display:none">
+      <div class="at" id="xTitle">Vsaka ura šteje</div>
+      <div class="xrow" id="xRows"></div>
     </div>
+
+    <div class="cal-card deskonly" id="mbarsCard">
+      <div class="ctitle">Mesec za mesecem <span id="mbYear"></span></div>
+      <div class="mbars" id="mbars"></div>
+    </div>
+
+    <div class="cal-card" id="wkCard">
+      <div class="at" style="font-size:10px;letter-spacing:.5px;text-transform:uppercase;font-weight:700;color:var(--muted)">Zaslužek po tednih</div>
+      <div class="wchart" id="wchart"></div>
+    </div>
+
+    <div class="cal-card deskonly" id="hmCard">
+      <div class="ctitle">Leto na enem pogledu</div>
+      <div class="hmwrap"><div class="hmgrid" id="hmMonth"></div></div>
+      <div class="hmleg">manj <i style="background:var(--hm0)"></i><i style="background:var(--hm1)"></i><i style="background:var(--hm2)"></i><i style="background:var(--hm3)"></i><i style="background:var(--hm4)"></i> več</div>
+    </div>
+
+    <div class="ach" id="achCard">
+      <div class="at">Dosežki</div>
+      <div class="bdgs" id="badges"></div>
+      <div class="recrow" id="recRow" style="display:none"></div>
+    </div>
+
+    <div class="warn" id="storWarn">⚠️ Ta brskalnik ne dovoli trajnega shranjevanja — podatki bodo izgubljeni ob zaprtju. Uporabi Chrome/Safari ali izvozi kopijo.</div>
   </div>
 
-  <div class="cal-card">
-    <div class="at" style="font-size:10px;letter-spacing:.5px;text-transform:uppercase;font-weight:700;color:var(--muted)">Zaslužek po tednih</div>
-    <div class="wchart" id="wchart"></div>
-  </div>
   </div><!-- /monthView -->
 
   <div id="yearView">
@@ -388,15 +529,6 @@
       </div>
 
       <div class="set-sec">
-        <h4>Videz</h4>
-        <div class="seg" id="themeSeg">
-          <button data-t="auto" onclick="setThemePref('auto')">Samodejno</button>
-          <button data-t="light" onclick="setThemePref('light')">Svetla</button>
-          <button data-t="dark" onclick="setThemePref('dark')">Temna</button>
-        </div>
-      </div>
-
-      <div class="set-sec">
         <h4>Denar</h4>
         <div class="row2">
           <div><label style="margin-top:0">»Na roke« (% bruto, 0 = izklop)</label>
@@ -459,7 +591,7 @@ function lsSet(k,v){ try{ if(storageOK) localStorage.setItem(k,v); }catch(e){} }
 
 function defState(){
   return {rate:0, goalHours:0, goalMode:'h', goalMoney:0, reward:'', rewPrice:0,
-          theme:'auto', netPct:0, wkx:1, data:{}, celebrated:{}, msDone:0,
+          theme:'dark', netPct:0, wkx:1, data:{}, celebrated:{}, msDone:0,
           meta:{perDay:{}, del:{}, settingsTs:0, log:[]}, _v:5};
 }
 var S=load();
@@ -637,27 +769,17 @@ function bestMonth(){
 
 /* ================= tema ================= */
 var mmDark = window.matchMedia? matchMedia('(prefers-color-scheme: dark)') : null;
-function isDark(){
-  if(S.theme==='dark') return true;
-  if(S.theme==='light') return false;
-  return !!(mmDark && mmDark.matches);
-}
+/* aplikacija je fiksno v temni temi - svetle razlicice ni */
+function isDark(){ return true; }
 function applyTheme(){
-  var r=document.documentElement;
-  if(S.theme==='dark') r.setAttribute('data-theme','dark');
-  else if(S.theme==='light') r.removeAttribute('data-theme');
-  else { if(mmDark && mmDark.matches) r.setAttribute('data-theme','dark'); else r.removeAttribute('data-theme'); }
-  document.getElementById('metaTheme').setAttribute('content', isDark()? '#141112':'#231F20');
+  document.documentElement.setAttribute('data-theme','dark');
+  document.getElementById('metaTheme').setAttribute('content','#141112');
 }
-function setThemePref(t){
-  S.theme=t; S.meta.settingsTs=Date.now();
-  applyTheme(); paintThemeSeg(); save(); render();
-}
+function setThemePref(){ /* ukinjeno: tema je fiksno temna */ }
 function paintThemeSeg(){
   var seg=document.getElementById('themeSeg'); if(!seg) return;
   Array.prototype.forEach.call(seg.children,function(b){ b.classList.toggle('sel', b.getAttribute('data-t')===S.theme); });
 }
-if(mmDark && mmDark.addEventListener) mmDark.addEventListener('change', function(){ if(S.theme==='auto'){ applyTheme(); render(); } });
 function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
 
 /* ================= pogledi ================= */
@@ -667,7 +789,7 @@ var yView=now.getFullYear();
 var curView='m';
 function setView(v){
   curView=v;
-  document.getElementById('monthView').style.display = v==='m'?'block':'none';
+  document.getElementById('monthView').style.display = v==='m'?'':'none';
   document.getElementById('yearView').style.display  = v==='y'?'block':'none';
   document.getElementById('vMes').classList.toggle('on',v==='m');
   document.getElementById('vLet').classList.toggle('on',v==='y');
@@ -872,7 +994,7 @@ function render(){
   if(isCur && mh.aH>0){
     paceRow.style.display='';
     var proj = mh.aH/now.getDate()*dim(vy,vm)*S.rate;
-    document.getElementById('kPace').textContent='~'+eur(proj);
+    document.getElementById('kPace').textContent='~'+eur(Math.round(proj));
   } else paceRow.style.display='none';
 
   /* primerjava z istim dnem prejsnjega meseca (dejanske ure) */
@@ -927,18 +1049,47 @@ function render(){
   /* tiles */
   var tk=todayKey(), tv=S.data[tk];
   document.getElementById('tToday').textContent = isCur? (tv!=null? hrs(entH(tv))+(isPlan(tv)?' · plan':' · +'+eur(entEur(tk,tv))):'—') : '—';
-  var wtot=0;
+  var wtot=0, wEur=0;
   if(isCur){
     var t=new Date(); var off=(t.getDay()+6)%7;
     for(var i=0;i<7;i++){
       var d2=new Date(t.getFullYear(),t.getMonth(),t.getDate()-off+i);
       var kk=key(d2.getFullYear(),d2.getMonth(),d2.getDate());
       var vv2=S.data[kk];
-      if(kk<=tk && vv2!=null && !isPlan(vv2)) wtot+=entH(vv2);
+      if(kk<=tk && vv2!=null && !isPlan(vv2)){ wtot+=entH(vv2); wEur+=entEur(kk,vv2); }
     }
     document.getElementById('tWeek').textContent = wtot? hrs(wtot):'—';
   } else document.getElementById('tWeek').textContent='—';
   document.getElementById('tAvg').textContent = mh.aD? hrs(mh.aH/mh.aD) : '—';
+
+  /* namizna KPI vrstica */
+  if(document.getElementById('kpiRow')){
+    setTxt('dEarn', eur(earned));
+    setTxt('dEarnSub', (gE>0? Math.round(pctA)+' % cilja' : 'cilj ni nastavljen')+
+      (S.netPct>0 && earned>0 ? ' · ≈ '+eur(netOf(earned))+' neto' : ''));
+    setTxt('dHours', hrs(mh.aH)+(gH? ' / '+(Math.round(gH*10)/10).toLocaleString('sl-SI') : ''));
+    setTxt('dHoursSub', mh.aD+' delovnih dni'+(mh.aD? ' · povpr. '+hrs(mh.aH/mh.aD) : ''));
+    if(!gH){ setTxt('dLeft','—'); setTxt('dLeftSub','nastavi cilj ⚙︎'); }
+    else if(leftH<=0){ setTxt('dLeft','Cilj dosežen 🎉'); setTxt('dLeftSub', hrs(mh.aH-gH)+' čez cilj'); }
+    else {
+      setTxt('dLeft', hrs(leftH));
+      var dLeft2 = isCur? dim(vy,vm)-now.getDate()+1 : 0;
+      setTxt('dLeftSub', eur(leftH*S.rate)+(dLeft2>0? ' · '+(Math.round(leftH/dLeft2*10)/10).toLocaleString('sl-SI')+' h/dan' : ''));
+    }
+    if(isCur && mh.aH>0){
+      setTxt('dProj', '~'+eur(Math.round(mh.aH/now.getDate()*dim(vy,vm)*S.rate)));
+      setTxt('dProjSub','pri tem tempu · še '+(dim(vy,vm)-now.getDate()+1)+' dni');
+    } else { setTxt('dProj','—'); setTxt('dProjSub', isCur? 'ni še vnosov':'pretekli mesec'); }
+    setTxt('dToday', isCur&&tv!=null? hrs(entH(tv)) : '—');
+    setTxt('dTodaySub', isCur&&tv!=null? (isPlan(tv)? 'planirano' : eur(entEur(tk,tv))) : (isCur?'še nič vpisanega':''));
+    setTxt('dWeek', isCur&&wtot? hrs(wtot) : '—');
+    setTxt('dWeekSub', isCur&&wtot? eur(wEur) : '');
+    renderEntries();
+    renderMBars();
+    buildHeat(document.getElementById('hmMonth'), vy);
+    var qd=document.getElementById('qDate'); if(qd && !qd.value){ qd.value=todayKey(); }
+    qCalc();
+  }
 
   /* streak */
   var st=calcStreak(), sb=document.getElementById('streakB');
@@ -993,7 +1144,8 @@ function render(){
     if(k===tk) cls+=' today';
     el2.className=cls;
     el2.innerHTML='<span class="dn">'+d+'</span>'+
-      (v!=null? '<span class="hh">'+(Math.round(h*100)/100).toLocaleString('sl-SI')+'h</span><span class="ee">'+eur(entEur(k,v))+'</span>':'');
+      (v!=null? '<span class="hh">'+(Math.round(h*100)/100).toLocaleString('sl-SI')+'h</span><span class="ee">'+eur(entEur(k,v))+'</span>':'')+
+      (v!=null? '<span class="rng">'+(entRange(v)||(isPlan(v)?'planirano':'po urah'))+'</span>':'');
     (function(kk2){ el2.onclick=function(){openEntry(kk2);}; })(k);
     g.appendChild(el2);
   }
@@ -1123,6 +1275,109 @@ function renderYear(){
     al.appendChild(row);
   }
   if(!any) al.innerHTML='<div class="wempty">V letu '+yView+' še ni vnosov.</div>';
+}
+
+/* ================= namizni moduli (vidni samo na siroki sliki) ================= */
+function setTxt(id,txt){ var el=document.getElementById(id); if(el) el.textContent=txt; }
+
+/* hitri vnos brez pojavnega okna */
+function qVal(){
+  var f=document.getElementById('qFrom').value, t=document.getElementById('qTo').value;
+  var br=parseInt(document.getElementById('qBreak').value,10)||0;
+  var fm=timeToMin(f), tm=timeToMin(t);
+  if(fm==null||tm==null) return null;
+  var mins=tm-fm; if(mins<0) mins+=1440; mins-=br;
+  return {h:Math.round(mins/60*100)/100, f:f, t:t, b:br};
+}
+function qCalc(){
+  var btn=document.getElementById('qSave'); if(!btn) return;
+  var v=qVal(), k=document.getElementById('qDate').value;
+  if(!v || v.h<=0 || !k){ btn.textContent='Shrani'; return; }
+  btn.textContent='Shrani · '+hrs(v.h)+' = '+eur(v.h*dayRate(k));
+}
+function quickSave(){
+  var k=document.getElementById('qDate').value;
+  if(!k){ toast('Izberi datum'); return; }
+  var v=qVal();
+  if(!v || v.h<=0){ toast('Konec mora biti za začetkom'); return; }
+  if(v.h>24){ toast('Največ 24 h na dan 🙂'); return; }
+  var val={h:v.h, f:v.f, t:v.t, b:v.b};
+  if(k>todayKey()) val.p=1;
+  snapDays([k]);
+  S.data[k]=val; markDay(k);
+  save(); haptic(12); render();
+  toastU((val.p? 'Plan shranjen 📅' : '+'+eur(entEur(k,val))+' zabeleženo 💪'),'Razveljavi',doUndo);
+}
+
+/* tabela vnosov tekocega meseca */
+function renderEntries(){
+  var tb=document.getElementById('entryRows'); if(!tb) return;
+  tb.innerHTML='';
+  var tk=todayKey(), n=dim(vy,vm), any=false;
+  for(var d=n; d>=1; d--){
+    var k=key(vy,vm,d), v=S.data[k]; if(v==null) continue;
+    any=true;
+    var pill = !isPlan(v) ? '<span class="pill">vpisano</span>'
+             : (k<=tk ? '<span class="pill wt">čaka potrditev</span>' : '<span class="pill pl">plan</span>');
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td class="mut">'+DNI[kDate(k).getDay()].slice(0,3)+'</td>'+
+      '<td>'+d+'. '+(vm+1)+'.</td>'+
+      '<td class="mut">'+(entRange(v)||'po urah')+'</td>'+
+      '<td class="mut">'+((v&&v.b)? v.b+' min':'-')+'</td>'+
+      '<td><b>'+hrs(entH(v))+'</b></td>'+
+      '<td class="mut">'+(Math.round(dayRate(k)*100)/100).toLocaleString('sl-SI')+'</td>'+
+      '<td class="e">'+eur(entEur(k,v))+'</td>'+
+      '<td>'+pill+'</td>';
+    (function(kk){ tr.onclick=function(){ openEntry(kk); }; })(k);
+    tb.appendChild(tr);
+  }
+  if(!any) tb.innerHTML='<tr><td colspan="8" class="empty">Ta mesec še ni vnosov. Dodaj prvega zgoraj 👆</td></tr>';
+}
+
+/* primerjava mesecev v tekocem letu */
+function renderMBars(){
+  var el=document.getElementById('mbars'); if(!el) return;
+  el.innerHTML='';
+  setTxt('mbYear', vy);
+  var agg=yearAgg(vy), max=0, m;
+  for(m=0;m<12;m++){ var e0=agg.months[m]? agg.months[m].e:0; if(e0>max) max=e0; }
+  for(m=0;m<12;m++){
+    var e=agg.months[m]? agg.months[m].e:0;
+    var box=document.createElement('div');
+    box.className='mb'+(m===vm?' cur':'')+(e<=0?' zero':'');
+    box.innerHTML='<div class="v">'+(e>0? (Math.round(e/100)/10).toLocaleString('sl-SI')+'k':'')+'</div>'+
+      '<div class="bar" style="height:'+(max>0? Math.max(3,Math.round(e/max*78)) : 3)+'px"></div>'+
+      '<small>'+MESECI[m].slice(0,3)+'</small>';
+    box.title=MESECI[m]+': '+eur(e);
+    (function(mm){ box.onclick=function(){ vm=mm; render(); }; })(m);
+    box.style.cursor='pointer';
+    el.appendChild(box);
+  }
+}
+
+/* heatmap leta (isti izracun kot letni pogled) */
+function buildHeat(el, y){
+  if(!el) return;
+  el.innerHTML='';
+  var agg=yearAgg(y);
+  var lead=(new Date(y,0,1).getDay()+6)%7;
+  var tones=['--hm0','--hm1','--hm2','--hm3','--hm4'];
+  for(var i=0;i<lead;i++){ var sp=document.createElement('span'); sp.className='hmc'; sp.style.opacity='0'; el.appendChild(sp); }
+  var d=new Date(y,0,1);
+  while(d.getFullYear()===y){
+    var k=key(y,d.getMonth(),d.getDate());
+    var e=agg.days[k]||0;
+    var lvl=0;
+    if(e>0 && agg.maxDay>0) lvl=Math.min(4, 1+Math.floor(e/agg.maxDay*3.999));
+    var c=document.createElement('span'); c.className='hmc';
+    c.style.background='var('+tones[lvl]+')';
+    if(e>0){
+      c.style.cursor='pointer';
+      (function(kk,ee){ c.onclick=function(){ toast(fmtDayShort(kk)+' · '+hrs(entH(S.data[kk]))+' · '+eur(ee)); }; })(k,e);
+    }
+    el.appendChild(c);
+    d.setDate(d.getDate()+1);
+  }
 }
 
 /* ================= CSV ================= */
