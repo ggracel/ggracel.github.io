@@ -891,11 +891,9 @@ document.addEventListener("click", (e) => {
   const v = b.dataset.goto;
   navigate(v, v === "market" ? "live" : mode);
   const target = b.dataset.scroll ? $(b.dataset.scroll) : null;
-  if (target) {
-    // vrstico po ogledu pospravimo, da se ne vrača
-    if (b.dataset.scroll === "#novosti") markNewsSeen(true);
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
-  } else window.scrollTo({ top: 0, behavior: "smooth" });
+  // "Zakaj" samo pelje na razlago in vrstice ne pospravi; to naredi samo gumb "Videl sem".
+  if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+  else window.scrollTo({ top: 0, behavior: "smooth" });
 });
 $("#compare").onclick = () => {
   navigate("comparison", "live");
@@ -2521,9 +2519,13 @@ function renderOpenTrades() {
 // En seznam za obe mesti: tiha vrstica pod statusom (pokaže samo zadnji vnos) in razdelek
 // "Kaj je novega" v zavihku Kako deluje (pokaže vse). Nov vnos dodaš tukaj na vrh in nič drugega.
 // id mora rasti; ob zaprtju vrstice se shrani zadnji viden id, zato se vrstica vrne šele ob naslednjem vnosu.
+// Vrstica pod statusom se pokaze samo NEWS_BAR_HOURS ur po casu "at" zadnjega vnosa.
+// Po tem ostane vnos samo se v dnevniku sprememb v zavihku Kako deluje.
+const NEWS_BAR_HOURS = 24;
 const NEWS = [
   {
     id: 4,
+    at: "2026-09-19T17:30:00Z",
     date: "19. 9. 2026",
     title: "Profil Agresivno ima novi meji",
     short: "<b>Profil Agresivno je posodobljen.</b> Sled 20 % → 15 %, meja -10 % → -15 %. Velja za nove posle.",
@@ -2564,11 +2566,18 @@ function newsSeen() {
     return 0;
   }
 }
+// Znotraj okna = vnos ima cas in od njega je minilo manj kot NEWS_BAR_HOURS ur.
+function withinWindow(n) {
+  const t = n?.at ? Date.parse(n.at) : NaN;
+  return Number.isFinite(t) && Date.now() < t + NEWS_BAR_HOURS * 3600000;
+}
+// Za vrstico: vnos brez casa nima roka, da se obvestilo ne izgubi, če na "at" pozabim.
+const newsFresh = (n) => !n?.at || withinWindow(n);
 function renderNewsBar() {
   const bar = $("#newsBar");
   if (!bar) return;
   const latest = NEWS[0];
-  const show = !!latest && latest.id > newsSeen();
+  const show = !!latest && latest.id > newsSeen() && newsFresh(latest);
   bar.hidden = !show;
   if (!show) return;
   $("#newsBarText").innerHTML = latest.short || latest.title;
@@ -2577,9 +2586,10 @@ function renderNewsLog() {
   const host = $("#newsLog");
   if (!host) return;
   host.replaceChildren();
-  // Ob prvem ogledu je novo vse, zato oznaka ne pove nič in je ne rišemo.
+  // Ob prvem ogledu je novo vse, zato oznaka ne pove nič in je ne rišemo;
+  // izjema je vnos, ki je še znotraj 24-urnega okna, ker je res svež.
   const seen = newsSeen();
-  const fresh = (n) => seen > 0 && n.id > seen;
+  const fresh = (n) => n.id > seen && (seen > 0 || withinWindow(n));
   for (const n of NEWS) {
     const item = document.createElement("div");
     item.className = "nlItem" + (fresh(n) ? " fresh" : "");
@@ -2622,7 +2632,7 @@ function markNewsSeen(keepLog) {
   renderNewsBar();
   if (!keepLog) renderNewsLog();
 }
-$("#newsBarClose")?.addEventListener("click", () => markNewsSeen());
+$("#newsSeen")?.addEventListener("click", () => markNewsSeen());
 renderNewsBar();
 renderNewsLog();
 
