@@ -2523,9 +2523,12 @@ function renderOpenTrades() {
 // Po tem ostane vnos samo se v dnevniku sprememb v zavihku Kako deluje.
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
+  // Vnos 4 je bil isti kot ta, samo s staro številko. Zamenjan je s številko 5, ker je v prejšnji
+  // različici gumb "Zakaj" še štel kot potrditev in si je del uporabnikov obvestilo ugasnil, ne da bi ga prebral.
+  // Nova številka pomeni, da ga vsi dobijo znova; starega vnosa ni več, zato se v dnevniku nič ne podvaja.
   {
-    id: 4,
-    at: "2026-09-19T17:30:00Z",
+    id: 5,
+    at: "2026-09-19T18:00:00Z",
     date: "19. 9. 2026",
     title: "Profil Agresivno ima novi meji",
     short: "<b>Profil Agresivno je posodobljen.</b> Sled 20 % → 15 %, meja -10 % → -15 %. Velja za nove posle.",
