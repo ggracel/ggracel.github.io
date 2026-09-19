@@ -5,6 +5,24 @@ let lastSnapshotT = 0,
   primed = false,
   noData = false;
 import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint, PROFILES, DEFAULT_PROFILE, exitPlan, stepExit, markToMarket } from "./engine.mjs?v=8";
+// Konstante senčnega testa so tu zgoraj, ker jih berejo funkcije, ki se kličejo že ob nalaganju modula (TDZ).
+// Primerjava: senčni posli, ki jih strežnik (edge funkcija collect, datoteka shadow.ts) piše v tabelo memecoin_shadow_trades.
+// Brskalnik jih samo bere in sešteje. Pravila so v strežniku zamrznjena; tu se nič ne odloča.
+const SHADOW_STRATEGIES = ["v1.0", "v1.2-filter", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj", "v2.2-dip", "v2.2-dip-siroko"];
+// Ustavljene 19. 9. 2026: ne odpirajo novih poslov, zgodovina in odprti posli ostanejo (glej shadow.ts PAUSED).
+const SHADOW_PAUSED = { "v1.0": "19. 9.", "v2.0-brez-holderjev": "19. 9." };
+const SHADOW_LABEL = { "v1.0": "v1.0 (staro: +10 / -5)", "v1.2-filter": "v1.2 (v aplikaciji)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj", "v2.2-dip": "v2.2 dip s kupci", "v2.2-dip-siroko": "v2.2 dip s kupci, široko" };
+const SHADOW_COLOR = { "v1.0": "#9fb0c8", "v1.2-filter": "#f0a6ff", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff", "v2.2-dip": "#46bec5", "v2.2-dip-siroko": "#ff9f7a" };
+const SHADOW_START = Date.parse("2026-09-17T06:44:00Z"); // zagon senčnega testa (collect v3, prvi senčni posel)
+const SHADOW_MIN_TRADES = 100,
+  SHADOW_MIN_DAYS = 14,
+  SHADOW_MIN_PF = 1.3,
+  SHADOW_MIN_EXP = 2,
+  // Najmanj toliko zaključenih poslov, preden sploh izrečemo sodbo "pod ciljem".
+  // Brez tega bi na dan 14 vsa pravila padla, tudi tista s komaj nekaj posli.
+  SHADOW_MIN_JUDGE = 30,
+  // Koliko dni prej opozorimo, da se bliža konec testa.
+  SHADOW_WARN_DAYS = 3;
 const $ = (s) => document.querySelector(s),
   money = (x) =>
     Number.isFinite(x)
@@ -26,7 +44,7 @@ const age = (ts) => {
   return "star " + (m < 60 ? m + " min" : m < 1440 ? Math.floor(m / 60) + " h " + (m % 60) + " min" : Math.floor(m / 1440) + " d");
 };
 let mode = "live",
-  view = "market",
+  view = "watching",
   selected = null,
   coins = new Map(),
   healthy = false,
@@ -68,8 +86,9 @@ function syncNote(text, bad) {
   const el = $("#syncState");
   if (!el) return;
   el.textContent = text;
-  el.className = bad ? "negative" : "muted";
+  el.className = "syncState" + (bad ? " negative" : "");
 }
+const hhmm = (ms) => new Date(ms).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit" });
 async function loadRemote() {
   if (!db) return;
   try {
@@ -108,7 +127,7 @@ async function loadRemote() {
       remoteAuto = !!data.auto_entries;
     }
     if (!data || added) await pushRemote(true);
-    else syncNote("Dnevnik s profila · " + time(new Date(data.updated_at).getTime()) + (added ? " · preneseno " + added + " lokalnih zapisov" : ""));
+    else syncNote("profil naložen " + hhmm(new Date(data.updated_at).getTime()) + (added ? " · preneseno " + added + " lokalnih zapisov" : ""));
   } catch {
     syncNote("Profil trenutno ni dosegljiv, uporabljam lokalni dnevnik.", true);
   }
@@ -174,7 +193,7 @@ async function pushRemote(force = false) {
     const { error } = await db.from("memecoin_state").upsert({ ...row, updated_at: new Date().toISOString() });
     if (error) throw error;
     lastPushed = fingerprint;
-    syncNote("Shranjeno v profil · " + new Date().toLocaleTimeString("sl-SI"));
+    syncNote("sinhronizirano " + hhmm(Date.now()));
   } catch {
     syncNote("Shranjevanje v profil ni uspelo (lokalno je shranjeno).", true);
   }
@@ -228,7 +247,7 @@ function draw() {
   const c = current();
   $("#source").textContent = mode === "practice" ? "IZMIŠLJENA VAJA" : "ŽIVI POSNETKI";
   $("#scope").textContent =
-    mode === "practice" ? "Vaja: napreduješ ročno. Podatki so izmišljeni." : "Strežnik zbira posnetke vsakih 30 s, tudi ko je stran zaprta · ob odprtju naložim zadnjo uro";
+    mode === "practice" ? "Vaja: napreduješ ročno. Podatki so izmišljeni." : "Kandidati iz DEX Screener profilov in boostov · posnetek vsakih 30 s, tudi ko je stran zaprta · ob odprtju zadnja ura";
   $("#refresh").hidden = mode === "practice";
   $("#coins").replaceChildren();
   const list = [...coins.values()].sort((a, b) => (b.created || 0) - (a.created || 0));
@@ -720,14 +739,21 @@ async function poll() {
   }
 }
 function status() {
-  $("#status").className = "notice " + (mode === "practice" ? "practice" : healthy && Date.now() - last < 75000 ? "connected" : "stopped");
-  if (mode === "practice") $("#status").textContent = "IZMIŠLJENA VAJA · najprej primer rasti, nato primer izgube. To ni napoved.";
-  else if (noData) $("#status").textContent = "Strežnik še nima posnetkov za zadnjo uro ali ta račun nima dostopa do podatkov. Poskusi Osveži čez minuto.";
-  else
-    $("#status").textContent =
-      healthy && Date.now() - last < 75000
-        ? "Strežnik zbira 24/7 · zadnji posnetek " + time(last) + " · zakasnitev ponudnika ni znana."
-        : "PREMOR · strežnik nima svežega posnetka (ali brskalnik nima povezave). Opozorila in vstopi počakajo na nov posnetek.";
+  const freshNow = healthy && Date.now() - last < 75000;
+  $("#status").className = "notice " + (mode === "practice" ? "practice" : freshNow ? "connected" : "stopped");
+  if (mode === "practice") {
+    $("#status").textContent = "IZMIŠLJENA VAJA · najprej primer rasti, nato primer izgube. To ni napoved.";
+    return;
+  }
+  if (noData) {
+    $("#status").textContent = "● BREZ PODATKOV · strežnik nima posnetkov za zadnjo uro ali ta račun nima dostopa · poskusi Osveži čez minuto";
+    return;
+  }
+  const day = Math.max(1, Math.ceil((Date.now() - SHADOW_START) / 86400000));
+  const active = SHADOW_STRATEGIES.filter((k) => !SHADOW_PAUSED[k]).length;
+  $("#status").textContent = freshNow
+    ? "● ZBIRALEC AKTIVEN · posnetek " + time(last) + " · " + coins.size + " kovancev · senca " + active + " pravil · dan " + day + " od " + SHADOW_MIN_DAYS
+    : "● PREMOR · zadnji posnetek " + (last ? time(last) : "neznan") + " · vstopi in opozorila čakajo na nov posnetek";
 }
 function navigate(v, m = mode) {
   if (m !== mode) $("#feedback").textContent = "";
@@ -915,8 +941,8 @@ try {
   $("#auto").checked = saved === "on";
   $("#autoSaved").textContent =
     saved === null
-      ? "Izbira še ni shranjena. Stara različica vklopa ni pomnila; po želji ga izberi enkrat."
-      : "Naložena shranjena izbira v tem brskalniku.";
+      ? "Izbira še ni shranjena. Izberi jo enkrat, potem se pomni."
+      : "";
 } catch {
   $("#auto").checked = false;
   $("#autoSaved").textContent = "Shranjevanje ni dosegljivo. Izbira se po osvežitvi morda ne bo ohranila.";
@@ -926,6 +952,7 @@ if (remoteAuto !== null) {
   $("#autoSaved").textContent = "Nastavitev s profila (velja v vseh brskalnikih).";
 }
 $("#autoState").textContent = $("#auto").checked ? "VKLJUČENI" : "IZKLJUČENI";
+renderBotPill();
 poll();
 setInterval(poll, 30000);
 setInterval(() => {
@@ -944,15 +971,43 @@ $("#auto").onchange = () => {
     const value = $("#auto").checked ? "on" : "off";
     localStorage.setItem("solana-auto-v1", value);
     if (localStorage.getItem("solana-auto-v1") !== value) throw Error();
-    $("#autoSaved").textContent =
-      "Izbira shranjena: " + (value === "on" ? "vključeno" : "izključeno") + ". Ostane po osvežitvi v tem brskalniku.";
+    $("#autoSaved").textContent = "Shranjeno: bot " + (value === "on" ? "vstopa sam" : "ne vstopa sam") + ".";
   } catch {
     $("#autoSaved").textContent = "Izbire ni bilo mogoče shraniti. Velja samo v tem odprtem zavihku.";
   }
   $("#autoState").textContent = $("#auto").checked ? "VKLJUČENI" : "IZKLJUČENI";
+  renderBotPill();
   scheduleRemote();
   watching();
 };
+
+// Pilula stanja bota v glavi: en pogled pove, ali bot vstopa sam, s kakšnim vložkom in katerim profilom. Klik odpre nastavitve.
+function renderBotPill() {
+  const pill = $("#botPill"), txt = $("#botPillText");
+  if (!pill || !txt) return;
+  const on = !!$("#auto").checked;
+  const p = PROFILES[profile] || PROFILES[DEFAULT_PROFILE];
+  const st = stake.toLocaleString("sl-SI", { maximumSignificantDigits: 21, useGrouping: false });
+  txt.textContent = "BOT · " + (on ? "SAMODEJNO" : "ROČNO") + " · " + st + " SOL · " + p.name.toUpperCase();
+  pill.classList.toggle("off", !on);
+  pill.title = (on ? "Bot sam odpira demo posle." : "Bot ne odpira sam, vstopaš ročno.") + " Klik odpre nastavitve.";
+}
+$("#botPill").onclick = (e) => {
+  e.stopPropagation();
+  const pop = $("#botPop");
+  pop.hidden = !pop.hidden;
+};
+document.addEventListener("click", (e) => {
+  const pop = $("#botPop");
+  if (!pop || pop.hidden || pop.contains(e.target)) return;
+  pop.hidden = true;
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    const pop = $("#botPop");
+    if (pop) pop.hidden = true;
+  }
+});
 
 $("#watch").onclick = () => navigate("watching", "live");
 let watchSignature = "",
@@ -974,7 +1029,7 @@ function watching() {
   const expanded = new Set([...document.querySelectorAll("#watchCards details[open], #waitCards details[open]")].map((d) => d.dataset.id));
   host.replaceChildren();
   $("#watchStatus").textContent =
-    `Posodobitev pogleda: ${time(Date.now())}. Zadnji prejem vira: ${last ? time(last) : "še čakamo"}. Samodejni demo vstopi: ${$("#auto").checked ? "vključeni" : "izključeni"}.`;
+    "Osveženo " + time(Date.now()) + " · zadnji posnetek " + (last ? time(last) : "še čakamo") + " · bot " + ($("#auto").checked ? "vstopa sam" : "ne vstopa sam");
   const collectRow = $("#collectRow"),
     waitCards = $("#waitCards"),
     waitEmpty = $("#waitEmpty");
@@ -1127,7 +1182,7 @@ function watching() {
     };
     const manual = document.createElement("button");
     manual.className = "primary";
-    manual.textContent = "Ročni demo vstop";
+    manual.textContent = "Vstopi";
     manual.disabled = !!manualBlock(c);
     manual.title = manualBlock(c) || "Vstop po trenutni ceni z izbranim profilom";
     const fb = document.createElement("small");
@@ -1569,7 +1624,7 @@ function renderEvents() {
 
 function stakeLabels() {
   const text = stake.toLocaleString("sl-SI", { maximumSignificantDigits: 21, useGrouping: false });
-  $("#stakeBadge").textContent = "Novi demo · " + text + " SOL";
+  renderBotPill();
   renderManual(current(), "#open", "#liveManualState");
   renderManual(coins.get(boardSelected), "#boardManual", "#boardManualState");
   $("#stakeInput").value = text;
@@ -1628,7 +1683,7 @@ function manualEntry(c, feedback) {
 }
 function renderManual(c, button, state) {
   $(button).textContent =
-    "Ročni demo vstop · " + stake.toLocaleString("sl-SI", { maximumSignificantDigits: 21, useGrouping: false }) + " SOL";
+    "Vstopi · " + stake.toLocaleString("sl-SI", { maximumSignificantDigits: 21, useGrouping: false }) + " SOL";
   $(button).disabled = !!manualBlock(c);
   $(state).textContent =
     "Zdaj: " + (c ? mcText(c, c.price) + " (" + money(c.price) + ")" : "-") + " · " + (manualBlock(c) || "Na voljo · lastna odločitev, tudi brez signala.");
@@ -1653,23 +1708,6 @@ function renderBoardGraph() {
   renderManual(c, "#boardManual", "#boardManualState");
 }
 
-// Primerjava: senčni posli, ki jih strežnik (edge funkcija collect, datoteka shadow.ts) piše v tabelo memecoin_shadow_trades.
-// Brskalnik jih samo bere in sešteje. Pravila so v strežniku zamrznjena; tu se nič ne odloča.
-const SHADOW_STRATEGIES = ["v1.0", "v1.2-filter", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj", "v2.2-dip", "v2.2-dip-siroko"];
-// Ustavljene 19. 9. 2026: ne odpirajo novih poslov, zgodovina in odprti posli ostanejo (glej shadow.ts PAUSED).
-const SHADOW_PAUSED = { "v1.0": "19. 9.", "v2.0-brez-holderjev": "19. 9." };
-const SHADOW_LABEL = { "v1.0": "v1.0 (staro: +10 / -5)", "v1.2-filter": "v1.2 (v aplikaciji)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj", "v2.2-dip": "v2.2 dip s kupci", "v2.2-dip-siroko": "v2.2 dip s kupci, široko" };
-const SHADOW_COLOR = { "v1.0": "#9fb0c8", "v1.2-filter": "#f0a6ff", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff", "v2.2-dip": "#46bec5", "v2.2-dip-siroko": "#ff9f7a" };
-const SHADOW_START = Date.parse("2026-09-17T06:44:00Z"); // zagon senčnega testa (collect v3, prvi senčni posel)
-const SHADOW_MIN_TRADES = 100,
-  SHADOW_MIN_DAYS = 14,
-  SHADOW_MIN_PF = 1.3,
-  SHADOW_MIN_EXP = 2,
-  // Najmanj toliko zaključenih poslov, preden sploh izrečemo sodbo "pod ciljem".
-  // Brez tega bi na dan 14 vsa pravila padla, tudi tista s komaj nekaj posli.
-  SHADOW_MIN_JUDGE = 30,
-  // Koliko dni prej opozorimo, da se bliža konec testa.
-  SHADOW_WARN_DAYS = 3;
 let shadowTrades = [],
   shadowError = "",
   shadowBusy = false;
@@ -1938,7 +1976,7 @@ function renderOpenTrades() {
     return;
   }
   if ($("#watching").hidden) return; // ne rišemo skritih grafov
-  $("#openRowTitle").textContent = "Odprti demo posli";
+  $("#openRowTitle").textContent = "Odprte pozicije";
   $("#openRowCount").textContent = open.length;
   host.replaceChildren();
   const el = (tag, cls, text) => {
@@ -2119,6 +2157,7 @@ function renderOpenTrades() {
 // Profil izstopa: izbira v Živem izboru z razlago, shranjeno na profil (memecoin_state.profile) in lokalno.
 function renderProfile() {
   const p = PROFILES[profile] || PROFILES[DEFAULT_PROFILE];
+  renderBotPill();
   for (const b of document.querySelectorAll("#profileButtons button")) {
     const on = b.dataset.profile === p.key;
     b.classList.toggle("active", on);
