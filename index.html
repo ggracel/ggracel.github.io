@@ -30,7 +30,7 @@
   --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--ink);color:var(--fg);font-family:var(--inter);line-height:1.6;-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--ink);color:var(--fg);font-family:var(--inter);line-height:1.6;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 h1,h2,h3,h4{font-family:var(--poppins);letter-spacing:-.03em;line-height:1.08;margin:0;text-wrap:balance}
 p{margin:0}
 button{font:inherit;color:inherit;cursor:pointer}
@@ -72,9 +72,50 @@ body[data-view="login"] .lg-inner{justify-content:flex-start;padding-left:max(20
 body.reveal[data-view="login"] .tease-veil{opacity:0}
 body.reveal[data-view="login"] .view[data-view="hub"]{transform:none;filter:none}
 @media(max-width:900px){
-  .tease-veil{background:radial-gradient(82% 56% at 50% 44%,rgba(11,9,10,.965) 36%,rgba(11,9,10,.89) 70%,rgba(11,9,10,.74) 100%)}
-  body[data-view="login"] .view[data-view="hub"]{transform:none}
-  body[data-view="login"] .lg-inner{justify-content:center;padding-left:20px}
+  /* on a phone the hub stacks, so a sharp hub behind the card reads as a second
+     broken header. A little blur turns it back into depth without losing the teal. */
+  .tease-veil{background:radial-gradient(92% 62% at 50% 44%,rgba(11,9,10,.94) 30%,rgba(11,9,10,.9) 66%,rgba(11,9,10,.88) 100%)}
+  body[data-view="login"] .view[data-view="hub"]{transform:scale(.95);transform-origin:50% 30%;filter:blur(4px) saturate(.7) brightness(.6)}
+  body[data-view="login"] .lg-inner{justify-content:center;padding-left:16px;padding-right:16px}
+}
+/* A phone screen is filled by the card, so nothing of the hub shows through.
+   This quiet locked list gives the same hint the desktop split gives. */
+.lg-peek{display:none}
+@media(max-width:900px){
+  .lg-peek{display:grid;gap:8px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+  .lg-peek-lab{font-family:var(--mono);font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--mute)}
+  .lg-peek-row{display:flex;align-items:baseline;gap:9px;font-size:13.5px;color:var(--dim)}
+  .lg-peek-row svg{flex:0 0 auto;color:var(--teal);opacity:.75;align-self:center}
+  .lg-peek-row b{font-family:var(--poppins);font-weight:600;letter-spacing:-.01em}
+  .lg-peek-row i{font-style:normal;font-size:12.5px;color:var(--mute)}
+  .view.leaving .lg-peek{animation:cardOut .26s cubic-bezier(.45,0,.85,.25) both}
+}
+@media(max-width:640px){
+  /* 16px inputs stop iOS Safari from zooming the page on focus */
+  .lg-card .lg-f input{font-size:16px;padding:13px 13px}
+  .lg-inner{padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(22px + env(safe-area-inset-bottom,0px))}
+  .lg-card{padding:20px 19px 18px;border-radius:18px}
+  .lg-card .wm{width:112px}
+  .lg-card > small{margin:8px 0 11px}
+  .lg-card p.note{font-size:14px;line-height:1.5;margin-bottom:14px}
+  .lg-f{margin-bottom:10px;gap:4px}
+  .fhint{font-size:11px;margin-top:2px}
+  .authmsg{margin-top:10px;font-size:12.5px}
+  .lg-hint{margin-top:12px}
+  .lg-btn{padding:15px}
+  .linkish{display:inline-block;padding:6px 2px}
+  .lg-alt{margin-top:14px;padding-top:12px}
+  .d-bar{gap:12px;padding-block:calc(16px + env(safe-area-inset-top,0px)) 16px}
+  .d-bar .wm{width:82px}
+  .d-bar-r{gap:11px;font-size:10px}
+  .d-intro{padding-block:32px 30px}
+  .d-grid{gap:14px;padding-bottom:40px}
+  .d-body{padding:16px 14px}
+  .foot{padding-block:18px calc(24px + env(safe-area-inset-bottom,0px));font-size:12px}
+}
+@media(hover:none){
+  /* no lift while scrolling, the border and the brackets carry the state instead */
+  .d-mod.is-on{transform:none;box-shadow:0 14px 34px rgba(0,0,0,.4)}
 }
 
 /* ---------- login to hub transition ---------- */
@@ -162,7 +203,7 @@ body.reveal[data-view="login"] .view[data-view="hub"]{transform:none;filter:none
   font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:500;
   color:var(--mute);border:1px solid var(--line2);border-radius:999px;padding:3px 9px;transition:color .25s,border-color .25s,background .25s}
 .inst svg{flex:0 0 auto;opacity:.8}
-.d-mod:hover .inst{color:var(--teal);border-color:rgba(70,190,197,.45);background:rgba(70,190,197,.09)}
+.d-mod.is-on .inst{color:var(--teal);border-color:rgba(70,190,197,.45);background:rgba(70,190,197,.09)}
 
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01ms!important}}
 
@@ -175,21 +216,21 @@ body.reveal[data-view="login"] .view[data-view="hub"]{transform:none;filter:none
 .b-cor.tr{top:6px;right:6px;border-left:0;border-bottom:0;transform:translate(5px,-5px)}
 .b-cor.bl{bottom:6px;left:6px;border-right:0;border-top:0;transform:translate(-5px,5px)}
 .b-cor.br{bottom:6px;right:6px;border-left:0;border-top:0;transform:translate(5px,5px)}
-.d-mod:hover .b-cor,.d-mod:focus-visible .b-cor{opacity:1;transform:translate(0,0)}
+.d-mod.is-on .b-cor{opacity:1;transform:translate(0,0)}
 .b-scan{position:absolute;left:0;right:0;top:-40%;height:40%;pointer-events:none;z-index:2;
   background:linear-gradient(180deg,transparent,rgba(70,190,197,.16),transparent);opacity:0}
-.d-mod:hover .b-scan{opacity:1;animation:scan 1.5s linear infinite}
+.d-mod.is-on.scan .b-scan{opacity:1;animation:scan 1.5s linear infinite}
 @keyframes scan{0%{top:-40%}100%{top:105%}}
 .b-read{font-family:var(--mono);font-size:11px;color:var(--mute);display:grid;gap:5px;border-top:1px solid var(--line);padding-top:12px}
 .b-read div{display:flex;justify-content:space-between;gap:10px;opacity:.45;transform:translateX(-5px);transition:all .25s}
-.d-mod:hover .b-read div{opacity:1;transform:none}
-.d-mod:hover .b-read div:nth-child(2){transition-delay:.06s}
-.d-mod:hover .b-read div:nth-child(3){transition-delay:.12s}
+.d-mod.is-on .b-read div{opacity:1;transform:none}
+.d-mod.is-on .b-read div:nth-child(2){transition-delay:.06s}
+.d-mod.is-on .b-read div:nth-child(3){transition-delay:.12s}
 .b-read span:last-child{color:var(--dim)}
 
 /* ================= D - MIX (A layout + B behaviour) ================= */
 .d{background:transparent}
-.d-bar{position:relative;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding-block:22px;border-bottom:1px solid var(--line)}
+.d-bar{position:relative;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding-block:calc(22px + env(safe-area-inset-top,0px)) 22px;border-bottom:1px solid var(--line)}
 .d-bar .wm{width:92px;height:auto;display:block}
 .d-bar-r{display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;letter-spacing:.11em;color:var(--mute);text-transform:uppercase}
 .d-av{width:26px;height:26px;border-radius:50%;background:var(--teal);color:#0d2c2e;font-family:var(--poppins);font-weight:800;font-size:12px;display:grid;place-items:center}
@@ -208,10 +249,10 @@ body.reveal[data-view="login"] .view[data-view="hub"]{transform:none;filter:none
   transition:transform .3s cubic-bezier(.2,.8,.2,1),border-color .3s,box-shadow .3s,opacity .3s}
 .d-mod::after{content:"";position:absolute;inset:-1px;border-radius:15px;padding:1px;background:linear-gradient(140deg,var(--teal),transparent 45%,transparent 60%,rgba(70,190,197,.45));
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .3s;pointer-events:none;z-index:4}
-.d-mod:hover,.d-mod:focus-visible{transform:translateY(-6px);border-color:transparent;box-shadow:0 26px 60px rgba(0,0,0,.5)}
-.d-mod:hover::after,.d-mod:focus-visible::after{opacity:1}
-.d-grid:hover .d-mod{opacity:.5}
-.d-grid:hover .d-mod:hover{opacity:1}
+.d-mod.is-on{transform:translateY(-6px);border-color:transparent;box-shadow:0 26px 60px rgba(0,0,0,.5)}
+.d-mod.is-on::after{opacity:1}
+.d-grid.dimmed .d-mod{opacity:.5}
+.d-grid.dimmed .d-mod.is-on{opacity:1}
 .d-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);
   font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--mute);text-transform:uppercase}
 .d-head b{color:var(--teal);font-weight:700}
@@ -223,7 +264,7 @@ body.reveal[data-view="login"] .view[data-view="hub"]{transform:none;filter:none
 .d-go{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:15px;border-top:1px solid var(--line);
   font-family:var(--mono);font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--teal)}
 .d-go svg{transition:transform .25s}
-.d-mod:hover .d-go svg{transform:translateX(5px)}
+.d-mod.is-on .d-go svg{transform:translateX(5px)}
 
 /* D login: A card, B labels */
 .lgd .lg-card{max-width:410px}
@@ -234,8 +275,8 @@ body.reveal[data-view="login"] .view[data-view="hub"]{transform:none;filter:none
 
 /* ---------- login screens ---------- */
 [hidden]{display:none!important}
-.lg{position:fixed;inset:0;z-index:6;overflow:auto;-webkit-overflow-scrolling:touch}
-.lg-inner{position:relative;z-index:1;min-height:100%;display:flex;align-items:center;justify-content:center;padding:46px 20px}
+.lg{position:fixed;inset:0;z-index:6;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.lg-inner{position:relative;z-index:1;min-height:100%;display:flex;align-items:center;justify-content:center;padding:calc(46px + env(safe-area-inset-top,0px)) 20px calc(46px + env(safe-area-inset-bottom,0px))}
 .lg-wrap{width:100%;max-width:410px;display:flex;flex-direction:column}
 .lg-card{position:relative;width:100%;max-width:400px;background:rgba(26,22,23,.9);border:1px solid var(--line);border-radius:20px;padding:30px 28px 26px;box-shadow:0 30px 80px rgba(0,0,0,.6);backdrop-filter:blur(8px)}
 .lg-card .wm{width:150px;height:auto;display:block}
@@ -262,7 +303,7 @@ body.reveal[data-view="login"] .view[data-view="hub"]{transform:none;filter:none
 .lgd .lg-hint{color:var(--teal);opacity:.75}
 
 
-.foot{border-top:1px solid var(--line);padding-block:20px 28px;font-size:12.5px;color:var(--mute);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;position:relative}
+.foot{border-top:1px solid var(--line);padding-block:20px calc(28px + env(safe-area-inset-bottom,0px));font-size:12.5px;color:var(--mute);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;position:relative}
 .foot b{color:var(--dim);font-weight:500}
 
 /* real auth states */
@@ -387,7 +428,7 @@ body[data-state="boot"] main{opacity:0;pointer-events:none}
       <div class="lg-f reg-only">
         <label for="fName">Name</label>
         <input id="fName" type="text" maxlength="40" autocomplete="nickname" placeholder="e.g. Gašper">
-        <small class="fhint">Shown instead of your email inside the apps.</small>
+        <small class="fhint">Shown instead of your email in the apps.</small>
       </div>
       <div class="lg-f not-rec">
         <label for="fEmail">Email</label>
@@ -413,7 +454,13 @@ body[data-state="boot"] main{opacity:0;pointer-events:none}
         <span class="rec-only">Remembered it? <button type="button" class="linkish" data-mode="signin">Sign in</button></span>
       </p>
       <p class="lg-hint">3 Apps, One Login.</p>
-    </div></div></div>
+    </div>
+      <div class="lg-peek" aria-hidden="true">
+        <span class="lg-peek-lab">Inside</span>
+        <span class="lg-peek-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><b>foqs.habit</b><i>Win the day</i></span>
+        <span class="lg-peek-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><b>Ura+</b><i>Hours into money</i></span>
+        <span class="lg-peek-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><b>foqs.sonar</b><i>Reads the market</i></span>
+      </div></div></div>
   </div>
 </section>
 </main>
@@ -538,13 +585,36 @@ document.getElementById('signOut').onclick = async function(e){
   document.getElementById(id).addEventListener('keydown', function(e){ if (e.key === 'Enter') mainBtn.click(); });
 });
 
-/* module previews come alive on hover / keyboard focus */
-document.querySelectorAll('.d-mod').forEach(function(el){
-  const pv = el.querySelectorAll('.prev');
-  const on  = function(){ pv.forEach(function(x){ x.classList.add('is-live'); }); };
-  const off = function(){ pv.forEach(function(x){ x.classList.remove('is-live'); }); };
-  el.addEventListener('mouseenter', on); el.addEventListener('mouseleave', off);
-  el.addEventListener('focusin', on);    el.addEventListener('focusout', off);
+/* Cards light up on hover with a mouse, and on scroll-into-view on a phone.
+   Everything hangs off .is-on, so iOS cannot leave a card stuck in a hover state. */
+const grid  = document.querySelector('.d-grid');
+const mods  = Array.prototype.slice.call(document.querySelectorAll('.d-mod'));
+const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+function setOn(el, on, withScan){
+  el.classList.toggle('is-on', on);
+  el.classList.toggle('scan', !!(on && withScan));
+  el.querySelectorAll('.prev').forEach(function(x){ x.classList.toggle('is-live', on); });
+}
+
+if (canHover){
+  mods.forEach(function(el){
+    el.addEventListener('mouseenter', function(){ setOn(el, true, true);  if (grid) grid.classList.add('dimmed'); });
+    el.addEventListener('mouseleave', function(){ setOn(el, false, false); if (grid) grid.classList.remove('dimmed'); });
+  });
+} else if ('IntersectionObserver' in window){
+  const io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ setOn(e.target, e.isIntersecting, false); });
+  }, { threshold: 0.5 });
+  mods.forEach(function(el){ io.observe(el); });
+} else {
+  mods.forEach(function(el){ setOn(el, true, false); });
+}
+
+/* keyboard: a focused card behaves like a hovered one */
+mods.forEach(function(el){
+  el.addEventListener('focusin',  function(){ setOn(el, true, canHover); });
+  el.addEventListener('focusout', function(){ if (!canHover) return; setOn(el, false, false); });
 });
 
 /* clock */
@@ -582,7 +652,15 @@ function drawMesh(){
     tri(pts[y][x+1], pts[y+1][x+1], pts[y+1][x]);
   }
 }
-let mt; window.addEventListener('resize', function(){ clearTimeout(mt); mt = setTimeout(drawMesh, 200); });
+/* Only redraw when the width really changed. On a phone the address bar
+   sliding away fires resize constantly, and a redraw there would reshuffle
+   the whole pattern mid-scroll. */
+let mt, lastW = window.innerWidth;
+window.addEventListener('resize', function(){
+  if (Math.abs(window.innerWidth - lastW) < 2) return;
+  lastW = window.innerWidth;
+  clearTimeout(mt); mt = setTimeout(drawMesh, 200);
+});
 drawMesh();
 
 /* boot: recovery link, existing session, or the entry screen */
