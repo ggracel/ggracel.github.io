@@ -1,32 +1,614 @@
-<!DOCTYPE html>
-<html lang="sl">
+<!doctype html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>foqs. — Advertising & Performance Consulting</title>
-<meta name="description" content="foqs. — Advertising & Performance Consulting. Stran je v izdelavi.">
-<link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
-<link rel="icon" type="image/png" sizes="192x192" href="favicon.png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>foqs. - Advertising &amp; Performance Consulting</title>
+<meta name="description" content="foqs. - Google Ads, TikTok Ads and websites. Sign in to the foqs. hub for habit, Ura+ and sonar.">
+<meta name="theme-color" content="#141112">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:title" content="foqs.">
+<meta property="og:description" content="Google Ads, TikTok Ads and websites that pay for themselves.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://foqs.si">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%}
-  body{background:#231F20;color:#fff;display:flex;align-items:center;justify-content:center;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    -webkit-font-smoothing:antialiased;text-align:center;padding:24px}
-  .logo{font-size:clamp(64px,14vw,120px);font-weight:800;letter-spacing:-.02em;line-height:1}
-  .logo span{color:#46BEC5}
-  .tag{margin-top:18px;font-size:clamp(11px,2.4vw,14px);letter-spacing:.35em;text-transform:uppercase;
-    color:#B7B4B5;font-weight:600}
-  .soon{margin-top:44px;display:inline-block;border:1px solid #3B3637;border-radius:999px;
-    padding:10px 22px;font-size:13px;color:#8f8b8c;letter-spacing:.12em;text-transform:uppercase}
+
+:root{
+  --ink:#141112; --ink2:#1a1617; --ink3:#211d1e; --ink4:#2a2526;
+  --line:#322c2d; --line2:#453e3f;
+  --teal:#46BEC5; --teal-d:#2ea4ab; --teal-dim:rgba(70,190,197,.14);
+  --fg:#f4f2f2; --dim:#B7B4B5; --mute:#8b8586;
+  --pos:#5ad8ae; --warn:#e8b463;
+  --poppins:'Poppins',system-ui,sans-serif;
+  --inter:'Inter',system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ink);color:var(--fg);font-family:var(--inter);line-height:1.6;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--poppins);letter-spacing:-.03em;line-height:1.08;margin:0;text-wrap:balance}
+p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:inherit;text-decoration:none}
+img{max-width:100%}
+:focus-visible{outline:2px solid var(--teal);outline-offset:3px;border-radius:4px}
+
+/* ---------- switcher ---------- */
+.sw{position:sticky;top:env(safe-area-inset-top,0px);z-index:100;padding:10px 16px;
+  background:rgba(12,10,11,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);
+  display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.sw-group{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.sw-lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;color:var(--mute);text-transform:uppercase;margin-right:4px}
+.sw button{background:transparent;border:1px solid var(--line2);color:var(--dim);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;font-family:var(--inter);transition:all .18s}
+.sw button:hover{border-color:var(--teal);color:var(--teal)}
+.sw button[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:#0d2c2e}
+
+
+.stage{min-height:78vh;position:relative;overflow:hidden}
+.view[hidden]{display:none!important}
+.pad{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:0}
+
+
+/* ================= background: poligoni ================= */
+#bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:var(--ink)}
+main{position:relative;z-index:1}
+.bg-mesh{position:absolute;inset:0}
+.bg-mesh canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.bg-mesh::after{content:"";position:absolute;inset:0;background:radial-gradient(820px 470px at 50% -6%,rgba(70,190,197,.07),transparent 62%)}
+
+/* ---------- entry screen: hub sits sharp on the right ---------- */
+body[data-view="login"]{overflow:hidden}
+.tease-veil{position:absolute;inset:0;z-index:0;opacity:1;transition:opacity .46s ease;pointer-events:none;
+  background:linear-gradient(90deg,rgba(11,9,10,.97) 0,rgba(11,9,10,.93) 22%,rgba(11,9,10,.55) 42%,rgba(11,9,10,.12) 62%,transparent 78%)}
+body[data-view="login"] .view[data-view="hub"]{
+  pointer-events:none;user-select:none;filter:saturate(.88);transform:scale(.88);transform-origin:100% 34%;
+  transition:transform .5s ease,filter .5s ease}
+body[data-view="login"] .lg-inner{justify-content:flex-start;padding-left:max(20px,5vw)}
+body.reveal[data-view="login"] .tease-veil{opacity:0}
+body.reveal[data-view="login"] .view[data-view="hub"]{transform:none;filter:none}
+@media(max-width:900px){
+  .tease-veil{background:radial-gradient(82% 56% at 50% 44%,rgba(11,9,10,.965) 36%,rgba(11,9,10,.89) 70%,rgba(11,9,10,.74) 100%)}
+  body[data-view="login"] .view[data-view="hub"]{transform:none}
+  body[data-view="login"] .lg-inner{justify-content:center;padding-left:20px}
+}
+
+/* ---------- login to hub transition ---------- */
+.view.leaving .lg-card{animation:cardOut .3s cubic-bezier(.45,0,.85,.25) both}
+@keyframes cardOut{to{opacity:0;transform:translateY(-10px) scale(.96)}}
+@keyframes riseIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes cardIn{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+.view.entering .d-bar{animation:riseIn .34s both}
+.view.entering .d-intro{animation:riseIn .38s .05s both}
+.view.entering .d-mod{animation:cardIn .42s both}
+.view.entering .d-mod:nth-child(1){animation-delay:.10s}
+.view.entering .d-mod:nth-child(2){animation-delay:.16s}
+.view.entering .d-mod:nth-child(3){animation-delay:.22s}
+.view.entering .foot{animation:riseIn .34s .3s both}
+.lg-btn.busy{pointer-events:none;opacity:.85}
+
+/* ---------- shared mini previews ---------- */
+.prev{position:relative;border-radius:12px;background:var(--ink);border:1px solid var(--line);padding:14px;overflow:hidden}
+.prev-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.prev-top small{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--mute);text-transform:uppercase}
+.prev-dot{width:6px;height:6px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 3px var(--teal-dim)}
+
+/* habit */
+.hb-row{display:flex;align-items:center;gap:9px;padding:5px 0}
+.hb-box{width:15px;height:15px;border-radius:5px;border:1.5px solid var(--line2);flex:0 0 auto;position:relative;transition:background .3s,border-color .3s}
+.hb-box::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #0d2c2e;border-width:0 2px 2px 0;transform:rotate(45deg) scale(0);transition:transform .25s cubic-bezier(.2,1.4,.4,1)}
+.hb-box.on,.is-live .hb-box{background:var(--teal);border-color:var(--teal)}
+.hb-box.on::after,.is-live .hb-box::after{transform:rotate(45deg) scale(1)}
+.is-live .hb-box:nth-child(1){transition-delay:.05s}
+.hb-row:nth-child(2) .hb-box{transition-delay:.06s}
+.hb-row:nth-child(3) .hb-box{transition-delay:.12s}
+.hb-row:nth-child(4) .hb-box{transition-delay:.18s}
+.hb-txt{height:7px;border-radius:4px;background:var(--ink4);flex:1}
+.hb-row:nth-child(2) .hb-txt{max-width:78%}
+.hb-row:nth-child(3) .hb-txt{max-width:64%}
+.hb-row:nth-child(4) .hb-txt{max-width:84%}
+.hb-week{display:flex;gap:5px;margin-top:13px;padding-top:12px;border-top:1px solid var(--line)}
+.hb-week i{flex:1;height:22px;border-radius:5px;background:var(--ink4);transition:background .35s}
+.hb-week i:nth-child(-n+5){background:rgba(70,190,197,.4)}
+.is-live .hb-week i:nth-child(-n+5){background:var(--teal)}
+.is-live .hb-week i:nth-child(1){transition-delay:.02s}
+.is-live .hb-week i:nth-child(2){transition-delay:.07s}
+.is-live .hb-week i:nth-child(3){transition-delay:.12s}
+.is-live .hb-week i:nth-child(4){transition-delay:.17s}
+.is-live .hb-week i:nth-child(5){transition-delay:.22s}
+.hb-week i:nth-child(6),.hb-week i:nth-child(7){opacity:.5}
+
+/* ura */
+.ur-cal{display:flex;gap:7px;align-items:flex-end;height:82px}
+.ur-cal span{flex:1;background:linear-gradient(180deg,var(--teal),var(--teal-d));border-radius:5px 5px 2px 2px;transform-origin:bottom;transition:height .45s cubic-bezier(.2,.8,.2,1)}
+.ur-cal span:nth-child(1){height:44%}
+.ur-cal span:nth-child(2){height:29%;background:var(--ink4)}
+.ur-cal span:nth-child(3){height:64%}
+.ur-cal span:nth-child(4){height:48%}
+.ur-cal span:nth-child(5){height:23%;background:var(--ink4)}
+.is-live .ur-cal span:nth-child(1){height:58%}
+.is-live .ur-cal span:nth-child(2){height:41%;transition-delay:.05s}
+.is-live .ur-cal span:nth-child(3){height:86%;transition-delay:.1s}
+.is-live .ur-cal span:nth-child(4){height:67%;transition-delay:.15s}
+.is-live .ur-cal span:nth-child(5){height:34%;transition-delay:.2s}
+.ur-foot{display:flex;justify-content:space-between;align-items:baseline;margin-top:13px;padding-top:12px;border-top:1px solid var(--line)}
+.ur-foot b{font-family:var(--poppins);font-size:19px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.ur-foot small{font-size:11px;color:var(--mute)}
+.ur-chip{font-family:var(--mono);font-size:10px;color:var(--pos);background:rgba(90,216,174,.12);border:1px solid rgba(90,216,174,.3);border-radius:999px;padding:3px 8px;opacity:0;transform:translateY(4px);transition:all .3s .25s}
+.is-live .ur-chip{opacity:1;transform:none}
+
+/* sonar */
+.sn-chart{width:100%;height:82px;display:block}
+.sn-line{fill:none;stroke:var(--teal);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:420;stroke-dashoffset:0}
+.is-live .sn-line{animation:draw .9s cubic-bezier(.3,.7,.3,1)}
+@keyframes draw{from{stroke-dashoffset:420}to{stroke-dashoffset:0}}
+.sn-area{fill:url(#snfill);opacity:.45;transition:opacity .45s}
+.is-live .sn-area{opacity:1}
+.sn-end{fill:var(--teal);opacity:.55;transition:opacity .3s}
+.is-live .sn-end{opacity:1}
+.sn-end-ring{fill:none;stroke:var(--teal);stroke-width:1.4;opacity:0;transform-origin:center}
+.is-live .sn-end-ring{animation:ping 1.6s ease-out infinite}
+@keyframes ping{0%{opacity:.7;r:3.4}100%{opacity:0;r:11}}
+.sn-foot{display:flex;gap:7px;margin-top:13px;padding-top:12px;border-top:1px solid var(--line);flex-wrap:wrap}
+.sn-foot span{font-family:var(--mono);font-size:10px;border-radius:999px;padding:3px 9px;border:1px solid var(--line2);color:var(--dim)}
+.sn-foot span.up{color:var(--pos);border-color:rgba(90,216,174,.3);background:rgba(90,216,174,.1)}
+
+/* installable badge (habit only) */
+.inst{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;margin-left:10px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:500;
+  color:var(--mute);border:1px solid var(--line2);border-radius:999px;padding:3px 9px;transition:color .25s,border-color .25s,background .25s}
+.inst svg{flex:0 0 auto;opacity:.8}
+.d-mod:hover .inst{color:var(--teal);border-color:rgba(70,190,197,.45);background:rgba(70,190,197,.09)}
+
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01ms!important}}
+
+/* ============ shared module chrome (used by D) ============ */
+.b-led{display:inline-flex;align-items:center;gap:7px;color:var(--pos)}
+.b-led i{width:7px;height:7px;border-radius:50%;background:var(--pos);animation:blip 2.4s ease-in-out infinite}
+@keyframes blip{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(90,216,174,.5)}50%{opacity:.45;box-shadow:0 0 0 5px rgba(90,216,174,0)}}
+.b-cor{position:absolute;width:13px;height:13px;border:2px solid var(--teal);opacity:0;transition:opacity .2s,transform .28s cubic-bezier(.2,1.5,.4,1);pointer-events:none;z-index:3}
+.b-cor.tl{top:6px;left:6px;border-right:0;border-bottom:0;transform:translate(-5px,-5px)}
+.b-cor.tr{top:6px;right:6px;border-left:0;border-bottom:0;transform:translate(5px,-5px)}
+.b-cor.bl{bottom:6px;left:6px;border-right:0;border-top:0;transform:translate(-5px,5px)}
+.b-cor.br{bottom:6px;right:6px;border-left:0;border-top:0;transform:translate(5px,5px)}
+.d-mod:hover .b-cor,.d-mod:focus-visible .b-cor{opacity:1;transform:translate(0,0)}
+.b-scan{position:absolute;left:0;right:0;top:-40%;height:40%;pointer-events:none;z-index:2;
+  background:linear-gradient(180deg,transparent,rgba(70,190,197,.16),transparent);opacity:0}
+.d-mod:hover .b-scan{opacity:1;animation:scan 1.5s linear infinite}
+@keyframes scan{0%{top:-40%}100%{top:105%}}
+.b-read{font-family:var(--mono);font-size:11px;color:var(--mute);display:grid;gap:5px;border-top:1px solid var(--line);padding-top:12px}
+.b-read div{display:flex;justify-content:space-between;gap:10px;opacity:.45;transform:translateX(-5px);transition:all .25s}
+.d-mod:hover .b-read div{opacity:1;transform:none}
+.d-mod:hover .b-read div:nth-child(2){transition-delay:.06s}
+.d-mod:hover .b-read div:nth-child(3){transition-delay:.12s}
+.b-read span:last-child{color:var(--dim)}
+
+/* ================= D - MIX (A layout + B behaviour) ================= */
+.d{background:transparent}
+.d-bar{position:relative;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding-block:22px;border-bottom:1px solid var(--line)}
+.d-bar .wm{width:92px;height:auto;display:block}
+.d-bar-r{display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;letter-spacing:.11em;color:var(--mute);text-transform:uppercase}
+.d-av{width:26px;height:26px;border-radius:50%;background:var(--teal);color:#0d2c2e;font-family:var(--poppins);font-weight:800;font-size:12px;display:grid;place-items:center}
+.d-user{display:flex;align-items:center;gap:9px;color:var(--dim);text-transform:none;letter-spacing:0;font-family:var(--inter);font-size:14px}
+.d-out{background:transparent;border:1px solid var(--line2);border-radius:999px;padding:5px 13px;font-family:var(--inter);font-size:12.5px;color:var(--mute);transition:all .18s}
+.d-out:hover{border-color:var(--teal);color:var(--teal)}
+.d-intro{position:relative;text-align:center;padding-block:46px 42px}
+.d-eyebrow{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--teal);
+  border:1px solid rgba(70,190,197,.32);background:rgba(70,190,197,.07);border-radius:999px;padding:6px 15px}
+.d-eyebrow i{width:6px;height:6px;border-radius:50%;background:var(--pos);animation:blip 2.4s ease-in-out infinite}
+.d-intro h1{font-size:clamp(33px,5.2vw,56px);font-weight:800;margin:18px 0 14px}
+.d-intro p{color:var(--dim);font-size:16.5px;max-width:48ch;margin-inline:auto}
+.d-grid{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:18px;padding-bottom:54px}
+@media(max-width:900px){.d-grid{grid-template-columns:1fr}}
+.d-mod{position:relative;display:flex;flex-direction:column;background:rgba(26,22,23,.78);border:1px solid var(--line);border-radius:14px;overflow:hidden;backdrop-filter:blur(8px);
+  transition:transform .3s cubic-bezier(.2,.8,.2,1),border-color .3s,box-shadow .3s,opacity .3s}
+.d-mod::after{content:"";position:absolute;inset:-1px;border-radius:15px;padding:1px;background:linear-gradient(140deg,var(--teal),transparent 45%,transparent 60%,rgba(70,190,197,.45));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .3s;pointer-events:none;z-index:4}
+.d-mod:hover,.d-mod:focus-visible{transform:translateY(-6px);border-color:transparent;box-shadow:0 26px 60px rgba(0,0,0,.5)}
+.d-mod:hover::after,.d-mod:focus-visible::after{opacity:1}
+.d-grid:hover .d-mod{opacity:.5}
+.d-grid:hover .d-mod:hover{opacity:1}
+.d-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--mute);text-transform:uppercase}
+.d-head b{color:var(--teal);font-weight:700}
+.d-body{padding:18px 16px 18px;display:flex;flex-direction:column;gap:15px;flex:1}
+.d-mod h2{font-family:var(--poppins);font-size:22px;font-weight:600;color:var(--dim);letter-spacing:-.02em}
+.d-mod h2 b{font-weight:800;color:var(--fg)}
+.d-mod h2 i{color:var(--teal);font-style:normal}
+.d-mod > .d-body > p{color:var(--mute);font-size:14.5px;line-height:1.55}
+.d-go{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:15px;border-top:1px solid var(--line);
+  font-family:var(--mono);font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--teal)}
+.d-go svg{transition:transform .25s}
+.d-mod:hover .d-go svg{transform:translateX(5px)}
+
+/* D login: A card, B labels */
+.lgd .lg-card{max-width:410px}
+.lgd .lg-card .wm{width:150px}
+.lgd .lg-f label{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+.lgd .lg-btn{font-family:var(--mono);font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:12.5px}
+.lgd .lg-links button{font-family:var(--mono);font-size:11px;letter-spacing:.05em}
+
+/* ---------- login screens ---------- */
+[hidden]{display:none!important}
+.lg{position:fixed;inset:0;z-index:6;overflow:auto;-webkit-overflow-scrolling:touch}
+.lg-inner{position:relative;z-index:1;min-height:100%;display:flex;align-items:center;justify-content:center;padding:46px 20px}
+.lg-wrap{width:100%;max-width:410px;display:flex;flex-direction:column}
+.lg-card{position:relative;width:100%;max-width:400px;background:rgba(26,22,23,.9);border:1px solid var(--line);border-radius:20px;padding:30px 28px 26px;box-shadow:0 30px 80px rgba(0,0,0,.6);backdrop-filter:blur(8px)}
+.lg-card .wm{width:150px;height:auto;display:block}
+.lg-card > small{display:block;margin:10px 0 16px;letter-spacing:.3em;font-size:10.5px;font-weight:600;color:var(--dim);font-family:var(--mono)}
+.lg-card p.note{color:var(--mute);font-size:14px;margin-bottom:18px}
+.lg-f{display:grid;gap:5px;margin-bottom:14px}
+.lg-f label{font-size:12.5px;color:var(--dim);font-weight:600}
+.lg-f input{background:var(--ink);border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:12px 13px;font-family:var(--inter);font-size:14.5px;width:100%}
+.lg-f input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(70,190,197,.2)}
+.lg-btn{width:100%;background:var(--teal);color:#0d2c2e;border:0;border-radius:10px;padding:13px;font-family:var(--poppins);font-weight:800;font-size:15px;transition:background .2s,transform .15s}
+.lg-btn:hover{background:#5fcdd3;transform:translateY(-1px)}
+.lg-links{display:flex;gap:8px;margin-top:12px}
+.lg-links button{flex:1;background:transparent;border:1px solid var(--line);color:var(--teal);border-radius:10px;padding:9px;font-size:12.5px;font-weight:600;transition:background .2s}
+.lg-links button:hover{background:rgba(70,190,197,.09)}
+
+.fhint{display:block;font-size:11.5px;line-height:1.45;color:var(--mute);margin-top:3px;font-family:var(--inter)}
+.fhint.confirm{margin-top:11px;text-align:center}
+.lg-f input::placeholder{color:#6a6465}
+.lg-alt{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);text-align:center;font-size:13px;color:var(--mute);font-family:var(--inter)}
+.linkish{background:none;border:0;padding:0;color:var(--teal);font-weight:600;font-size:13px;font-family:var(--inter);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.linkish:hover{color:#6fd4da}
+.lg-hint{text-align:center;margin-top:16px;font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--mute)}
+.lgd .lg-alt,.lgd .linkish,.lgd .fhint{font-family:var(--mono);font-size:11.5px}
+.lgd .lg-hint{color:var(--teal);opacity:.75}
+
+
+.foot{border-top:1px solid var(--line);padding-block:20px 28px;font-size:12.5px;color:var(--mute);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;position:relative}
+.foot b{color:var(--dim);font-weight:500}
+
+/* real auth states */
+.lg-card[data-mode="register"] .in-only,.lg-card[data-mode="register"] .rec-only{display:none}
+.lg-card[data-mode="signin"] .reg-only,.lg-card[data-mode="signin"] .rec-only{display:none}
+.lg-card[data-mode="recover"] .reg-only,.lg-card[data-mode="recover"] .in-only,.lg-card[data-mode="recover"] .not-rec{display:none}
+.authmsg{min-height:20px;margin-top:12px;text-align:center;font-size:13px;line-height:1.5;color:var(--mute);font-family:var(--inter)}
+.authmsg.ok{color:#7fd9de}
+.authmsg.err{color:#ffb2b7}
+.lg-btn[disabled]{opacity:.65;pointer-events:none}
+main{transition:opacity .22s ease}
+body[data-state="boot"] main{opacity:0;pointer-events:none}
 </style>
 </head>
-<body>
-  <main>
-    <div class="logo">foqs<span>.</span></div>
-    <div class="tag">Advertising &amp; Performance Consulting</div>
-    <div class="soon">Kmalu · Coming soon</div>
-  </main>
+<body data-state="boot" data-view="login">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="snfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#46BEC5" stop-opacity=".34"/><stop offset="1" stop-color="#46BEC5" stop-opacity="0"/></linearGradient></defs></svg>
+<div id="bg" aria-hidden="true">
+  <div class="bg-mesh"><canvas id="meshCanvas"></canvas></div>
+</div>
+<main>
+<!-- ============ D ============ -->
+<section class="stage d" data-stage="d">
+
+  <div class="view" data-view="hub" hidden>
+    <div class="pad">
+      <div class="d-bar">
+        <img class="wm" src="/foqs-logo.png" alt="foqs." width="700" height="247">
+        <div class="d-bar-r">
+          <span id="d-clock">09:41</span>
+          <span class="d-user"><span class="d-av" id="hubInitial">·</span><span id="hubName"></span></span>
+          <button class="d-out" id="signOut" type="button">Sign out</button>
+        </div>
+      </div>
+      <div class="d-intro">
+        <span class="d-eyebrow"><i></i>Hub · all apps online</span>
+        <h1>Three apps. One login.</h1>
+        <p>Small tools built for my own work, now all in one place.</p>
+      </div>
+      <div class="d-grid">
+        <a class="d-mod" href="/habit">
+          <span class="b-cor tl"></span><span class="b-cor tr"></span><span class="b-cor bl"></span><span class="b-cor br"></span>
+          <span class="b-scan"></span>
+          <div class="d-head"><span>MOD <b>HAB-01</b></span><span class="b-led"><i></i>ready</span></div>
+          <div class="d-body">
+            <h2>foqs.<b>habit</b><i>.</i><span class="inst" title="Add to home screen"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M7 10l5 5 5-5M4 21h16"/></svg>Installable</span></h2>
+            <p>Win the day. Daily non-negotiables, a streak that hurts to break, and a week you can read in one look.</p>
+            <div class="prev">
+              <div class="prev-top"><small>Today</small><span class="prev-dot"></span></div>
+              <div class="hb-row"><span class="hb-box on"></span><span class="hb-txt"></span></div>
+              <div class="hb-row"><span class="hb-box on"></span><span class="hb-txt"></span></div>
+              <div class="hb-row"><span class="hb-box on"></span><span class="hb-txt"></span></div>
+              <div class="hb-row"><span class="hb-box"></span><span class="hb-txt"></span></div>
+              <div class="hb-week"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+            <div class="b-read">
+              <div><span>Rhythm</span><span>Daily</span></div>
+              <div><span>Sync</span><span>Across your devices</span></div>
+              <div><span>Home screen</span><span>iPhone · Mac</span></div>
+            </div>
+            <div class="d-go"><span>Open habit</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></div>
+          </div>
+        </a>
+        <a class="d-mod" href="/uraplus">
+          <span class="b-cor tl"></span><span class="b-cor tr"></span><span class="b-cor bl"></span><span class="b-cor br"></span>
+          <span class="b-scan"></span>
+          <div class="d-head"><span>MOD <b>URA-02</b></span><span class="b-led"><i></i>ready</span></div>
+          <div class="d-body">
+            <h2><b>Ura</b><i>+</i></h2>
+            <p>Hours into money. Log the work as it happens, see what the week is actually worth before you invoice it.</p>
+            <div class="prev">
+              <div class="prev-top"><small>This week</small><span class="prev-dot"></span></div>
+              <div class="ur-cal"><span></span><span></span><span></span><span></span><span></span></div>
+              <div class="ur-foot"><b>Week total</b><span class="ur-chip">hours into money</span></div>
+            </div>
+            <div class="b-read">
+              <div><span>Tracks</span><span>Hours and rates</span></div>
+              <div><span>Output</span><span>Weekly total</span></div>
+              <div><span>Runs</span><span>In the browser</span></div>
+            </div>
+            <div class="d-go"><span>Open Ura+</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></div>
+          </div>
+        </a>
+        <a class="d-mod" href="/memecoins">
+          <span class="b-cor tl"></span><span class="b-cor tr"></span><span class="b-cor bl"></span><span class="b-cor br"></span>
+          <span class="b-scan"></span>
+          <div class="d-head"><span>MOD <b>SNR-03</b></span><span class="b-led"><i></i>live feed</span></div>
+          <div class="d-body">
+            <h2>foqs.<b>sonar</b><i>.</i></h2>
+            <p>Reads the Solana memecoin market on 30 second snapshots, marks the entry and keeps the demo journal honest.</p>
+            <div class="prev">
+              <div class="prev-top"><small>Live · 30s</small><span class="prev-dot"></span></div>
+              <svg class="sn-chart" viewBox="0 0 240 82" preserveAspectRatio="none" role="img" aria-label="Market cap snapshots">
+                <path class="sn-area" d="M4 62 L34 55 L64 66 L94 40 L124 48 L154 26 L184 33 L214 14 L236 20 L236 82 L4 82 Z"/>
+                <path class="sn-line" d="M4 62 L34 55 L64 66 L94 40 L124 48 L154 26 L184 33 L214 14 L236 20"/>
+                <circle class="sn-end-ring" cx="236" cy="20" r="3.4"/><circle class="sn-end" cx="236" cy="20" r="3.4"/>
+              </svg>
+              <div class="sn-foot"><span class="up">+25% target</span><span>0,1 SOL</span><span>30s snapshots</span></div>
+            </div>
+            <div class="b-read">
+              <div><span>Market</span><span>Solana memecoins</span></div>
+              <div><span>Refresh</span><span>Every 30 seconds</span></div>
+              <div><span>Wallet</span><span>None, demo only</span></div>
+            </div>
+            <div class="d-go"><span>Open sonar</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></div>
+          </div>
+        </a>
+      </div>
+      <div class="foot"><span>foqs. <b>Advertising &amp; Performance Consulting</b></span><span>One account for every foqs. app</span></div>
+    </div>
+  </div>
+
+  <div class="view lg lgd" data-view="login">
+    <div class="tease-veil" aria-hidden="true"></div>
+    <div class="lg-inner"><div class="lg-wrap">
+    <div class="lg-card" data-mode="register">
+      <img class="wm" src="/foqs-logo.png" alt="foqs." width="700" height="247">
+      <small>HUB</small>
+      <p class="note reg-only">Create your foqs. account. One account opens habit, Ura+ and sonar.</p>
+      <p class="note in-only">Welcome back. Sign in to open your apps.</p>
+      <p class="note rec-only">Choose a new password for your foqs. account.</p>
+
+      <div class="lg-f reg-only">
+        <label for="fName">Name</label>
+        <input id="fName" type="text" maxlength="40" autocomplete="nickname" placeholder="e.g. Gašper">
+        <small class="fhint">Shown instead of your email inside the apps.</small>
+      </div>
+      <div class="lg-f not-rec">
+        <label for="fEmail">Email</label>
+        <input id="fEmail" type="email" autocomplete="username" inputmode="email" placeholder="you@example.com">
+      </div>
+      <div class="lg-f not-rec">
+        <label for="fPass">Password</label>
+        <input id="fPass" type="password" autocomplete="current-password" placeholder="••••••••">
+        <small class="fhint reg-only">At least 6 characters.</small>
+      </div>
+      <div class="lg-f rec-only">
+        <label for="fNew">New password</label>
+        <input id="fNew" type="password" autocomplete="new-password" placeholder="••••••••">
+        <small class="fhint">At least 6 characters.</small>
+      </div>
+
+      <button class="lg-btn" id="mainBtn" type="button"><span class="reg-only">Create account</span><span class="in-only">Sign in</span><span class="rec-only">Save new password</span></button>
+      <p class="fhint confirm reg-only">You will get a confirmation email before your first login.</p>
+      <p id="authMsg" class="authmsg" role="status"></p>
+
+      <p class="lg-alt">
+        <span class="reg-only">Already have an account? <button type="button" class="linkish" data-mode="signin">Sign in</button></span>
+        <span class="in-only">No account yet? <button type="button" class="linkish" data-mode="register">Create account</button> · <button type="button" class="linkish" id="forgotBtn">Forgot password</button></span>
+        <span class="rec-only">Remembered it? <button type="button" class="linkish" data-mode="signin">Sign in</button></span>
+      </p>
+      <p class="lg-hint">3 Apps, One Login.</p>
+    </div></div></div>
+  </div>
+</section>
+</main>
+<script>
+
+const SB_URL = 'https://cgnihdlprjqpawvpznsw.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnbmloZGxwcmpxcGF3dnB6bnN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3ODAwODAsImV4cCI6MjEwMTM1NjA4MH0.HQgn-5op-0BYAMllyE3rbhwlLPILxvl1OVnqXau_33g';
+const sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+const hubView = document.querySelector('.view[data-view="hub"]');
+const logView = document.querySelector('.view[data-view="login"]');
+const card    = document.querySelector('.lg-card');
+const msgEl   = document.getElementById('authMsg');
+const mainBtn = document.getElementById('mainBtn');
+const reduce  = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let view = 'login';
+
+function paint(){
+  document.body.dataset.view = view;
+  hubView.hidden = false;
+  logView.hidden = (view !== 'login');
+  if (view === 'hub') window.scrollTo(0, 0);
+}
+function say(text, cls){ msgEl.textContent = text || ''; msgEl.className = 'authmsg ' + (cls || ''); }
+function setMode(m){
+  card.dataset.mode = m;
+  say('');
+  document.getElementById('fPass').autocomplete = (m === 'register') ? 'new-password' : 'current-password';
+}
+function showUser(u){
+  if (!u) return;
+  const name = (u.user_metadata && u.user_metadata.name) || u.email || '';
+  document.getElementById('hubName').textContent = name;
+  document.getElementById('hubInitial').textContent = (name.trim()[0] || '\u00b7').toUpperCase();
+}
+function enterHub(animate){
+  if (!animate) { view = 'hub'; paint(); return; }
+  document.body.classList.add('reveal');
+  mainBtn.classList.add('busy');
+  logView.classList.add('leaving');
+  setTimeout(function(){
+    mainBtn.classList.remove('busy');
+    logView.classList.remove('leaving');
+    document.body.classList.remove('reveal');
+    view = 'hub'; paint();
+  }, 480);
+}
+
+/* plain-English Supabase errors */
+function explain(m){
+  m = m || '';
+  if (/invalid login credentials/i.test(m)) return 'Wrong email or password.';
+  if (/email not confirmed/i.test(m))       return 'Your email is not confirmed yet. Open the link we sent you, then sign in.';
+  if (/already registered|already been registered/i.test(m)) return 'That email already has an account. Use Sign in, or Forgot password.';
+  if (/rate limit|too many/i.test(m))       return 'Too many attempts. Wait a minute and try again.';
+  if (/password should be at least/i.test(m)) return 'Password must be at least 6 characters.';
+  return m;
+}
+const creds = () => ({
+  email: document.getElementById('fEmail').value.trim(),
+  pass:  document.getElementById('fPass').value
+});
+
+async function doRegister(){
+  const { email, pass } = creds();
+  const name = document.getElementById('fName').value.trim();
+  if (!name)  { say('Add a name so the apps do not call you by your email.', 'err'); document.getElementById('fName').focus(); return; }
+  if (!email || !pass) { say('Fill in your email and a password.', 'err'); return; }
+  if (pass.length < 6) { say('Password must be at least 6 characters.', 'err'); return; }
+  mainBtn.disabled = true; say('Creating your account \u2026');
+  const { data, error } = await sb.auth.signUp({
+    email, password: pass,
+    options: { data: { name }, emailRedirectTo: location.origin + '/' }
+  });
+  mainBtn.disabled = false;
+  if (error) { say('Could not create the account: ' + explain(error.message), 'err'); return; }
+  if (data.session) { showUser(data.user); enterHub(true); return; }
+  say('Account created. Open the confirmation link we sent to ' + email + ', then sign in. The same account works in all three apps.', 'ok');
+}
+async function doSignIn(){
+  const { email, pass } = creds();
+  if (!email || !pass) { say('Fill in your email and password.', 'err'); return; }
+  mainBtn.disabled = true; say('Signing in \u2026');
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  mainBtn.disabled = false;
+  if (error) { say('Could not sign in: ' + explain(error.message), 'err'); return; }
+  showUser(data.user); enterHub(true);
+}
+async function doRecover(){
+  const pass = document.getElementById('fNew').value;
+  if (!pass || pass.length < 6) { say('Password must be at least 6 characters.', 'err'); return; }
+  mainBtn.disabled = true; say('Saving \u2026');
+  const { data, error } = await sb.auth.updateUser({ password: pass });
+  mainBtn.disabled = false;
+  if (error) { say('Could not save it: ' + explain(error.message), 'err'); return; }
+  history.replaceState(null, '', location.pathname);
+  say('New password saved.', 'ok');
+  showUser(data.user); setTimeout(function(){ enterHub(true); }, 500);
+}
+
+mainBtn.onclick = function(){
+  const m = card.dataset.mode;
+  if (m === 'register') return doRegister();
+  if (m === 'recover')  return doRecover();
+  return doSignIn();
+};
+document.querySelectorAll('.linkish[data-mode]').forEach(function(b){ b.onclick = function(){ setMode(b.dataset.mode); }; });
+document.getElementById('forgotBtn').onclick = async function(){
+  const { email } = creds();
+  if (!email) { say('Type your email above first, then click Forgot password.', 'err'); document.getElementById('fEmail').focus(); return; }
+  say('Sending the link \u2026');
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/' });
+  if (error) { say('Could not send it: ' + explain(error.message), 'err'); return; }
+  say('We sent a reset link to ' + email + '. Open it and choose a new password.', 'ok');
+};
+document.getElementById('signOut').onclick = async function(e){
+  e.preventDefault();
+  await sb.auth.signOut();
+  location.reload();
+};
+['fEmail','fPass','fName','fNew'].forEach(function(id){
+  document.getElementById(id).addEventListener('keydown', function(e){ if (e.key === 'Enter') mainBtn.click(); });
+});
+
+/* module previews come alive on hover / keyboard focus */
+document.querySelectorAll('.d-mod').forEach(function(el){
+  const pv = el.querySelectorAll('.prev');
+  const on  = function(){ pv.forEach(function(x){ x.classList.add('is-live'); }); };
+  const off = function(){ pv.forEach(function(x){ x.classList.remove('is-live'); }); };
+  el.addEventListener('mouseenter', on); el.addEventListener('mouseleave', off);
+  el.addEventListener('focusin', on);    el.addEventListener('focusout', off);
+});
+
+/* clock */
+function tick(){
+  const d = new Date(), e = document.getElementById('d-clock');
+  if (e) e.textContent = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+tick(); setInterval(tick, 20000);
+
+/* faceted background, drawn once */
+function drawMesh(){
+  const c = document.getElementById('meshCanvas'); if (!c) return;
+  const w = c.clientWidth || window.innerWidth, ht = c.clientHeight || window.innerHeight;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  if (!w || !ht) return;
+  c.width = w * dpr; c.height = ht * dpr;
+  const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const cell = Math.max(86, Math.round(Math.min(w, ht) / 6.5));
+  const cols = Math.ceil(w / cell) + 2, rows = Math.ceil(ht / cell) + 2, pts = [];
+  for (let y = 0; y <= rows; y++){ pts[y] = []; for (let x = 0; x <= cols; x++){
+    pts[y][x] = { x:(x-1)*cell + (Math.random()-.5)*cell*.55, y:(y-1)*cell + (Math.random()-.5)*cell*.55 };
+  }}
+  const lx = w*.5, ly = -ht*.2, diag = Math.sqrt(w*w + ht*ht);
+  function tri(a, b, c3){
+    const cx = (a.x+b.x+c3.x)/3, cy = (a.y+b.y+c3.y)/3;
+    let t = Math.max(0, Math.min(1, 1 - (Math.sqrt((cx-lx)*(cx-lx) + (cy-ly)*(cy-ly)) / diag) * 1.45));
+    t = t*t;
+    const base = 13 + t*44, teal = t*44;
+    g.fillStyle = 'rgb(' + Math.round(base*.95) + ',' + Math.round(base + teal*.5) + ',' + Math.round(base + teal*.66) + ')';
+    g.beginPath(); g.moveTo(a.x,a.y); g.lineTo(b.x,b.y); g.lineTo(c3.x,c3.y); g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(70,190,197,' + (0.05 + t*0.2).toFixed(3) + ')'; g.lineWidth = 1; g.stroke();
+  }
+  for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++){
+    tri(pts[y][x], pts[y][x+1], pts[y+1][x]);
+    tri(pts[y][x+1], pts[y+1][x+1], pts[y+1][x]);
+  }
+}
+let mt; window.addEventListener('resize', function(){ clearTimeout(mt); mt = setTimeout(drawMesh, 200); });
+drawMesh();
+
+/* boot: recovery link, existing session, or the entry screen */
+sb.auth.onAuthStateChange(function(event){
+  if (event === 'PASSWORD_RECOVERY'){ view = 'login'; setMode('recover'); document.body.dataset.state = 'ready'; paint(); }
+});
+(async function boot(){
+  const hash = location.hash || '';
+  if (/error=|error_description=/.test(hash)){
+    const p = new URLSearchParams(hash.slice(1));
+    setMode('signin');
+    say('That link is not valid any more: ' + decodeURIComponent(p.get('error_description') || p.get('error') || ''), 'err');
+  } else if (/type=recovery/.test(hash)){
+    setMode('recover');
+  } else {
+    const { data } = await sb.auth.getSession();
+    if (data.session){
+      const { data: u } = await sb.auth.getUser();
+      showUser(u.user);
+      view = 'hub';
+    }
+  }
+  document.body.dataset.state = 'ready';
+  paint();
+})();
+</script>
 </body>
 </html>
