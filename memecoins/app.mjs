@@ -11,8 +11,89 @@ import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, ent
 const SHADOW_STRATEGIES = ["v1.0", "v1.2-filter", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj", "v2.2-dip", "v2.2-dip-siroko"];
 // Ustavljene 19. 9. 2026: ne odpirajo novih poslov, zgodovina in odprti posli ostanejo (glej shadow.ts PAUSED).
 const SHADOW_PAUSED = { "v1.0": "19. 9.", "v2.0-brez-holderjev": "19. 9." };
-const SHADOW_LABEL = { "v1.0": "v1.0 (staro: +10 / -5)", "v1.2-filter": "v1.2 (v aplikaciji)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj", "v2.2-dip": "v2.2 dip s kupci", "v2.2-dip-siroko": "v2.2 dip s kupci, široko" };
+const SHADOW_LABEL = { "v1.0": "v1.0 staro +10/-5", "v1.2-filter": "v1.2 (v aplikaciji)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj", "v2.2-dip": "v2.2 dip s kupci", "v2.2-dip-siroko": "v2.2 dip s kupci, široko" };
 const SHADOW_COLOR = { "v1.0": "#9fb0c8", "v1.2-filter": "#f0a6ff", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff", "v2.2-dip": "#46bec5", "v2.2-dip-siroko": "#ff9f7a" };
+// Kaj vsak set pravil gleda za vstop in kako izstopi. Besedilo mora ustrezati shadow.ts; ob spremembi pravil popravi oboje.
+const SHADOW_RULES = {
+  "v1.0": {
+    vstop: [
+      "Kovanec: likvidnost vsaj 10.000 $ in promet v zadnjih 5 min nad 0.",
+      "Vzorec na zadnjih 16 posnetkih, dovolj je eden od treh.",
+      "Odboj od podpore: cena se dotakne dna prvih desetih posnetkov (±2 %) in zraste vsaj 1,5 %.",
+      "Višje dno: dve lokalni dni, drugo vsaj 1 % višje, nato rast vsaj 1 %.",
+      "Preboj in retest: preboj starega vrha za 2,5 %, vrnitev nanj in rast 1 %.",
+    ],
+    izstop: [
+      "Cilj: +10 %, proda vse naenkrat.",
+      "Meja izgube: -5 %.",
+      "Brez sledilne meje, brez časovne meje, brez rug izhoda.",
+      "Največ 5 odprtih poslov, en na kovanec.",
+    ],
+  },
+  "v1.2-filter": {
+    vstop: [
+      "Isti trije vzorci kot v1.0 (Odboj, Višje dno, Preboj in retest).",
+      "Filter: par star 30 do 90 min.",
+      "Filter: v zadnji uri ni v minusu.",
+      "Filter: market cap med 20K in 300K $.",
+      "Filter: likvidnost vsaj 10.000 $ in promet nad 0.",
+    ],
+    izstop: [
+      "Pri +25 % proda polovico in premakne mejo na vstopno ceno.",
+      "Nato sledilna meja 20 % pod najvišjo doseženo ceno.",
+      "Trda meja izgube: -12 %.",
+      "Brez časovne meje in brez rug izhoda (tako kot v aplikaciji).",
+      "Največ 5 odprtih poslov, en na kovanec.",
+    ],
+  },
+  "v2.0": {
+    vstop: [
+      "Kovanec: starost para 5 do 90 min, MC 8K do 80K $.",
+      "Kovanec: likvidnost vsaj 10.000 $ in vsaj 15 % market capa.",
+      "Kovanec: promet v 5 min vsaj 20 % likvidnosti, vsaj 15 nakupov, nakupi/prodaje vsaj 1,2, v 1 h največ +150 %.",
+      "Run: vrh zadnjih 15 min vsaj +40 % nad dnom pred njim.",
+      "Dip: cena je padla 35 do 55 % pod ta vrh.",
+      "Dno drži: ni nastalo v zadnjih 2 posnetkih, ni starejše od 5 min in ni prebito.",
+      "Odboj: cena od 4 do 12 % nad dnom in zadnji posnetek višji od prejšnjega.",
+      "Imetniki: top 10 največ 30 % zaloge, nihče nad 8 %, brez bundla.",
+    ],
+    izstop: [
+      "Pri +25 % proda polovico in premakne mejo na vstopno ceno.",
+      "Nato sledilna meja 20 % pod najvišjo doseženo ceno.",
+      "Trda meja izgube: -12 %.",
+      "Časovna meja: če po 15 min ni bilo vsaj +8 %, zapre.",
+      "Rug izhod: likvidnost pade za 25 % ali prodaje presežejo dvakratnik nakupov.",
+      "Največ 3 odprti posli, 30 min brez ponovnega vstopa v isti kovanec, dnevna zavora.",
+    ],
+  },
+  "v2.1-preboj": {
+    vstop: [
+      "Isti izbor kovancev kot v2.0.",
+      "Preboj: cena preseže vrh zadnjih 15 min za 3 do 10 %.",
+      "Nakupi/prodaje v 5 min vsaj 1,5.",
+      "Promet v 5 min vsaj 30 % likvidnosti.",
+      "Imetniki: isto preverjanje kot pri v2.0.",
+    ],
+    izstop: ["Enak kot v2.0: pol pri +25 %, sledilna 20 %, trda meja -12 %, časovna meja 15 min, rug izhod."],
+  },
+  "v2.2-dip": {
+    vstop: [
+      "Kovanec: MC 8K do 80K $, likvidnost vsaj 10.000 $, v 1 h največ +150 %. Brez omejitve starosti.",
+      "Kupci morajo prevladovati: nakupi/prodaje v 5 min vsaj 2,0 in vsaj 10 nakupov. To je pogoj, ki v meritvah nosi vso prednost.",
+      "Run: vrh zadnjih 15 min vsaj +40 % nad dnom pred njim.",
+      "Dip: cena je padla 35 do 55 % pod ta vrh.",
+      "Dno drži: ni nastalo v zadnjih 2 posnetkih, ni starejše od 5 min in ni prebito.",
+      "Odboj: cena vsaj 4 % nad dnom, brez zgornje meje.",
+      "Cena mora ostati pod 65 % vrha, sicer to ni več dip cona.",
+      "Brez preverjanja imetnikov (pri v2.0 ni zavrnilo nobenega kovanca).",
+    ],
+    izstop: ["Enak kot v2.0, da je primerjava vstopov poštena: pol pri +25 %, sledilna 20 %, trda meja -12 %, časovna meja 15 min, rug izhod."],
+  },
+};
+SHADOW_RULES["v2.0-brez-holderjev"] = { vstop: SHADOW_RULES["v2.0"].vstop.filter((x) => !x.startsWith("Imetniki")), izstop: SHADOW_RULES["v2.0"].izstop };
+SHADOW_RULES["v2.2-dip-siroko"] = { vstop: SHADOW_RULES["v2.2-dip"].vstop.map((x) => (x.startsWith("Kovanec:") ? "Kovanec: likvidnost vsaj 10.000 $, v 1 h največ +150 %. Brez omejitve starosti IN BREZ omejitve market capa." : x)), izstop: SHADOW_RULES["v2.2-dip"].izstop };
+// Katere vrstice v Laboratoriju so raztegnjene; preživi samodejni izris na 60 s.
+const shadowOpen = new Set();
 const SHADOW_START = Date.parse("2026-09-17T06:44:00Z"); // zagon senčnega testa (collect v3, prvi senčni posel)
 const SHADOW_MIN_TRADES = 100,
   SHADOW_MIN_DAYS = 14,
@@ -1777,6 +1858,197 @@ function shadowStats(list) {
   };
 }
 
+// ---------- Laboratorij: razteg ene vrstice pravil ----------
+// Pokaže stanje, pravila za vstop in izstop ter zadnje posle. Klik na posel nariše pot cene okoli njega.
+function shadowPathChart(host, t) {
+  host.replaceChildren();
+  const note = document.createElement("p");
+  note.className = "muted";
+  note.style.fontSize = "13px";
+  note.textContent = "Nalagam posnetke za " + (t.symbol || "kovanec") + " ...";
+  host.append(note);
+  const from = new Date(new Date(t.opened_at).getTime() - 20 * 60000).toISOString();
+  const to = new Date(new Date(t.closed_at || Date.now()).getTime() + 10 * 60000).toISOString();
+  db.from("memecoin_snapshots")
+    .select("t,price")
+    .eq("pair", t.pair)
+    .gte("t", from)
+    .lte("t", to)
+    .order("t", { ascending: true })
+    .then(({ data, error }) => {
+      if (error) {
+        note.textContent = "Posnetkov ni bilo mogoče naložiti: " + error.message;
+        return;
+      }
+      const pts = (data || []).filter((r) => r.price > 0);
+      if (pts.length < 3) {
+        note.textContent = "Posnetki za ta posel niso več na voljo (strežnik jih hrani 36 ur).";
+        return;
+      }
+      host.replaceChildren();
+      const head = document.createElement("p");
+      head.className = "muted";
+      head.style.fontSize = "13px";
+      head.textContent =
+        (t.symbol || "?") + " · vstop " + time(t.opened_at) + " · " + (t.status === "closed" ? (t.outcome || "zaključeno") + " ob " + time(t.closed_at) : "še odprt") + " · " + pts.length + " posnetkov";
+      host.append(head);
+      const W = 700,
+        H = 200,
+        L = 56,
+        R = 14,
+        T = 14,
+        B = 26;
+      const entry = t.entry_price,
+        t0 = new Date(t.opened_at).getTime();
+      const rel = pts.map((r) => ({ m: (new Date(r.t).getTime() - t0) / 60000, v: r.price / entry }));
+      const hardStop = t.strategy === "v1.0" ? 0.95 : 0.88;
+      const target = Number.isFinite(t.target) && t.target > 0 ? t.target / entry : t.strategy === "v1.0" ? 1.1 : 1.25;
+      const FLOOR = 0.2;
+      const vals = rel.map((r) => r.v);
+      const lo = Math.max(Math.min(hardStop * 0.96, ...vals), FLOOR),
+        hi = Math.max(target * 1.05, ...vals);
+      const x0 = Math.min(...rel.map((r) => r.m)),
+        x1 = Math.max(...rel.map((r) => r.m));
+      const X = (m) => L + ((m - x0) / Math.max(0.1, x1 - x0)) * (W - L - R);
+      const Y = (v) => T + ((Math.log(hi) - Math.log(Math.max(v, lo))) / Math.max(0.0001, Math.log(hi) - Math.log(lo))) * (H - T - B);
+      const ns = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(ns, "svg");
+      svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+      svg.setAttribute("class", "chart");
+      svg.style.height = "200px";
+      const mk = (tag, attrs) => {
+        const e = document.createElementNS(ns, tag);
+        for (const k in attrs) e.setAttribute(k, attrs[k]);
+        return e;
+      };
+      const halo = { stroke: "#0b1523", "stroke-width": "3", "paint-order": "stroke", "stroke-linejoin": "round" };
+      const lvl = (v, label, color) => {
+        svg.append(mk("line", { x1: L, x2: W - R, y1: Y(v), y2: Y(v), stroke: color, "stroke-width": 1.2, "stroke-dasharray": "6 5", opacity: 0.9 }));
+        const tx = mk("text", { x: W - R - 4, y: Y(v) - 5, "text-anchor": "end", fill: "#9fb0c8", "font-size": "11", ...halo });
+        tx.textContent = label;
+        svg.append(tx);
+      };
+      svg.append(mk("line", { x1: L, x2: W - R, y1: Y(1), y2: Y(1), stroke: "#7f96b5", "stroke-width": 1 }));
+      const e0 = mk("text", { x: L + 2, y: Y(1) - 5, fill: "#dce5f3", "font-size": "11", ...halo });
+      e0.textContent = "vstop";
+      svg.append(e0);
+      lvl(target, "cilj " + pct1(100 * (target - 1)), "#62e4b3");
+      lvl(hardStop, "meja " + pct1(100 * (hardStop - 1)), "#ff858e");
+      svg.append(mk("path", { d: rel.map((r, i) => (i ? "L" : "M") + X(r.m).toFixed(1) + "," + Y(r.v).toFixed(1)).join(" "), fill: "none", stroke: SHADOW_COLOR[t.strategy] || "#6fa5ff", "stroke-width": 2, "stroke-linejoin": "round" }));
+      if (x0 <= 0 && x1 >= 0) svg.append(mk("circle", { cx: X(0), cy: Y(1), r: 5, fill: SHADOW_COLOR[t.strategy] || "#6fa5ff", stroke: "#111c2c", "stroke-width": 2 }));
+      if (t.status === "closed" && Number.isFinite(t.exit_price)) {
+        const me = (new Date(t.closed_at).getTime() - t0) / 60000;
+        svg.append(mk("circle", { cx: X(me), cy: Y(t.exit_price / entry), r: 5, fill: t.pnl_net_sol >= 0 ? "#62e4b3" : "#ff858e", stroke: "#111c2c", "stroke-width": 2 }));
+      }
+      for (const m of [x0, 0, x1]) {
+        if (m !== x0 && m !== x1 && (m < x0 || m > x1)) continue;
+        const tx = mk("text", { x: Math.min(Math.max(X(m), L + 14), W - R - 14), y: H - 8, "text-anchor": "middle", fill: "#7f96b5", "font-size": "11" });
+        tx.textContent = (m > 0 ? "+" : "") + Math.round(m) + " min";
+        svg.append(tx);
+      }
+      host.append(svg);
+    });
+}
+function shadowDetail(s, st, flags) {
+  const box = document.createElement("div");
+  box.className = "cmpDetail";
+  const h = (text) => {
+    const e = document.createElement("h5");
+    e.textContent = text;
+    return e;
+  };
+  const list = (items) => {
+    const ul = document.createElement("ul");
+    for (const it of items) {
+      const li = document.createElement("li");
+      li.textContent = it;
+      ul.append(li);
+    }
+    return ul;
+  };
+  // stanje
+  const stanje = document.createElement("p");
+  stanje.className = "cmpStanje";
+  if (SHADOW_PAUSED[s]) stanje.textContent = "Ustavljena " + SHADOW_PAUSED[s] + ". Ne odpira novih poslov, odprti se zaprejo normalno, zgodovina ostane v tabeli.";
+  else if (flags.ok) stanje.textContent = "Izpolnjuje kriterije za preklop (vzorec dovolj velik, faktor nad 1,3, pričakovanje nad +2 %).";
+  else if (!st.closed.length) stanje.textContent = "Aktivna, še brez zaključenih poslov.";
+  else if (!flags.enough)
+    stanje.textContent =
+      "Aktivna, zbira vzorec: " + st.closed.length + " od " + SHADOW_MIN_TRADES + " poslov (ali 14 dni in vsaj " + SHADOW_MIN_JUDGE + " poslov). Vmesni rezultat ni sodba.";
+  else stanje.textContent = "Aktivna, vzorec je dovolj velik, kriterijev pa ne izpolnjuje: " + (flags.pfOk ? "" : "faktor pod 1,3") + (!flags.pfOk && !flags.expOk ? " in " : "") + (flags.expOk ? "" : "pričakovanje pod +2 %") + ".";
+  box.append(stanje);
+  const grid = document.createElement("div");
+  grid.className = "cmpDetailGrid";
+  const rules = SHADOW_RULES[s] || { vstop: [], izstop: [] };
+  const c1 = document.createElement("div");
+  c1.append(h("Kaj gleda za vstop"), list(rules.vstop));
+  const c2 = document.createElement("div");
+  c2.append(h("Kako izstopi"), list(rules.izstop));
+  grid.append(c1, c2);
+  box.append(grid);
+  // posli
+  const mine = shadowTrades.filter((t) => t.strategy === s).sort((a, b) => new Date(b.opened_at) - new Date(a.opened_at));
+  const closed = mine.filter((t) => t.status === "closed" && Number.isFinite(t.pnl_net_sol));
+  box.append(h("Zadnji posli"));
+  if (!mine.length) {
+    const p = document.createElement("p");
+    p.className = "muted";
+    p.style.fontSize = "13px";
+    p.textContent = "V izbranem obdobju ni poslov tega pravila.";
+    box.append(p);
+    return box;
+  }
+  const chart = document.createElement("div");
+  chart.className = "cmpPath";
+  const best = closed.length ? closed.reduce((a, b) => (b.pnl_net_sol > a.pnl_net_sol ? b : a)) : null;
+  const worst = closed.length ? closed.reduce((a, b) => (b.pnl_net_sol < a.pnl_net_sol ? b : a)) : null;
+  const seen = new Set();
+  const picks = [];
+  for (const t of mine.slice(0, 5)) {
+    picks.push(["", t]);
+    seen.add(t.id);
+  }
+  if (best && !seen.has(best.id)) {
+    picks.push(["najboljši · ", best]);
+    seen.add(best.id);
+  }
+  if (worst && !seen.has(worst.id)) picks.push(["najslabši · ", worst]);
+  const wrap = document.createElement("div");
+  wrap.className = "cmpMini";
+  for (const [tag, t] of picks) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "cmpMiniRow";
+    const peakPct = t.entry_price > 0 && Number.isFinite(t.peak) ? (100 * t.peak) / t.entry_price - 100 : null;
+    const netPct = t.status === "closed" && t.size_sol > 0 ? (100 * t.pnl_net_sol) / t.size_sol : null;
+    const left = document.createElement("span");
+    left.textContent = tag + time(t.opened_at) + " · " + (t.symbol || "?");
+    const mid = document.createElement("span");
+    mid.className = "muted";
+    mid.textContent = "vrh " + (peakPct === null ? "-" : pct1(peakPct)) + " · " + (t.status === "closed" ? t.outcome || "zaključeno" : "še odprt");
+    const right = document.createElement("span");
+    right.className = netPct === null ? "muted" : tone(netPct);
+    right.textContent = netPct === null ? "odprt" : pct1(netPct);
+    b.append(left, mid, right);
+    b.onclick = () => {
+      for (const o of wrap.querySelectorAll(".cmpMiniRow")) o.classList.toggle("active", o === b);
+      shadowPathChart(chart, t);
+    };
+    wrap.append(b);
+  }
+  box.append(wrap, chart);
+  const hint = document.createElement("small");
+  hint.className = "muted";
+  hint.textContent = "Klik na posel nariše pot cene od 20 min pred vstopom do 10 min po izstopu, s črtama cilja in meje.";
+  box.append(hint);
+  if (best && worst && best.id !== worst.id) {
+    const bw = document.createElement("small");
+    bw.className = "muted";
+    bw.textContent = "Najboljši v obdobju " + sol4(best.pnl_net_sol) + " (" + (best.symbol || "?") + "), najslabši " + sol4(worst.pnl_net_sol) + " (" + (worst.symbol || "?") + ").";
+    box.append(bw);
+  }
+  return box;
+}
 function renderComparison() {
   if ($("#comparison").hidden) return;
   renderExportReminder();
@@ -1832,8 +2104,18 @@ function renderComparison() {
             ? "○ " + st.closed.length + " poslov v " + SHADOW_MIN_DAYS + " dneh, premalo za sodbo"
             : "○ " + st.closed.length + "/" + SHADOW_MIN_TRADES + " poslov" + (pfOk && expOk ? " (vmes v redu)" : "")
           : "✗ " + [!pfOk ? "faktor" : "", !expOk ? "pričakovanje" : ""].filter(Boolean).join(" in ") + " pod ciljem";
+    const nameBtn = document.createElement("button");
+    nameBtn.type = "button";
+    nameBtn.className = "cmpToggle";
+    const caret = document.createElement("span");
+    caret.className = "caret";
+    caret.textContent = shadowOpen.has(s) ? "▾" : "▸";
+    const nameTxt = document.createElement("span");
+    nameTxt.textContent = SHADOW_LABEL[s] + (SHADOW_PAUSED[s] ? " · ustavljen " + SHADOW_PAUSED[s] : "");
+    nameBtn.append(caret, nameTxt);
+    nameBtn.title = "Pokaži pravila in zadnje posle";
     const cells = [
-      SHADOW_LABEL[s] + (SHADOW_PAUSED[s] ? " · ustavljen " + SHADOW_PAUSED[s] : ""),
+      nameBtn,
       st.closed.length + " / " + st.open.length,
       st.winRate === null ? "-" : (st.winRate * 100).toLocaleString("sl-SI", { maximumFractionDigits: 0 }) + " % (" + st.wins + ")",
       pct1(st.avgWin),
@@ -1855,6 +2137,24 @@ function renderComparison() {
       tr.append(td);
     });
     rows.append(tr);
+    // Razteg: pravila, stanje in zadnji posli tega seta.
+    const detailTr = document.createElement("tr");
+    detailTr.className = "cmpDetailRow";
+    const detailTd = document.createElement("td");
+    detailTd.colSpan = cells.length;
+    detailTr.append(detailTd);
+    detailTr.hidden = !shadowOpen.has(s);
+    if (shadowOpen.has(s)) detailTd.append(shadowDetail(s, st, { enough, pfOk, expOk, ok }));
+    nameBtn.onclick = () => {
+      const show = !shadowOpen.has(s);
+      if (show) shadowOpen.add(s);
+      else shadowOpen.delete(s);
+      caret.textContent = show ? "▾" : "▸";
+      detailTr.hidden = !show;
+      detailTd.replaceChildren();
+      if (show) detailTd.append(shadowDetail(s, st, { enough, pfOk, expOk, ok }));
+    };
+    rows.append(detailTr);
   }
   // Krivulja: x je čas, y kumulativni neto SOL; vsaka strategija svoja črta z isto lestvico.
   const svg = $("#cmpCurve");
