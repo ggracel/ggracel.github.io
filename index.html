@@ -380,7 +380,7 @@ body[data-state="boot"] main{opacity:0;pointer-events:none}
     <div class="lg-card" data-mode="register">
       <img class="wm" src="/foqs-logo.png" alt="foqs." width="700" height="247">
       <small>HUB</small>
-      <p class="note reg-only">Create your foqs. account. One account opens habit, Ura+ and sonar.</p>
+      <p class="note reg-only">Create your foqs. account and you are straight in. One account opens habit, Ura+ and sonar.</p>
       <p class="note in-only">Welcome back. Sign in to open your apps.</p>
       <p class="note rec-only">Choose a new password for your foqs. account.</p>
 
@@ -405,7 +405,6 @@ body[data-state="boot"] main{opacity:0;pointer-events:none}
       </div>
 
       <button class="lg-btn" id="mainBtn" type="button"><span class="reg-only">Create account</span><span class="in-only">Sign in</span><span class="rec-only">Save new password</span></button>
-      <p class="fhint confirm reg-only">You will get a confirmation email before your first login.</p>
       <p id="authMsg" class="authmsg" role="status"></p>
 
       <p class="lg-alt">
@@ -492,7 +491,7 @@ async function doRegister(){
   mainBtn.disabled = false;
   if (error) { say('Could not create the account: ' + explain(error.message), 'err'); return; }
   if (data.session) { showUser(data.user); enterHub(true); return; }
-  say('Account created. Open the confirmation link we sent to ' + email + ', then sign in. The same account works in all three apps.', 'ok');
+  say('Account created. Open the confirmation link we sent to ' + email + ', then sign in.', 'ok');
 }
 async function doSignIn(){
   const { email, pass } = creds();
