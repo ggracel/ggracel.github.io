@@ -40,11 +40,11 @@
   function post(body, beacon) {
     var s = JSON.stringify(body);
     if (beacon && navigator.sendBeacon) {
-      try { if (navigator.sendBeacon(EP, new Blob([s], { type: 'application/json' }))) return; } catch (e) {}
+      try { if (navigator.sendBeacon(EP, new Blob([s], { type: 'text/plain;charset=UTF-8' }))) return; } catch (e) {}
     }
     try {
       fetch(EP, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
         body: s, keepalive: !!beacon
       }).then(function (r) { return r.json(); })
         .then(function (d) { if (d && d.id) rowId = d.id; })
