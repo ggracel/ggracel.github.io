@@ -110,6 +110,11 @@ const $ = (s) => document.querySelector(s),
       ? new Intl.NumberFormat("sl-SI", { style: "currency", currency: "USD", maximumSignificantDigits: 6 }).format(x)
       : "-",
   time = (x) => new Date(x).toLocaleString("sl-SI");
+// Slovenska dvojina: 1 pozicija, 2 poziciji, 3-4 pozicije, 5+ pozicij.
+const plural = (n, one, two, few, many) => {
+  const r = Math.abs(n) % 100;
+  return n + " " + (r === 1 ? one : r === 2 ? two : r === 3 || r === 4 ? few : many);
+};
 // Market cap kot na Axiomu: 41,6K $, 1,2M $. Cena na kovanec ostane v drobnem tisku.
 const compact = (x) => {
   if (!Number.isFinite(x)) return "-";
@@ -869,6 +874,15 @@ function navigate(v, m = mode) {
 $("#live").onclick = () => navigate("market", "live");
 $("#history").onclick = () => navigate("journal");
 $("#about").onclick = () => navigate("info");
+// Povezave v besedilu: <button data-goto="info"> preskoci na zavihek.
+document.addEventListener("click", (e) => {
+  const b = e.target.closest?.("[data-goto]");
+  if (!b) return;
+  e.preventDefault();
+  const v = b.dataset.goto;
+  navigate(v, v === "market" ? "live" : mode);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
 $("#compare").onclick = () => {
   navigate("comparison", "live");
   loadShadow();
@@ -1426,8 +1440,10 @@ function dashboard() {
     rate: rate > 0 ? rate : null,
     prices,
   });
-  $("#excludedNote").textContent =
-    o.excluded + " dogodkov izgube podatkov je ločenih od poslov in rezultatov. Običajne izgube ostajajo vključene.";
+  $("#excludedNote").textContent = !o.excluded
+    ? "Nobenega dogodka izgube podatkov. Vsi posli imajo znan izid."
+    : plural(o.excluded, "dogodek izgube podatkov je ločen", "dogodka izgube podatkov sta ločena", "dogodki izgube podatkov so ločeni", "dogodkov izgube podatkov je ločenih") +
+      " od poslov in rezultatov, ker izida ne poznamo. Običajne izgube ostajajo vključene.";
   $("#dashNet").textContent = signed(o.net) + " SOL";
   $("#dashNet").className = tone(o.net);
   $("#dashNet").setAttribute(
@@ -1446,33 +1462,38 @@ function dashboard() {
     : "Ni zaključenih živih demo poslov v tem obdobju.";
   $("#dashDenominator").textContent +=
     " · " +
-    o.open.length +
-    " odprtih ni v deležu, od tega " +
+    plural(o.open.length, "odprta pozicija", "odprti poziciji", "odprte pozicije", "odprtih pozicij") +
+    " ni v tem deležu, od tega " +
     o.marks.filter((m) => m.pnl === null).length +
     " z neznanim izidom. Dodatno " +
-    o.excluded +
-    " izločenih izgub podatkov; to ni uspešnost vseh poskusov.";
+    plural(o.excluded, "izločen dogodek", "izločena dogodka", "izločeni dogodki", "izločenih dogodkov") +
+    " izgube podatkov. To ni uspešnost vseh poskusov.";
   $("#dashCounts").textContent = o.closed.length + " / " + o.open.length;
   $("#dashOutcomes").textContent = o.wins + " dobitkov · " + o.losses + " izgub · " + o.flat + " brez spremembe";
+  // Bilanca pove samo seštevek; posamezne odprte pozicije s karticami in grafi so v zavihku Pozicije.
   $("#dashOpen").textContent = !o.open.length
-    ? "Ni odprtih poslov"
+    ? "Ni odprtih pozicij"
+    : plural(o.open.length, "odprta pozicija", "odprti poziciji", "odprte pozicije", "odprtih pozicij");
+  $("#dashOpen").className = !o.open.length || o.unrealized === null ? "neutral" : tone(o.unrealized);
+  $("#dashUnreal").textContent = !o.open.length
+    ? "Bot čaka na signal."
     : o.unrealized === null
-      ? "Neznano: manjkajo sveže cene ali je spremljanje prekinjeno."
-      : signed(o.unrealized) + " SOL (ocena)";
-  $("#dashOpen").className = o.unrealized === null ? "neutral" : tone(o.unrealized);
-  const positions = $("#dashPositions");
-  positions.replaceChildren();
-  for (const m of o.marks) {
-    const p = document.createElement("p");
-    p.textContent =
-      m.trade.symbol + " · " + (m.pnl === null ? "Neznano, prekinjeno ali brez sveže cene" : signed(m.pnl) + " SOL (odprto)") + (Number.isFinite(m.trade.entryMcap) ? " · vstop MC " + compact(m.trade.entryMcap) : "");
-    p.className = m.pnl === null ? "neutral" : tone(m.pnl);
-    positions.append(p);
+      ? "Vrednosti ne moremo oceniti: manjkajo sveže cene ali je spremljanje prekinjeno."
+      : "Ob zaprtju zdaj: " + signed(o.unrealized) + " SOL po stroških, ne glede na izbrano obdobje.";
+  // Dve poti naprej: kartice pozicij so v Pozicijah, prekinjeni posli v Dnevniku. Tu samo seštevek in povezavi.
+  const link = $("#dashOpenLink");
+  link.replaceChildren();
+  const jump = (text, fn) => {
     const b = document.createElement("button");
-    b.textContent = m.trade.interrupted ? "Preglej prekinitev" : "Pokaži graf";
-    b.onclick = () => (m.trade.interrupted ? reviewTrade(m.trade.key) : showOpenTrades());
-    positions.append(b);
-  }
+    b.textContent = text;
+    b.onclick = fn;
+    link.append(b);
+  };
+  if (o.open.length) jump("Odpri jih v Pozicijah", showOpenTrades);
+  if (o.events.length)
+    jump(plural(o.events.length, "prekinjen posel", "prekinjena posla", "prekinjeni posli", "prekinjenih poslov") + " v Dnevniku", () =>
+      navigate("journal", "live"),
+    );
   $("#dashActivity").textContent =
     (healthy && Date.now() - last < 75000 ? "VIR POVEZAN" : "SPREMLJANJE V PREMORU") +
     " · " +
