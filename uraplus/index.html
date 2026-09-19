@@ -205,6 +205,18 @@
   .seg{display:flex;gap:6px;background:var(--chipbg);border-radius:12px;padding:4px}
   .seg button{flex:1;border:none;background:transparent;border-radius:9px;padding:9px 0;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit}
   .seg button.sel{background:var(--card);color:var(--green-d);box-shadow:0 1px 3px rgba(15,23,42,.12)}
+  .acct{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--bg)}
+  .acct .who{display:flex;align-items:center;gap:10px}
+  .acct .av{width:36px;height:36px;border-radius:50%;background:var(--green2);color:#141112;font-weight:800;
+    display:flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  .acct .who b{font-size:14px;display:block;line-height:1.25;word-break:break-all}
+  .acct .who small{color:var(--muted);font-size:11.5px}
+  .acct .sso{margin-top:9px;font-size:11.5px;color:var(--green-d);background:var(--tealwash);
+    border:1px solid var(--tealbd);border-radius:10px;padding:7px 10px}
+  .acctb{background:rgba(255,255,255,.14);border:none;color:#fff;height:38px;min-width:38px;padding:0 10px;
+    border-radius:12px;font-size:12.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px}
+  .acctb .av{width:22px;height:22px;border-radius:50%;background:var(--green2);color:#141112;
+    display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}
   .loglist{font-size:11.5px;color:var(--muted);max-height:140px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:none}
   .loglist div{padding:2px 0;border-bottom:1px dashed var(--line)}
   .loglist div:last-child{border-bottom:none}
@@ -226,6 +238,7 @@
       <div style="display:flex;gap:8px;align-items:center">
         <button class="timerb" id="timerB" style="display:none" onclick="stopTimer()">⏱ 0:00</button>
         <div class="streakb" id="streakB" style="display:none"></div>
+        <button class="acctb" id="acctChip" style="display:none" onclick="openSettings()" title="Račun"></button>
         <button class="icon-btn" onclick="openSettings()" title="Nastavitve">⚙︎</button>
       </div>
     </div>
@@ -364,7 +377,13 @@
     <div class="sheet">
       <h3>Nastavitve</h3>
       <p class="sub">Vse se preračuna takoj, ko shraniš.</p>
-      <label>Urna postavka (€/h)</label>
+
+      <div class="acct" id="acctBox"></div>
+      <p style="margin:8px 0 0"><a href="#" onclick="toggleLog(event)" style="color:var(--green);font-size:12.5px">Zadnje spremembe ›</a></p>
+      <div class="loglist" id="logList"></div>
+
+      <div class="set-sec"><h4>Delo in cilj</h4></div>
+      <label style="margin-top:6px">Urna postavka (€/h)</label>
       <input type="number" id="sRate" inputmode="decimal" step="0.1" min="0" placeholder="npr. 8">
       <label>Mesečni cilj si postavim …</label>
       <div class="mtabs" style="margin-top:2px">
@@ -408,13 +427,6 @@
       </div>
 
       <button class="btn p" onclick="saveSettings()">Shrani nastavitve</button>
-
-      <div class="set-sec">
-        <h4>Račun in sinhronizacija</h4>
-        <div id="acctBox"></div>
-        <p style="margin-top:8px"><a href="#" onclick="toggleLog(event)" style="color:var(--green)">Zadnje spremembe ›</a></p>
-        <div class="loglist" id="logList"></div>
-      </div>
 
       <div class="set-sec">
         <h4>Varnostna kopija</h4>
@@ -1382,15 +1394,56 @@ function closeOvl(id){ document.getElementById(id).classList.remove('on'); }
 /* ================= racun & sinhronizacija (Supabase, zdruzevanje po dnevih) ================= */
 var SB_URL='https://cgnihdlprjqpawvpznsw.supabase.co';
 var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnbmloZGxwcmpxcGF3dnB6bnN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3ODAwODAsImV4cCI6MjEwMTM1NjA4MH0.HQgn-5op-0BYAMllyE3rbhwlLPILxvl1OVnqXau_33g';
-var SESS_KEY='uraplus_sess';
+/* --- Enotna prijava (SSO) za vse foqs aplikacije ---------------------------
+   Vse aplikacije (Ura+, habit, ...) tecejo na isti domeni foqs.si, zato si
+   delijo localStorage. Knjiznica supabase-js sejo shrani pod standardnim
+   kljucem 'sb-<ref>-auth-token'. Ura+ bere in pise isti kljuc, zato je
+   prijava skupna: prijavis se enkrat, veljavno je povsod.                   */
+var SB_REF='cgnihdlprjqpawvpznsw';
+var SHARED_KEY='sb-'+SB_REF+'-auth-token';
+var SESS_KEY='uraplus_sess';   /* stari kljuc — le se za migracijo */
 var memSess=null;
-function loadSess(){ try{ var raw= storageOK? localStorage.getItem(SESS_KEY):memSess; return raw? JSON.parse(raw):null; }catch(e){ return null; } }
-function storeSess(s){
-  SESS=s; var raw=s? JSON.stringify(s):null;
-  if(storageOK){ try{ if(raw)localStorage.setItem(SESS_KEY,raw); else localStorage.removeItem(SESS_KEY); }catch(e){} }
-  else memSess=raw;
+
+function parseSess(raw){
+  if(!raw) return null;
+  try{
+    if(raw.indexOf('base64-')===0){ raw=decodeURIComponent(escape(atob(raw.slice(7)))); }
+    var o=JSON.parse(raw);
+    if(o && o.currentSession) o=o.currentSession;      /* starejsa gotrue oblika */
+    if(o && o.access_token && o.refresh_token) return o;
+  }catch(e){}
+  return null;
 }
-var SESS=loadSess();
+/* poisci veljavno sejo kjerkoli na tej domeni (katerakoli foqs aplikacija) */
+function findAnySession(){
+  if(!storageOK) return parseSess(memSess);
+  var d=parseSess(lsGet(SHARED_KEY));
+  if(d) return d;
+  try{
+    for(var i=0;i<localStorage.length;i++){
+      var k=localStorage.key(i);
+      if(!k || k===SESS_KEY) continue;
+      if(!/(^sb-)|auth|sess|token/i.test(k)) continue;
+      var o=parseSess(localStorage.getItem(k));
+      if(o) return o;
+    }
+  }catch(e){}
+  return parseSess(lsGet(SESS_KEY));
+}
+function sessUser(s){ return (s && s.user) ? s.user : {}; }
+function sameUser(a,b){ return sessUser(a).id === sessUser(b).id; }
+function storeSess(s){
+  SESS=s;
+  var raw=s? JSON.stringify(s):null;
+  if(storageOK){
+    try{
+      if(raw){ localStorage.setItem(SHARED_KEY,raw); localStorage.setItem(SESS_KEY,raw); }
+      else { localStorage.removeItem(SHARED_KEY); localStorage.removeItem(SESS_KEY); }
+    }catch(e){}
+  } else memSess=raw;
+}
+var SESS=findAnySession();
+if(SESS) storeSess(SESS);   /* poenoti kljuce, da nas vidijo tudi druge aplikacije */
 var syncState='—', syncTimer=null, lastPull=0;
 function setSyncState(t){ syncState=t; renderAcct(); renderSyncLine(); }
 function renderSyncLine(){
@@ -1405,19 +1458,32 @@ function sbHeaders(auth){
   if(auth && SESS) h['Authorization']='Bearer '+SESS.access_token;
   return h;
 }
+/* shranimo natanko to, kar vrne Supabase (oblika, ki jo razume supabase-js),
+   da sejo brez tezav prevzamejo tudi druge foqs aplikacije */
 function normSess(d){
-  return { access_token:d.access_token, refresh_token:d.refresh_token,
-           expires_at:d.expires_at || (Math.floor(Date.now()/1000)+(d.expires_in||3600)),
-           user:{ id:(d.user&&d.user.id), email:(d.user&&d.user.email) } };
+  var s;
+  try{ s=JSON.parse(JSON.stringify(d)); }catch(e){ s={}; }
+  s.access_token=d.access_token; s.refresh_token=d.refresh_token;
+  s.token_type=d.token_type||'bearer';
+  s.expires_in=d.expires_in||3600;
+  s.expires_at=d.expires_at || (Math.floor(Date.now()/1000)+(d.expires_in||3600));
+  if(!s.user) s.user={};
+  return s;
 }
 function ensureToken(){
   if(!SESS) return Promise.resolve(false);
   if(Math.floor(Date.now()/1000) < (SESS.expires_at||0)-60) return Promise.resolve(true);
+  var used=SESS.refresh_token;
   return fetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{
-    method:'POST',headers:sbHeaders(false),body:JSON.stringify({refresh_token:SESS.refresh_token})
+    method:'POST',headers:sbHeaders(false),body:JSON.stringify({refresh_token:used})
   }).then(function(r){ if(!r.ok) throw 0; return r.json(); })
     .then(function(d){ storeSess(normSess(d)); return true; })
-    .catch(function(){ storeSess(null); setSyncState('odjavljen'); return false; });
+    .catch(function(){
+      /* morda je sejo ravnokar osvezila druga foqs aplikacija — preveri skupni kljuc */
+      var s=findAnySession();
+      if(s && s.refresh_token!==used && Math.floor(Date.now()/1000) < (s.expires_at||0)-10){ SESS=s; return true; }
+      storeSess(null); setSyncState('odjavljen'); return false;
+    });
 }
 function anyLocalData(){ return !!(S.rate || S.goalHours || S.goalMoney || Object.keys(S.data).length); }
 
@@ -1513,8 +1579,8 @@ function slErr(m){
 function authDone(d){
   storeSess(normSess(d));
   closeOvl('authOvl');
-  toast('Prijavljen ✓');
-  renderAcct(); syncStart();
+  toast('Prijavljen ✓ — velja za vse foqs aplikacije');
+  renderAcct(); renderSyncLine(); syncStart();
 }
 function doLogin(){
   aErr(null);
@@ -1540,26 +1606,61 @@ function doSignup(){
       else aErr(slErr(x.d.error_description||x.d.msg||x.d.message));
     }).catch(function(){ aErr('Ni povezave — poskusi z internetom.'); });
 }
-function logout(){ storeSess(null); renderAcct(); renderSyncLine(); toast('Odjavljen — podatki ostanejo na napravi'); }
+function logout(){
+  var tok=SESS && SESS.access_token;
+  storeSess(null);
+  renderAcct(); renderSyncLine();
+  toast('Odjavljen iz vseh foqs aplikacij — podatki ostanejo na napravi');
+  if(tok){ try{ fetch(SB_URL+'/auth/v1/logout',{method:'POST',
+    headers:{'apikey':SB_KEY,'Content-Type':'application/json','Authorization':'Bearer '+tok}}).catch(function(){}); }catch(e){} }
+}
 function openAuth(){
   aErr(null);
   document.getElementById('aPass').value='';
   document.getElementById('authOvl').classList.add('on');
 }
 function renderAcct(){
-  var box=document.getElementById('acctBox'); if(!box) return;
+  var chip=document.getElementById('acctChip');
+  var box=document.getElementById('acctBox');
+  var em=sessUser(SESS).email||'';
+  if(chip){
+    if(SESS){ chip.style.display=''; chip.innerHTML='<span class="av">'+(em.charAt(0)||'?').toUpperCase()+'</span>'; }
+    else chip.style.display='none';
+  }
+  if(!box) return;
   if(SESS){
-    box.innerHTML='<p style="margin:0 0 8px;color:var(--muted);font-size:12.5px">Prijavljen: <b style="color:var(--ink)">'+
-      (SESS.user.email||'')+'</b><br>Sinhronizacija: '+syncState+'</p>'+
-      '<button class="btn s" style="margin-top:0" onclick="logout()">Odjava</button>';
+    box.innerHTML='<div class="who"><div class="av">'+(em.charAt(0)||'?').toUpperCase()+'</div>'+
+      '<div style="min-width:0"><b>'+em+'</b><small>foqs račun · '+syncState+'</small></div></div>'+
+      '<div class="sso">✓ Ista prijava velja za vse foqs aplikacije na tej napravi.</div>'+
+      '<button class="btn s" onclick="logout()">Odjava</button>';
   } else {
-    box.innerHTML='<p style="margin:0 0 8px;color:var(--muted);font-size:12.5px">Nisi prijavljen — podatki so samo na tej napravi.</p>'+
-      '<button class="btn s" style="margin-top:0" onclick="closeOvl(\'setOvl\');openAuth()">Prijava / nov račun</button>';
+    box.innerHTML='<div class="who"><div class="av" style="background:var(--chipbg);color:var(--muted)">?</div>'+
+      '<div><b>Nisi prijavljen</b><small>Podatki so samo na tej napravi.</small></div></div>'+
+      '<div class="sso">Prijavi se enkrat — velja tudi za habit in ostale foqs aplikacije.</div>'+
+      '<button class="btn p" onclick="closeOvl(\'setOvl\');openAuth()">Prijava / nov račun</button>';
   }
 }
+/* prevzemi sejo, ce se je prijava zgodila v drugi foqs aplikaciji (ali odjava) */
+function adoptShared(announce){
+  var s=findAnySession();
+  if(!s && SESS){ SESS=null; renderAcct(); renderSyncLine(); render();
+    if(announce) toast('Odjavljen v drugi foqs aplikaciji'); return true; }
+  if(s && !SESS){ storeSess(s); renderAcct(); renderSyncLine();
+    if(announce) toast('Prijavljen kot '+(sessUser(s).email||'')+' ✓'); syncStart(); return true; }
+  if(s && SESS && !sameUser(s,SESS)){ storeSess(s); renderAcct(); renderSyncLine();
+    if(announce) toast('Račun zamenjan: '+(sessUser(s).email||'')); syncStart(); return true; }
+  if(s && SESS && s.access_token!==SESS.access_token){ SESS=s; }  /* druga aplikacija je osvezila zeton */
+  return false;
+}
+window.addEventListener('storage', function(e){
+  if(e && e.key && e.key!==SHARED_KEY && e.key!==SESS_KEY) return;
+  adoptShared(true);
+});
 window.addEventListener('online', function(){ if(SESS) syncStart(); });
 document.addEventListener('visibilitychange', function(){
-  if(!document.hidden && SESS && Date.now()-lastPull>60000) syncStart();
+  if(document.hidden) return;
+  if(adoptShared(true)) return;
+  if(SESS && Date.now()-lastPull>60000) syncStart();
 });
 
 /* PWA */
@@ -1571,6 +1672,7 @@ if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){
 applyTheme();
 persist(); /* shrani morebitno migracijo */
 render();
+renderAcct();
 if(SESS) setTimeout(syncStart, 300);
 if(!S.rate && !S.goalHours && !S.goalMoney){
   setTimeout(function(){ openSettings(); toast('Dobrodošel! Najprej nastavi postavko in cilj 👇'); },400);
