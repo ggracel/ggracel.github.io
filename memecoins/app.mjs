@@ -1087,21 +1087,46 @@ function renderBotPill() {
   pill.classList.toggle("off", !on);
   pill.title = (on ? "Bot sam odpira demo posle." : "Bot ne odpira sam, vstopaš ročno.") + " Klik odpre nastavitve.";
 }
+// Odpiranje in zapiranje panela z nastavitvami. hidden ne da animirati (display:none),
+// zato hidden samo odstranimo, razred .open pa sproži prehod; ob zapiranju hidden vrnemo po prehodu.
+let botPopTimer = null;
+function setBotPop(open) {
+  const pop = $("#botPop"), scrim = $("#botScrim");
+  if (!pop) return;
+  clearTimeout(botPopTimer);
+  if (open) {
+    pop.hidden = false;
+    if (scrim) scrim.hidden = false;
+    // dva okvirja, da brskalnik zabeleži začetno stanje in prehod res steče
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        pop.classList.add("open");
+        scrim?.classList.add("open");
+      }),
+    );
+  } else {
+    pop.classList.remove("open");
+    scrim?.classList.remove("open");
+    botPopTimer = setTimeout(() => {
+      pop.hidden = true;
+      if (scrim) scrim.hidden = true;
+    }, 220);
+  }
+  $("#botPill")?.setAttribute("aria-expanded", open ? "true" : "false");
+}
+const botPopOpen = () => !$("#botPop")?.hidden;
 $("#botPill").onclick = (e) => {
   e.stopPropagation();
-  const pop = $("#botPop");
-  pop.hidden = !pop.hidden;
+  setBotPop(!botPopOpen());
 };
+$("#botPopClose").onclick = () => setBotPop(false);
 document.addEventListener("click", (e) => {
   const pop = $("#botPop");
   if (!pop || pop.hidden || pop.contains(e.target)) return;
-  pop.hidden = true;
+  setBotPop(false);
 });
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    const pop = $("#botPop");
-    if (pop) pop.hidden = true;
-  }
+  if (e.key === "Escape" && botPopOpen()) setBotPop(false);
 });
 
 $("#watch").onclick = () => navigate("watching", "live");
@@ -1730,6 +1755,8 @@ function stakeLabels() {
   renderManual(current(), "#open", "#liveManualState");
   renderManual(coins.get(boardSelected), "#boardManual", "#boardManualState");
   $("#stakeInput").value = text;
+  $("#stakeSmall").classList.toggle("active", Math.abs(stake - 0.1) < 1e-9);
+  $("#stakeLarge").classList.toggle("active", Math.abs(stake - 0.2) < 1e-9);
   $("#stakeCurrent").textContent = "Za nove posle: " + text + " SOL. Obstoječi vložki ostanejo enaki.";
 }
 function setStake(value) {
@@ -2497,30 +2524,38 @@ function renderProfile() {
     if (text !== undefined) e.textContent = text;
     return e;
   };
-  const left = mk("div");
-  const h = mk("h4", "", p.name + " ");
-  h.append(mk("span", "pill", p.tagline));
-  left.append(h);
-  const how = mk("p");
-  how.append(mk("b", "", "Kako deluje: "), p.how);
-  const who = mk("p");
-  who.append(mk("b", "", "Za koga: "), p.who);
-  left.append(how, who);
+  // Panel je ozek, zato: naslov in štiri številke vidno, razlage in primerjava zloženi.
+  box.append(mk("div", "pTag", p.tagline));
   const grid = mk("div", "pStats");
   for (const [label, value, cls] of [
     ["Dobitni posli", p.stats.win + " %", ""],
+    ["Na posel", pct1(p.stats.perTrade), p.stats.perTrade > 0 ? "positive" : "negative"],
     ["Povp. dobiček", pct1(p.stats.avgWin), "positive"],
     ["Povp. izguba", pct1(p.stats.avgLoss), "negative"],
-    ["Na posel", pct1(p.stats.perTrade), p.stats.perTrade > 0 ? "positive" : "negative"],
   ]) {
     const d = mk("div");
     d.append(mk("small", "", label), mk("strong", cls, value));
     grid.append(d);
   }
-  left.append(grid);
-  left.append(mk("p", "note", "Številke so izmerjene na 616 resničnih poslih (17. do 18. 9. 2026), odigranih s tem profilom, s stroški 1 % zdrsa in 0,5 % provizije na stran. Vsi trije profili so v minusu: profil izbere samo, kako hitro izgubljaš, ne ali izgubljaš."));
-  const right = mk("div");
-  right.append(mk("h4", "", "Vsi trije na istih poslih"));
+  box.append(grid);
+
+  const fold = (title, open) => {
+    const d = mk("details", "bpFold");
+    d.open = !!open;
+    d.append(mk("summary", "", title));
+    box.append(d);
+    return d;
+  };
+
+  const f1 = fold("Kako deluje ta profil");
+  const how = mk("p");
+  how.append(mk("b", "", "Kako deluje: "), p.how);
+  const who = mk("p");
+  who.append(mk("b", "", "Za koga: "), p.who);
+  f1.append(how, who);
+  f1.append(mk("p", "note", "Vstopi so pri vseh profilih enaki. Profil se uporabi ob vstopu; že odprti posli se ne spremenijo. Senčni test na strežniku teče ločeno in se s to izbiro ne spremeni."));
+
+  const f2 = fold("Vsi trije profili na istih poslih");
   const table = mk("table");
   const thead = mk("thead");
   const hr = mk("tr");
@@ -2534,10 +2569,11 @@ function renderProfile() {
     tb.append(tr);
   }
   table.append(tb);
-  right.append(table);
-  right.append(mk("p", "note", "Za primerjavo: prvotni fiksni cilj +10 % / meja -5 % je na istih poslih dal -4,5 % na posel. Preizkusil sem še enajst drugih kombinacij cilja in meje; najboljša je bila -3,3 % na posel. Nobena ni pozitivna, ker prednosti ni v izstopu, ampak v vstopu."));
-  right.append(mk("p", "note", "Vstopi so pri vseh profilih enaki. Profil se uporabi ob vstopu; že odprti posli se ne spremenijo. Senčni test na strežniku teče ločeno in se s to izbiro ne spremeni."));
-  box.append(left, right);
+  const wrap = mk("div", "scroll");
+  wrap.append(table);
+  f2.append(wrap);
+  f2.append(mk("p", "note", "Izmerjeno na 616 resničnih poslih (17. do 18. 9. 2026), s stroški 1 % zdrsa in 0,5 % provizije na stran. Vsi trije profili so v minusu: profil izbere samo, kako hitro izgubljaš, ne ali izgubljaš."));
+  f2.append(mk("p", "note", "Za primerjavo: prvotni fiksni cilj +10 % in meja -5 % sta na istih poslih dala -4,5 % na posel. Preizkusil sem še enajst drugih kombinacij; najboljša je bila -3,3 %. Nobena ni pozitivna, ker prednosti ni v izstopu, ampak v vstopu."));
 }
 for (const b of document.querySelectorAll("#profileButtons button"))
   b.onclick = () => {
