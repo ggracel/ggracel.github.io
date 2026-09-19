@@ -388,6 +388,7 @@ function draw() {
   renderEntry(c, "#entry");
   chart(c, "#chart", "#chartLegend");
   renderConditions(c, "#conditions");
+  renderFlags(c, "#flags");
   renderTools(c);
   $("#alerts").replaceChildren();
   for (const a of alerts.slice(0, 12)) {
@@ -682,6 +683,14 @@ function coinFromRow(r, history) {
     change1h: Number.isFinite(r.change1h) ? r.change1h : null,
     buys: Number.isFinite(r.buys5m) ? r.buys5m : null,
     sells: Number.isFinite(r.sells5m) ? r.sells5m : null,
+    fdv: Number.isFinite(r.fdv) ? r.fdv : null,
+    // Zastavice iz posnetka: samo opis, nič ne blokira vstopa.
+    hasX: r.has_twitter ?? null,
+    xStatus: r.twitter_status ?? null,
+    hasTg: r.has_telegram ?? null,
+    hasWeb: r.has_website ?? null,
+    boost: Number(r.boost_total) || 0,
+    source: r.source || null,
     image: r.image || "",
     url: r.url || "https://dexscreener.com/solana/" + r.pair,
     time: new Date(r.t).getTime(),
@@ -704,7 +713,7 @@ async function fetchRows(sinceMs) {
   return pagedRows(() =>
     db
       .from("memecoin_snapshots")
-      .select("pair,t,token,symbol,name,price,mcap,liquidity,volume5m,pair_created_ms,image,url,change1h,buys5m,sells5m")
+      .select("pair,t,token,symbol,name,price,mcap,fdv,liquidity,volume5m,pair_created_ms,image,url,change1h,buys5m,sells5m,has_twitter,twitter_status,has_telegram,has_website,boost_total,source")
       .gt("t", new Date(sinceMs).toISOString())
       .order("t", { ascending: true })
       .order("pair", { ascending: true }),
@@ -1834,6 +1843,7 @@ function renderBoardGraph() {
   renderEntry(c, "#boardEntry");
   chart(c, "#boardChart", "#boardLegend");
   renderConditions(c, "#boardConditions");
+  renderFlags(c, "#boardFlags");
   renderManual(c, "#boardManual", "#boardManualState");
 }
 
@@ -2499,6 +2509,40 @@ function renderOpenTrades() {
     foot.append(actions, fb);
     card.append(foot);
     host.append(card);
+  }
+}
+
+// Zastavice kovanca: kaj sonar o njem ve poleg cene. Nič od tega ne blokira vstopa in ne vpliva na pravila;
+// barve so iz hitre meritve 19. 9. na 20 urah posnetkov (delež trenutkov, ki so dosegli +25 % pred -12 % v 30 min).
+function renderFlags(c, sel) {
+  const host = $(sel);
+  if (!host) return;
+  host.replaceChildren();
+  if (!c || c.practice) return;
+  const chip = (text, tone, title) => {
+    const e = document.createElement("span");
+    e.className = "flag " + (tone || "");
+    e.textContent = text;
+    if (title) e.title = title;
+    host.append(e);
+  };
+  if (c.hasX === null || c.hasX === undefined) chip("socialnih podatkov ni", "", "Ta posnetek je starejši od 18. 9., ko smo začeli zbirati socialne podatke.");
+  else if (!c.hasX) chip("brez X", "", "Nima povezave na X. Izmerjeno 19. 9.: takih je bilo 17,8 % uspešnih proti 14,5 % pri tistih z X, a le na 21 kovancih, zato temu ne zaupaj preveč.");
+  else if (c.xStatus) chip("X: konkretna objava", "good", "Povezava pelje na posamezno objavo, ne na profil. Izmerjeno 19. 9.: 23,6 % uspešnih proti 12,6 % pri navadnem profilu, na 68 kovancih. Najmočnejša zastavica, kar jih imamo.");
+  else chip("X: navaden profil", "", "Povezava pelje na profil. Izmerjeno 19. 9.: 12,6 % uspešnih, torej pod povprečjem 14,7 %.");
+  if (c.hasTg) chip("Telegram", "bad", "Izmerjeno 19. 9.: kovanci s Telegramom 5,9 % uspešnih proti povprečju 14,7 %. Prva meritev na 20 urah, jemlji previdno.");
+  if (c.hasWeb) chip("spletna stran", "", "Ima povezavo na spletno stran. Sama po sebi ne pove nič o izidu.");
+  if (c.boost > 0) chip("plačana promocija", "bad", "Nekdo je plačal za izpostavitev na DEX Screener (skupaj " + Math.round(c.boost) + " enot). Izmerjeno 19. 9.: boostani 9,6 % uspešnih proti 21,1 % pri neboostanih, na 70 kovancih.");
+  if (Number.isFinite(c.fdv) && c.fdv > 0 && Number.isFinite(c.liquidity)) {
+    const share = (c.liquidity / c.fdv) * 100;
+    chip("likvidnost " + share.toLocaleString("sl-SI", { maximumFractionDigits: 0 }) + " % FDV", share < 5 ? "bad" : "", "Koliko denarja je v bazenu glede na celotno oglaševano vrednost. Nizek delež pomeni, da že majhna prodaja premakne ceno. Praga še nismo izmerili.");
+  }
+  if (c.source) chip("vir: " + (c.source === "profile" ? "profil DEX Screener" : c.source === "boost" ? "plačana lista" : "ročno dodan"), "", "Kako je kovanec sploh prišel v naš izbor.");
+  if (host.children.length) {
+    const note = document.createElement("small");
+    note.className = "flagNote";
+    note.textContent = "Opis, ne pravilo: zastavice ne odločajo o vstopu. Barve so iz ene 20-urne meritve, ne iz sodbe sence.";
+    host.append(note);
   }
 }
 
