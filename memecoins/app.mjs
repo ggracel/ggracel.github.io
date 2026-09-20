@@ -4,7 +4,7 @@ const HISTORY_MIN = 60;
 let lastSnapshotT = 0,
   primed = false,
   noData = false;
-import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint, PROFILES, DEFAULT_PROFILE, exitPlan, stepExit, markToMarket } from "./engine.mjs?v=11";
+import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint, PROFILES, DEFAULT_PROFILE, exitPlan, stepExit, markToMarket } from "./engine.mjs?v=12";
 // Konstante senčnega testa so tu zgoraj, ker jih berejo funkcije, ki se kličejo že ob nalaganju modula (TDZ).
 // Primerjava: senčni posli, ki jih strežnik (edge funkcija collect, datoteka shadow.ts) piše v tabelo memecoin_shadow_trades.
 // Brskalnik jih samo bere in sešteje. Pravila so v strežniku zamrznjena; tu se nič ne odloča.
@@ -2557,7 +2557,7 @@ const NEWS = [
     short:
       "<b>Stroške smo precenili.</b> Namesto 1 % zdrsa na stran računamo izmerjenih 0,1 %. Vsak nov posel je zato okrog 2 odstotni točki boljši.",
     body:
-      "Doslej smo od vsakega posla odšteli 1 % zdrsa in 0,5 % provizije na vsako stran, skupaj približno 3 %. Ta številka je bila ugibanje. Zdaj je izmerjena: vpliv naročila na ceno smo izračunali iz likvidnosti, ki jo hranimo ob vstopu, na 424 dejanskih poslih. Pri velikosti 0,07 SOL je mediana 0,054 %, devet poslov od desetih je pod 0,083 %, najslabši od vseh je 0,150 %. Naročilo za nekaj dolarjev v bazenu z nekaj deset tisoč dolarji preprosto ne premakne cene. Kar je res, je provizija bazena 0,25 % na stran in omrežnina s prioriteto, skupaj približno 1 % na cel posel. Že zaključenih poslov ne prepisujemo, ker so bili takrat tako zapisani; novi dobijo pravi izračun. V Laboratoriju je bila napaka še večja, tam smo računali 4,9 % na posel.",
+      "Doslej smo od vsakega posla odšteli 1 % zdrsa in 0,5 % provizije na vsako stran, skupaj približno 3 %. Ta številka je bila ugibanje. Zdaj je izmerjena: vpliv naročila na ceno smo izračunali iz likvidnosti, ki jo hranimo ob vstopu, na 424 dejanskih poslih. Pri velikosti 0,07 SOL je mediana 0,054 %, devet poslov od desetih je pod 0,083 %, najslabši od vseh je 0,150 %. Naročilo za nekaj dolarjev v bazenu z nekaj deset tisoč dolarji preprosto ne premakne cene. Kar je res, je provizija bazena 0,25 % na stran in omrežnina s prioriteto, skupaj približno 1 % na cel posel. Že zaključenih poslov ne prepisujemo, ker so bili takrat tako zapisani; novi dobijo pravi izračun. V Laboratoriju je bila napaka še večja, tam smo računali 4,9 % na posel; zgodovina Laboratorija je preračunana po istem modelu. Ob tem so bile na novo izmerjene tudi številke pri profilih. Nižje so kot prej, ker prejšnja meritev ni štela poslov, ki so umrli čez noč, ko je bila stran zaprta.",
     tags: [["3 % → 1 % na posel", "ok"], ["Izmerjeno na 424 poslih", "ok"], ["Stari zapisi ostanejo", ""]],
   },
   {

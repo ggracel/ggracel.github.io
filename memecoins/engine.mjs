@@ -71,15 +71,15 @@ export const PROFILES={
  varen:{key:'varen',name:'Varen',halfAt:0.15,trail:0.12,hardStop:0.08,cap:null,tagline:'Brez cilja. Dobiček pobere zgodaj, ostanek sledi vrhu.',
   how:'Ko je posel +15 %, proda polovico in premakne mejo na vstopno ceno (od tu naprej ta posel ne more več končati v izgubi). Drugo polovico proda, ko cena pade 12 % s svojega vrha. Če gre cena takoj navzdol, zapre pri -8 %.',
   who:'Zate, če hočeš čim manj hudih izgub. Na izmerjenih poslih je to najmanj slaba od treh možnosti, ampak še vedno v minusu.',
-  stats:{win:35,avgWin:18.6,avgLoss:-17.9,perTrade:-5.27}},
+  stats:{win:35,avgWin:20.9,avgLoss:-20.7,perTrade:-6.30}},
  srednje:{key:'srednje',name:'Srednje',halfAt:0.20,trail:0.15,hardStop:0.12,cap:0.50,tagline:'Pol pri +20 %, vse pri +50 %. Cilj dodan 20. 9.',
   how:'Ko je posel +20 %, proda polovico in premakne mejo na vstopno ceno. Ostanek proda, ko cena doseže +50 % (cilj) ali ko pade 15 % s svojega vrha, kar pride prej. Če gre cena takoj navzdol, zapre pri -12 %.',
   who:'Zate, če hočeš pustiti dobitnikom nekaj prostora in vseeno zakleniti del dobička, ko pride.',
-  stats:{win:35,avgWin:25.8,avgLoss:-21.8,perTrade:-5.17}},
+  stats:{win:35,avgWin:26.7,avgLoss:-24.9,perTrade:-6.88}},
  agresivno:{key:'agresivno',name:'Agresivno',halfAt:null,trail:0.15,hardStop:0.15,cap:0.50,tagline:'Brez delne prodaje. Vse pri +50 % ali 15 % pod vrhom.',
   how:'Ne prodaja po delih. Drži celoten posel in proda vse, ko cena doseže +50 % (cilj) ali ko pade 15 % s svojega vrha, kar pride prej. Če gre cena takoj navzdol, zapre pri -15 %.',
-  who:'Zate, če ti ne bo težko gledati, da je večina poslov izgubnih (dobra četrtina je dobitnih), ker so dobitniki veliki. Cilj +50 % je dodan 20. 9.: na 263 resničnih poteh je izboljšal rezultat z -5,8 % na -3,9 % na posel, na oknu dva dni prej pa je bil cilj slabši. Zato ga merimo naprej in ne štejemo za dokazanega.',
-  stats:{win:28,avgWin:34.6,avgLoss:-18.7,perTrade:-3.93}}
+  who:'Zate, če ti ne bo težko gledati, da je večina poslov izgubnih (dobra četrtina je dobitnih), ker so dobitniki veliki. Cilj +50 % je dodan 20. 9. Na 346 resničnih poteh izboljša rezultat z -19,2 % na -10,1 % na posel, kar je največja razlika med vsemi izstopi, ki smo jih izmerili. Agresivno je kljub temu najslabši od treh profilov.',
+  stats:{win:24,avgWin:53.1,avgLoss:-29.8,perTrade:-10.18}}
 };
 export const DEFAULT_PROFILE='srednje';
 export function profileOf(t){return t?.plan?PROFILES[t.profile]||null:null;}
