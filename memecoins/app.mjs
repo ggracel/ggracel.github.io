@@ -4,15 +4,15 @@ const HISTORY_MIN = 60;
 let lastSnapshotT = 0,
   primed = false,
   noData = false;
-import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint, PROFILES, DEFAULT_PROFILE, exitPlan, stepExit, markToMarket } from "./engine.mjs?v=9";
+import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint, PROFILES, DEFAULT_PROFILE, exitPlan, stepExit, markToMarket } from "./engine.mjs?v=10";
 // Konstante senčnega testa so tu zgoraj, ker jih berejo funkcije, ki se kličejo že ob nalaganju modula (TDZ).
 // Primerjava: senčni posli, ki jih strežnik (edge funkcija collect, datoteka shadow.ts) piše v tabelo memecoin_shadow_trades.
 // Brskalnik jih samo bere in sešteje. Pravila so v strežniku zamrznjena; tu se nič ne odloča.
-const SHADOW_STRATEGIES = ["v1.0", "v1.2-filter", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj", "v2.2-dip", "v2.2-dip-siroko"];
+const SHADOW_STRATEGIES = ["v1.0", "v1.2-filter", "v1.2-srednje", "v1.2-cilj50", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj", "v2.2-dip", "v2.2-dip-siroko"];
 // Ustavljene 19. 9. 2026: ne odpirajo novih poslov, zgodovina in odprti posli ostanejo (glej shadow.ts PAUSED).
 const SHADOW_PAUSED = { "v1.0": "19. 9.", "v2.0-brez-holderjev": "19. 9." };
-const SHADOW_LABEL = { "v1.0": "v1.0 staro +10/-5", "v1.2-filter": "v1.2 (v aplikaciji)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj", "v2.2-dip": "v2.2 dip s kupci", "v2.2-dip-siroko": "v2.2 dip s kupci, široko" };
-const SHADOW_COLOR = { "v1.0": "#9fb0c8", "v1.2-filter": "#f0a6ff", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff", "v2.2-dip": "#46bec5", "v2.2-dip-siroko": "#ff9f7a" };
+const SHADOW_LABEL = { "v1.0": "v1.0 staro +10/-5", "v1.2-filter": "v1.2 staro Srednje (pol +25, sled 20)", "v1.2-srednje": "v1.2 Srednje brez cilja (pol +20, sled 15)", "v1.2-cilj50": "v1.2 Srednje + cilj +50 (v aplikaciji)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj", "v2.2-dip": "v2.2 dip s kupci", "v2.2-dip-siroko": "v2.2 dip s kupci, široko" };
+const SHADOW_COLOR = { "v1.0": "#9fb0c8", "v1.2-filter": "#f0a6ff", "v1.2-srednje": "#c98cff", "v1.2-cilj50": "#ffd166", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff", "v2.2-dip": "#46bec5", "v2.2-dip-siroko": "#ff9f7a" };
 // Kaj vsak set pravil gleda za vstop in kako izstopi. Besedilo mora ustrezati shadow.ts; ob spremembi pravil popravi oboje.
 const SHADOW_RULES = {
   "v1.0": {
@@ -91,6 +91,28 @@ const SHADOW_RULES = {
   },
 };
 SHADOW_RULES["v2.0-brez-holderjev"] = { vstop: SHADOW_RULES["v2.0"].vstop.filter((x) => !x.startsWith("Imetniki")), izstop: SHADOW_RULES["v2.0"].izstop };
+// 20. 9. 2026: dve varianti v1.2 z istim vstopom in stroški, razlika je samo izstop (cilj research 20. 9.).
+SHADOW_RULES["v1.2-srednje"] = {
+  vstop: SHADOW_RULES["v1.2-filter"].vstop,
+  izstop: [
+    "Pri +20 % proda polovico in premakne mejo na vstopno ceno.",
+    "Nato sledilna meja 15 % pod najvišjo doseženo ceno. Brez cilja.",
+    "Trda meja izgube: -12 %.",
+    "Brez časovne meje in brez rug izhoda.",
+    "Največ 5 odprtih poslov, en na kovanec.",
+  ],
+};
+SHADOW_RULES["v1.2-cilj50"] = {
+  vstop: SHADOW_RULES["v1.2-filter"].vstop,
+  izstop: [
+    "Pri +20 % proda polovico in premakne mejo na vstopno ceno.",
+    "Cilj: pri +50 % proda vse preostalo.",
+    "Do cilja sledilna meja 15 % pod najvišjo doseženo ceno.",
+    "Trda meja izgube: -12 %.",
+    "Brez časovne meje in brez rug izhoda. To je natanko profil Srednje v aplikaciji od 20. 9.",
+    "Največ 5 odprtih poslov, en na kovanec.",
+  ],
+};
 SHADOW_RULES["v2.2-dip-siroko"] = { vstop: SHADOW_RULES["v2.2-dip"].vstop.map((x) => (x.startsWith("Kovanec:") ? "Kovanec: likvidnost vsaj 10.000 $, v 1 h največ +150 %. Brez omejitve starosti IN BREZ omejitve market capa." : x)), izstop: SHADOW_RULES["v2.2-dip"].izstop };
 // Katere vrstice v Laboratoriju so raztegnjene; preživi samodejni izris na 60 s.
 const shadowOpen = new Set();
@@ -500,9 +522,9 @@ function tradeLevels(t, c) {
   const summary =
     (p.halfAt
       ? t.halfSold
-        ? "polovica že prodana pri " + mcText(c, t.halfPrice) + " · ostanek proda, ko cena pade " + Math.round(p.trail * 100) + " % z vrha (zdaj meja " + mcText(c, t.stop) + ")"
-        : "pol proda pri " + mcText(c, t.target) + " (+" + Math.round(p.halfAt * 100) + " %), potem sledi vrhu · trda meja " + mcText(c, t.stop) + " (-" + Math.round(p.hardStop * 100) + " %)"
-      : "brez cilja: proda, ko cena pade " + Math.round(p.trail * 100) + " % z vrha (zdaj meja " + mcText(c, t.stop) + ")") + " · profil " + name + ".";
+        ? "polovica že prodana pri " + mcText(c, t.halfPrice) + " · ostanek proda" + (p.cap ? " pri cilju " + mcText(c, t.cap) + " (+" + Math.round(p.cap * 100) + " %) ali" : "") + ", ko cena pade " + Math.round(p.trail * 100) + " % z vrha (zdaj meja " + mcText(c, t.stop) + ")"
+        : "pol proda pri " + mcText(c, t.target) + " (+" + Math.round(p.halfAt * 100) + " %), potem sledi vrhu" + (p.cap ? " do cilja " + mcText(c, t.cap) + " (+" + Math.round(p.cap * 100) + " %)" : "") + " · trda meja " + mcText(c, t.stop) + " (-" + Math.round(p.hardStop * 100) + " %)"
+      : (p.cap ? "cilj " + mcText(c, t.cap) + " (+" + Math.round(p.cap * 100) + " %) ali " : "brez cilja: ") + "proda, ko cena pade " + Math.round(p.trail * 100) + " % z vrha (zdaj meja " + mcText(c, t.stop) + ")") + " · profil " + name + ".";
   return { kind: "profile", targetLabel, stopLabel, targetValue, stopValue: t.stop, trailing, summary };
 }
 function tradeLines(t, c) {
@@ -515,6 +537,7 @@ function tradeLines(t, c) {
   }
   if (t.plan.halfAt && !t.halfSold) lines.push({ key: "target", tag: "POL", value: t.target, color: "#62e4b3", dash: "2 4", label: "Pol prodaje +" + Math.round(t.plan.halfAt * 100) + " % " + mcText(c, t.target) });
   if (t.halfSold) lines.push({ key: "half", tag: "POL ✓", value: t.halfPrice, color: "#8beacb", dash: "1 5", label: "Pol prodano " + mcText(c, t.halfPrice) });
+  if (t.plan.cap && Number.isFinite(t.cap)) lines.push({ key: "cap", tag: "CILJ", value: t.cap, color: "#ffd166", dash: "6 3", label: "Cilj +" + Math.round(t.plan.cap * 100) + " % " + mcText(c, t.cap) });
   lines.push({ key: "stop", tag: L.trailing ? "SLED" : "MEJA", value: t.stop, color: L.trailing ? "#ecbf69" : "#ff858e", dash: "2 4", label: (L.trailing ? "Sledilna meja " : "Trda meja ") + mcText(c, t.stop) });
   return lines;
 }
@@ -2381,7 +2404,8 @@ function renderOpenTrades() {
     // Desni rob traku: kam mora cena naprej. Pri sledilni meji vzamemo vrh, ampak vsaj 25 % nad vstopom,
     // sicer se pri poslu, ki še ni bil v plusu, vrh in vstop prekrijeta na istem robu.
     const trailing = L.kind !== "fixed" && !(t.plan.halfAt && !t.halfSold);
-    const rightRaw = trailing ? Math.max(t.peak || t.entry, t.entry * 1.25, price || 0) : t.target;
+    const hasCap = L.kind !== "fixed" && !!t.plan.cap && Number.isFinite(t.cap);
+    const rightRaw = trailing ? (hasCap ? t.cap : Math.max(t.peak || t.entry, t.entry * 1.25, price || 0)) : t.target;
     const right = Number.isFinite(rightRaw) && rightRaw > t.stop * 1.002 ? rightRaw : t.stop * 1.05;
     const peakPctNow = t.entry > 0 && Number.isFinite(t.peak) ? (t.peak / t.entry - 1) * 100 : null;
     const toTarget = price > 0 && L.kind === "fixed" ? (t.target / price - 1) * 100 : null,
@@ -2448,9 +2472,11 @@ function renderOpenTrades() {
           ? "CILJ +10 %"
           : t.plan.halfAt && !t.halfSold
             ? "POL +" + Math.round(t.plan.halfAt * 100) + " %"
-            : peakPctNow !== null && peakPctNow > 3
-              ? "VRH " + pct1(peakPctNow)
-              : "+25 %",
+            : hasCap
+              ? "CILJ +" + Math.round(t.plan.cap * 100) + " %"
+              : peakPctNow !== null && peakPctNow > 3
+                ? "VRH " + pct1(peakPctNow)
+                : "+25 %",
       ),
     );
     const trackWrap = el("div", "ocTrackWrap");
@@ -2743,8 +2769,8 @@ function renderProfile() {
   const wrap = mk("div", "scroll");
   wrap.append(table);
   f2.append(wrap);
-  f2.append(mk("p", "note", "Vsi trije so izmerjeni na istih 233 resničnih cenovnih poteh (18. do 19. 9. 2026), s stroški 1 % zdrsa in 0,5 % provizije na stran, zato so med seboj primerljivi. Razlike med profili so znotraj merilne napake, tako da to ni lestvica. Agresivno je bil 19. 9. na novo nastavljen; s staro nastavitvijo je na istih poteh dajal -6,75 % na posel. Vsi trije so v minusu: profil izbere samo, kako hitro izgubljaš, ne ali izgubljaš."));
-  f2.append(mk("p", "note", "Za primerjavo: prvotni fiksni cilj +10 % in meja -5 % sta na istih poslih dala -4,5 % na posel. Preizkusil sem še enajst drugih kombinacij; najboljša je bila -3,3 %. Nobena ni pozitivna, ker prednosti ni v izstopu, ampak v vstopu."));
+  f2.append(mk("p", "note", "Vsi trije so izmerjeni na istih 263 resničnih cenovnih poteh (19. do 20. 9. 2026), s stroški 1 % zdrsa in 0,5 % provizije na stran, zato so med seboj primerljivi. Srednje in Agresivno imata od 20. 9. cilj +50 %: brez cilja bi na istih poteh dala -5,9 % in -5,8 % na posel. Varen cilja nima, da se vidi razlika. Na oknu dva dni prej je bil cilj slabši, zato to ni dokazano, samo merjeno naprej. Vsi trije so v minusu: profil izbere samo, kako hitro izgubljaš, ne ali izgubljaš."));
+  f2.append(mk("p", "note", "Za primerjavo: prvotni fiksni cilj +10 % in meja -5 % sta na istih poslih dala -3,7 % na posel. Čisti cilj / meja brez delne prodaje je bil slabši v vseh 16 preizkušenih kombinacijah. Nobena ni pozitivna, ker -12 % pride pred +50 % pri 77 % poslov: prednosti ni v izstopu, ampak v vstopu."));
 }
 for (const b of document.querySelectorAll("#profileButtons button"))
   b.onclick = () => {

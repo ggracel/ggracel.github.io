@@ -41,22 +41,24 @@ Vzorci ostajajo v1.0, samodejni vstop pa gre samo v pare, ki so stari 30 do 90 m
 
 Vstopi so pri vseh profilih enaki (pravila v1.0 v `engine.mjs`), profil določa samo, kako se demo posel zapre. Definicije so v `engine.mjs` (`PROFILES`, `exitPlan`, `stepExit`), izbira se shrani v `memecoin_state.profile`. Vsak posel ob vstopu dobi svoj načrt (`plan`), zato sprememba profila ne vpliva na že odprte posle. Stari posli brez `plan` ostanejo na fiksnem cilju +10 % / meji -5 %.
 
-| Profil | Delna prodaja | Sledilna meja | Trda meja | Izmerjeno na posel |
-| --- | --- | --- | --- | --- |
-| Varen | pol pri +15 %, meja na vstop | 12 % pod vrhom | -8 % | -3,3 % |
-| Srednje (privzeto) | pol pri +20 %, meja na vstop | 15 % pod vrhom | -12 % | -4,1 % |
-| Agresivno | brez | 20 % pod vrhom od začetka | -10 % | -3,9 % |
+| Profil | Delna prodaja | Cilj (proda vse) | Sledilna meja | Trda meja | Izmerjeno na posel |
+| --- | --- | --- | --- | --- | --- |
+| Varen | pol pri +15 %, meja na vstop | brez | 12 % pod vrhom | -8 % | -5,3 % |
+| Srednje (privzeto) | pol pri +20 %, meja na vstop | +50 % | 15 % pod vrhom | -12 % | -5,2 % (brez cilja -5,9 %) |
+| Agresivno | brez | +50 % | 15 % pod vrhom od začetka | -15 % | -3,9 % (brez cilja -5,8 %) |
 
-Številke so iz simulacije na 616 resničnih poslih (senčni posli v1.0 in v1.2, 17. do 18. 9. 2026), s stroški 1 % zdrsa in 0,5 % provizije na stran. **Vsi trije profili so v minusu.** Preizkušenih je bilo še enajst drugih kombinacij cilja, sledilne meje in trde meje; najboljša je bila -3,3 % na posel, nobena ni pozitivna. Pri Agresivnem je bila različica z delno prodajo pri +30 % slabša (-4,6 %) od sedanje brez delne prodaje, ker odreže redke velike skoke. Zaključek: prednosti ni v izstopu, ampak v vstopu.
+Številke so iz ponovnega predvajanja na 263 resničnih vstopih v1.2 (19. do 20. 9. 2026), s stroški 1 % zdrsa in 0,5 % provizije na stran. Cilj +50 % je dodan 20. 9. (glej projektni dokument `cilj-research.md`): na tem oknu izboljša Srednje za 0,7 in Agresivno za 1,8 točke, na oknu dva dni prej je bil cilj slabši, zato se meri naprej v senci (`v1.2-srednje` proti `v1.2-cilj50`). **Vsi trije profili so v minusu.** Čisti cilj / meja brez delne prodaje je slabši v vseh preizkušenih kombinacijah. Zaključek ostaja: prednosti ni v izstopu, ampak v vstopu (-12 % pride pred +50 % pri 77 % poslov). Posel s ciljem ima `ruleVersion` 1.3 in polje `cap` (cena cilja); `stepExit` ga proda ob prvem posnetku na ali nad ciljem.
 
 ## Senčni test (zavihek Primerjava)
 
-Štiri strategije tečejo na strežniku vzporedno, na istih posnetkih, vsaka s svojim seznamom poslov:
+Strategije tečejo na strežniku vzporedno, na istih posnetkih, vsaka s svojim seznamom poslov:
 
 | Strategija | Izbor kovancev | Vstop | Izstop |
 | --- | --- | --- | --- |
 | `v1.0` | likvidnost nad 10K $ | vzorci Odboj, Višje dno, Preboj/retest | cilj +10 %, meja -5 % |
-| `v1.2-filter` | kot v aplikaciji: likvidnost nad 10K $ + filter v1.2 (starost 30 do 90 min, 1 h ni v minusu, MC 20K do 300K) | vzorci v1.0 | profil Srednje: pol pri +25 %, meja na vstop, sledilna meja 20 % pod vrhom, trda meja -12 % |
+| `v1.2-filter` | likvidnost nad 10K $ + filter v1.2 (starost 30 do 90 min, 1 h ni v minusu, MC 20K do 300K) | vzorci v1.0 | staro Srednje: pol pri +25 %, meja na vstop, sledilna meja 20 % pod vrhom, trda meja -12 % |
+| `v1.2-srednje` | kot v1.2-filter | vzorci v1.0 | Srednje brez cilja: pol pri +20 %, sledilna meja 15 %, trda meja -12 % |
+| `v1.2-cilj50` | kot v1.2-filter | vzorci v1.0 | kot v aplikaciji od 20. 9.: pol pri +20 %, vse pri +50 %, sledilna meja 15 %, trda meja -12 % |
 | `v2.0` | starost 5 do 90 min, MC 8K do 80K $, likvidnost nad 10K $ in vsaj 15 % MC, promet 5 min vsaj 20 % likvidnosti, vsaj 15 nakupov, nakupi/prodaje vsaj 1,2, sprememba 1 h do +150 % | vrnitev po padcu 35 do 55 % s prejšnjega vrha (rast pred tem vsaj 40 %), največ 12 % nad dnom, zadnji posnetek višji od prejšnjega; preverjanje imetnikov (top 10 do 30 %, največji do 8 %, brez grozdov) | rug izhod (likvidnost -25 % v 5 min ali prodaje 2x nakupi), pol prodaje pri +25 % in nato meja na vstopu, sledilna meja 20 % pod vrhom, meja izgube -12 %, časovna meja 15 min če vrh pod +8 % |
 | `v2.0-brez-holderjev` | kot v2.0 | kot v2.0 brez preverjanja imetnikov | kot v2.0 |
 | `v2.1-preboj` | kot v2.0 | preboj 15-minutnega vrha za 3 do 10 % ob nakupi/prodaje vsaj 1,5 in prometu vsaj 30 % likvidnosti | kot v2.0 |
