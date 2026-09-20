@@ -11,7 +11,10 @@ export function pattern(points,now=Date.now()){
  const matched=checks.find(c=>c.items.every(x=>x.ok));
  return {name:matched?.name||'Čakanje',reason:matched?.reason||'Noben od treh preprostih pogojev ni izpolnjen.',...(matched?{signal:true}:{}),checks,levels:{support,resistance:res,retest:prev*1.01,bounce:prev*1.015},previous:prev};
 }
-export function result(entry,exit,sizeSOL=0.1){return sizeSOL*(exit*(1-.01)*(1-.005)/(entry*(1+.01)*(1+.005))-1)-.00001;}
+// Stroški, izmerjeni 20. 9. 2026 na 424 naših poslih: provizija bazena 0,25 % na stran (PumpSwap 0,20 LP + 0,05 protokol,
+// Raydium v4 enako), vpliv na ceno pri 0,07 SOL mediana 0,054 % in p90 0,083 % (računano iz shranjene likvidnosti),
+// omrežnina s prioriteto in Jito napitnino ~0,0001 SOL na transakcijo. Skupaj ~1 % na cel posel, prej smo računali 3 %.
+export function result(entry,exit,sizeSOL=0.1){return sizeSOL*(exit*(1-.0025)*(1-.001)/(entry*(1+.0025)*(1+.001))-1)-.0002;}
 
 export function overview(trades,{now=Date.now(),period='all',quality='all',rate=null,prices=new Map()}={}){
  const day=new Date(now);day.setHours(0,0,0,0);const since=period==='today'?day.getTime():period==='24h'?now-86400000:-Infinity;
