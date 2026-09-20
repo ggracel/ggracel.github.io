@@ -68,6 +68,10 @@ export function entryPoint(points,now=Date.now()){
 // Trda meja nad 15 % ne bi spremenila nič, ker sled 15 % od vstopa naprej vedno leži višje. Stare posle se od novih
 // loči po shranjenem t.plan.trail (0.20 staro, 0.15 novo); odprti posli obdržijo načrt, s katerim so bili odprti.
 export const PROFILES={
+ hitri:{key:'hitri',name:'Hitri',halfAt:null,trail:null,hardStop:0.05,cap:0.10,tagline:'Cilj +10 %, meja -5 %. Najbolje izmerjen, dodan 20. 9.',
+  how:'Ne prodaja po delih in ne sledi vrhu. Proda vse, ko je posel +10 %, ali zapre pri -5 %. Povprečno traja dve minuti.',
+  who:'Zate, če hočeš, da bot vzame majhen dobiček in gre ven. Na 342 izmerjenih poteh je najmanj slab od štirih, prednost pred Srednje je 2,7 odstotne točke na posel (interval zaupanja 0,4 do 5,1). Še vedno je v minusu.',
+  stats:{win:41,avgWin:17.0,avgLoss:-15.4,perTrade:-2.15}},
  varen:{key:'varen',name:'Varen',halfAt:0.15,trail:0.12,hardStop:0.08,cap:null,tagline:'Brez cilja. Dobiček pobere zgodaj, ostanek sledi vrhu.',
   how:'Ko je posel +15 %, proda polovico in premakne mejo na vstopno ceno (od tu naprej ta posel ne more več končati v izgubi). Drugo polovico proda, ko cena pade 12 % s svojega vrha. Če gre cena takoj navzdol, zapre pri -8 %.',
   who:'Zate, če hočeš čim manj hudih izgub. Na izmerjenih poslih je to najmanj slaba od treh možnosti, ampak še vedno v minusu.',
@@ -81,7 +85,7 @@ export const PROFILES={
   who:'Zate, če ti ne bo težko gledati, da je večina poslov izgubnih (dobra četrtina je dobitnih), ker so dobitniki veliki. Cilj +50 % je dodan 20. 9. Na 346 resničnih poteh izboljša rezultat z -19,2 % na -10,1 % na posel, kar je največja razlika med vsemi izstopi, ki smo jih izmerili. Agresivno je kljub temu najslabši od treh profilov.',
   stats:{win:24,avgWin:53.1,avgLoss:-29.8,perTrade:-10.18}}
 };
-export const DEFAULT_PROFILE='srednje';
+export const DEFAULT_PROFILE='hitri';
 export function profileOf(t){return t?.plan?PROFILES[t.profile]||null:null;}
 // Začetne ravni za nov posel po profilu (stari posli brez t.plan ostanejo na fiksnem cilju +10 % / meji -5 %).
 export function exitPlan(profileKey,entry){
@@ -92,9 +96,11 @@ export function exitPlan(profileKey,entry){
 export function stepExit(t,price){
  if(!t.plan){ if(price<=t.stop)return 'Meja izgube'; if(price>=t.target)return 'Cilj'; return null; }
  t.peak=Math.max(t.peak||t.entry,price);
- if(t.plan.halfAt&&!t.halfSold&&price>=t.entry*(1+t.plan.halfAt)){t.halfSold=true;t.halfPrice=price;t.stop=Math.max(t.stop,t.entry);}
- if(t.plan.cap&&price>=t.entry*(1+t.plan.cap))return 'Cilj +'+Math.round(t.plan.cap*100)+' %';
- if(!t.plan.halfAt||t.halfSold)t.stop=Math.max(t.stop,t.peak*(1-t.plan.trail));
+ // Primerjamo donos in ne cene: 100*(1+0.1) je v plavajoci vejici 110.00000000000001, zato cena 110 ne bi sprozila cilja.
+ const g=t.entry>0?price/t.entry-1:0,EPS=1e-9;
+ if(t.plan.halfAt&&!t.halfSold&&g>=t.plan.halfAt-EPS){t.halfSold=true;t.halfPrice=price;t.stop=Math.max(t.stop,t.entry);}
+ if(t.plan.cap&&g>=t.plan.cap-EPS)return 'Cilj +'+Math.round(t.plan.cap*100)+' %';
+ if((!t.plan.halfAt||t.halfSold)&&t.plan.trail)t.stop=Math.max(t.stop,t.peak*(1-t.plan.trail));
  if(price<=t.stop){
   const hard=t.entry*(1-t.plan.hardStop);
   if(t.halfSold)return price>=t.entry?'Sledilna meja (dobiček)':'Sledilna meja pod vstopom';

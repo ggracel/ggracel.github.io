@@ -4,7 +4,7 @@ const HISTORY_MIN = 60;
 let lastSnapshotT = 0,
   primed = false,
   noData = false;
-import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint, PROFILES, DEFAULT_PROFILE, exitPlan, stepExit, markToMarket } from "./engine.mjs?v=12";
+import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint, PROFILES, DEFAULT_PROFILE, exitPlan, stepExit, markToMarket } from "./engine.mjs?v=13";
 // Konstante senčnega testa so tu zgoraj, ker jih berejo funkcije, ki se kličejo že ob nalaganju modula (TDZ).
 // Primerjava: senčni posli, ki jih strežnik (edge funkcija collect, datoteka shadow.ts) piše v tabelo memecoin_shadow_trades.
 // Brskalnik jih samo bere in sešteje. Pravila so v strežniku zamrznjena; tu se nič ne odloča.
@@ -514,17 +514,19 @@ function chart(c, target = "#chart", legendTarget = "#chartLegend", opts = {}) {
 function tradeLevels(t, c) {
   const p = t.plan;
   if (!p) return { kind: "fixed", targetLabel: "Cilj +10 %", stopLabel: "Meja -5 %", targetValue: t.target, stopValue: t.stop, trailing: false, summary: "cilj " + mcText(c, t.target) + " (+10 %) · meja " + mcText(c, t.stop) + " (-5 %). Zapre se ob prvi ceni čez eno od njiju." };
-  const trailing = !p.halfAt || t.halfSold;
+  const trailing = (!p.halfAt || t.halfSold) && !!p.trail;
   const stopLabel = trailing ? "Sledilna meja" : "Trda meja -" + Math.round(p.hardStop * 100) + " %";
-  const targetLabel = !p.halfAt ? "Vrh" : t.halfSold ? "Pol prodano" : "Pol prodaje +" + Math.round(p.halfAt * 100) + " %";
-  const targetValue = !p.halfAt ? Math.max(t.peak || t.entry, t.entry) : t.halfSold ? t.halfPrice : t.target;
+  const targetLabel = !p.halfAt ? (p.cap && !p.trail ? "Cilj +" + Math.round(p.cap * 100) + " %" : "Vrh") : t.halfSold ? "Pol prodano" : "Pol prodaje +" + Math.round(p.halfAt * 100) + " %";
+  const targetValue = !p.halfAt ? (p.cap && !p.trail ? t.cap : Math.max(t.peak || t.entry, t.entry)) : t.halfSold ? t.halfPrice : t.target;
   const name = (PROFILES[t.profile] || {}).name || t.profile;
   const summary =
     (p.halfAt
       ? t.halfSold
         ? "polovica že prodana pri " + mcText(c, t.halfPrice) + " · ostanek proda" + (p.cap ? " pri cilju " + mcText(c, t.cap) + " (+" + Math.round(p.cap * 100) + " %) ali" : "") + ", ko cena pade " + Math.round(p.trail * 100) + " % z vrha (zdaj meja " + mcText(c, t.stop) + ")"
         : "pol proda pri " + mcText(c, t.target) + " (+" + Math.round(p.halfAt * 100) + " %), potem sledi vrhu" + (p.cap ? " do cilja " + mcText(c, t.cap) + " (+" + Math.round(p.cap * 100) + " %)" : "") + " · trda meja " + mcText(c, t.stop) + " (-" + Math.round(p.hardStop * 100) + " %)"
-      : (p.cap ? "cilj " + mcText(c, t.cap) + " (+" + Math.round(p.cap * 100) + " %) ali " : "brez cilja: ") + "proda, ko cena pade " + Math.round(p.trail * 100) + " % z vrha (zdaj meja " + mcText(c, t.stop) + ")") + " · profil " + name + ".";
+      : !p.trail
+        ? "cilj " + mcText(c, t.cap) + " (+" + Math.round(p.cap * 100) + " %) ali trda meja " + mcText(c, t.stop) + " (-" + Math.round(p.hardStop * 100) + " %) · brez delne prodaje in brez sledi"
+        : (p.cap ? "cilj " + mcText(c, t.cap) + " (+" + Math.round(p.cap * 100) + " %) ali " : "brez cilja: ") + "proda, ko cena pade " + Math.round(p.trail * 100) + " % z vrha (zdaj meja " + mcText(c, t.stop) + ")") + " · profil " + name + ".";
   return { kind: "profile", targetLabel, stopLabel, targetValue, stopValue: t.stop, trailing, summary };
 }
 function tradeLines(t, c) {
@@ -2403,9 +2405,9 @@ function renderOpenTrades() {
     // desni rob traku: fiksni cilj / raven delne prodaje / vrh (ko meja sledi vrhu)
     // Desni rob traku: kam mora cena naprej. Pri sledilni meji vzamemo vrh, ampak vsaj 25 % nad vstopom,
     // sicer se pri poslu, ki še ni bil v plusu, vrh in vstop prekrijeta na istem robu.
-    const trailing = L.kind !== "fixed" && !(t.plan.halfAt && !t.halfSold);
+    const trailing = L.kind !== "fixed" && !(t.plan.halfAt && !t.halfSold) && !!t.plan.trail;
     const hasCap = L.kind !== "fixed" && !!t.plan.cap && Number.isFinite(t.cap);
-    const rightRaw = trailing ? (hasCap ? t.cap : Math.max(t.peak || t.entry, t.entry * 1.25, price || 0)) : t.target;
+    const rightRaw = trailing ? (hasCap ? t.cap : Math.max(t.peak || t.entry, t.entry * 1.25, price || 0)) : hasCap && !t.plan.halfAt ? t.cap : t.target;
     const right = Number.isFinite(rightRaw) && rightRaw > t.stop * 1.002 ? rightRaw : t.stop * 1.05;
     const peakPctNow = t.entry > 0 && Number.isFinite(t.peak) ? (t.peak / t.entry - 1) * 100 : null;
     const toTarget = price > 0 && L.kind === "fixed" ? (t.target / price - 1) * 100 : null,
@@ -2549,6 +2551,17 @@ function renderOpenTrades() {
 // Po tem ostane vnos samo se v dnevniku sprememb v zavihku Kako deluje.
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
+  {
+    id: 8,
+    at: "2026-09-20T20:30:00Z",
+    date: "20. 9. 2026",
+    title: "Nov profil Hitri: cilj +10 %, meja -5 %",
+    short:
+      "<b>Nov profil Hitri.</b> Proda vse pri +10 %, zapre pri -5 %. Na istih poteh 2,7 točke boljši od Srednje.",
+    body:
+      "Doslej so vsi trije profili delali isto stvar v različnih razmikih: prodali pol, potem sledili vrhu. Meritev na 342 resničnih poteh pravi, da je preprostejše boljše. Hitri ne prodaja po delih in ne sledi vrhu: proda vse pri +10 % ali zapre pri -5 %, povprečno v dveh minutah. Na posel da -2,15 % proti -6,88 % pri Srednje in -10,18 % pri Agresivno. Razlika proti Srednje je 2,7 odstotne točke z intervalom zaupanja od 0,4 do 5,1, torej stvar komaj preseže ničlo in je obetavna, ne dokazana. Zanimivo je tudi, od kod prednost pride: Srednje je boljši na 52 % posameznih poslov, Hitri pa pridobi s tem, da se izogne velikim izgubam. Hitri je zdaj privzeti profil za nove uporabnike. Če imaš izbran drug profil, ostane tvoj, dokler ga sam ne zamenjaš, že odprti posli pa obdržijo načrt, s katerim so bili odprti.",
+    tags: [["Cilj +10 %, meja -5 %", ""], ["-2,15 % proti -6,88 %", "ok"], ["Izmerjeno na 342 poteh", "ok"]],
+  },
   {
     id: 7,
     at: "2026-09-20T18:00:00Z",
@@ -2771,7 +2784,7 @@ function renderProfile() {
   f1.append(how, who);
   f1.append(mk("p", "note", "Vstopi so pri vseh profilih enaki. Profil se uporabi ob vstopu; že odprti posli se ne spremenijo. Senčni test na strežniku teče ločeno in se s to izbiro ne spremeni."));
 
-  const f2 = fold("Vsi trije profili na istih poslih");
+  const f2 = fold("Vsi štirje profili na istih poslih");
   const table = mk("table");
   const thead = mk("thead");
   const hr = mk("tr");
@@ -2788,8 +2801,8 @@ function renderProfile() {
   const wrap = mk("div", "scroll");
   wrap.append(table);
   f2.append(wrap);
-  f2.append(mk("p", "note", "Vsi trije so izmerjeni na istih 263 resničnih cenovnih poteh (19. do 20. 9. 2026), s stroški 1 % zdrsa in 0,5 % provizije na stran, zato so med seboj primerljivi. Srednje in Agresivno imata od 20. 9. cilj +50 %: brez cilja bi na istih poteh dala -5,9 % in -5,8 % na posel. Varen cilja nima, da se vidi razlika. Na oknu dva dni prej je bil cilj slabši, zato to ni dokazano, samo merjeno naprej. Vsi trije so v minusu: profil izbere samo, kako hitro izgubljaš, ne ali izgubljaš."));
-  f2.append(mk("p", "note", "Za primerjavo: prvotni fiksni cilj +10 % in meja -5 % sta na istih poslih dala -3,7 % na posel. Čisti cilj / meja brez delne prodaje je bil slabši v vseh 16 preizkušenih kombinacijah. Nobena ni pozitivna, ker -12 % pride pred +50 % pri 77 % poslov: prednosti ni v izstopu, ampak v vstopu."));
+  f2.append(mk("p", "note", "Vsi štirje so izmerjeni na istih 342 resničnih cenovnih poteh (19. do 20. 9. 2026), pri obzorju 3 ure in po izmerjenih stroških (0,25 % provizije in 0,1 % vpliva na ceno na stran), zato so med seboj primerljivi. Hitri je najmanj slab: prednost pred Srednje je 2,7 odstotne točke na posel, interval zaupanja 0,4 do 5,1, kar zaupanja vrednosti komaj preseže ničlo. Zanimivo je, da je Srednje boljši na 52 % posameznih poslov; Hitri pridobi s tem, da se izogne velikim izgubam, ne s tem, da bi večkrat zmagal. Cilj +50 % pri Srednje in Agresivno drži: brez njega bi dala -7,3 % in -19,2 % na posel. Vsi štirje so v minusu: profil izbere samo, kako hitro izgubljaš, ne ali izgubljaš."));
+  f2.append(mk("p", "note", "Profil je izstop, ne vstop. Vstop je pri vseh enak in je tisti, ki nas stane največ: mediana posla je 15 minut po vstopu pri -17 %. Dokler tega ne popravimo, noben profil ne more biti pozitiven. Kateri vstop bi bil boljši, se meri v Laboratoriju."));
 }
 for (const b of document.querySelectorAll("#profileButtons button"))
   b.onclick = () => {
