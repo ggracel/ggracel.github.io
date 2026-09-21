@@ -8,11 +8,11 @@ import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, ent
 // Konstante senčnega testa so tu zgoraj, ker jih berejo funkcije, ki se kličejo že ob nalaganju modula (TDZ).
 // Primerjava: senčni posli, ki jih strežnik (edge funkcija collect, datoteka shadow.ts) piše v tabelo memecoin_shadow_trades.
 // Brskalnik jih samo bere in sešteje. Pravila so v strežniku zamrznjena; tu se nič ne odloča.
-const SHADOW_STRATEGIES = ["v1.0", "v1.2-filter", "v1.2-srednje", "v1.2-cilj50", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj", "v2.2-dip", "v2.2-dip-siroko"];
-// Ustavljene 19. 9. 2026: ne odpirajo novih poslov, zgodovina in odprti posli ostanejo (glej shadow.ts PAUSED).
-const SHADOW_PAUSED = { "v1.0": "19. 9.", "v2.0-brez-holderjev": "19. 9." };
-const SHADOW_LABEL = { "v1.0": "v1.0 staro +10/-5", "v1.2-filter": "v1.2 staro Srednje (pol +25, sled 20)", "v1.2-srednje": "v1.2 Srednje brez cilja (pol +20, sled 15)", "v1.2-cilj50": "v1.2 Srednje + cilj +50 (v aplikaciji)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj", "v2.2-dip": "v2.2 dip s kupci", "v2.2-dip-siroko": "v2.2 dip s kupci, široko" };
-const SHADOW_COLOR = { "v1.0": "#9fb0c8", "v1.2-filter": "#f0a6ff", "v1.2-srednje": "#c98cff", "v1.2-cilj50": "#ffd166", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff", "v2.2-dip": "#46bec5", "v2.2-dip-siroko": "#ff9f7a" };
+const SHADOW_STRATEGIES = ["v1.0", "v1.0-cisto", "v1.0-jup", "v1.2-filter", "v1.2-cilj10", "v1.2-cilj50", "v1.2-cilj70", "v1.2-cilj100", "v1.2-sled7", "v1.2-srednje", "v2.2-dip", "v3-mirno", "v3-kontrola", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj", "v2.2-dip-siroko"];
+// Ustavljene: ne odpirajo novih poslov, zgodovina in odprti posli ostanejo (glej shadow.ts PAUSED). Ta seznam mora ustrezati shadow.ts.
+const SHADOW_PAUSED = { "v2.0": "20. 9.", "v2.0-brez-holderjev": "19. 9.", "v2.1-preboj": "20. 9.", "v2.2-dip-siroko": "20. 9.", "v1.2-srednje": "20. 9." };
+const SHADOW_LABEL = { "v1.0": "v1.0 +10/-5", "v1.0-cisto": "v1.0 čisto (brez sumljivih posnetkov)", "v1.0-jup": "v1.0 Jupiter (cene na 6 s)", "v1.2-filter": "v1.2 staro Srednje (pol +25, sled 20)", "v1.2-cilj10": "v1.2 cilj +10 / meja -5", "v1.2-cilj50": "v1.2 Srednje + cilj +50 (profil Srednje)", "v1.2-cilj70": "v1.2 Srednje + cilj +70", "v1.2-cilj100": "v1.2 Srednje + cilj +100", "v1.2-sled7": "v1.2 Srednje, sled 7 %", "v1.2-srednje": "v1.2 Srednje brez cilja (pol +20, sled 15)", "v2.2-dip": "v2.2 dip s kupci", "v3-mirno": "v3 mirno", "v3-kontrola": "v3 kontrola (naključni vstop)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj", "v2.2-dip-siroko": "v2.2 dip s kupci, široko" };
+const SHADOW_COLOR = { "v1.0": "#9fb0c8", "v1.0-cisto": "#dbe6f5", "v1.0-jup": "#a8ff60", "v1.2-filter": "#f0a6ff", "v1.2-cilj10": "#ffb3c7", "v1.2-cilj50": "#ffd166", "v1.2-cilj70": "#ffa94d", "v1.2-cilj100": "#ff6b6b", "v1.2-sled7": "#b197fc", "v1.2-srednje": "#c98cff", "v2.2-dip": "#46bec5", "v3-mirno": "#74c0fc", "v3-kontrola": "#adb5bd", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff", "v2.2-dip-siroko": "#ff9f7a" };
 // Kaj vsak set pravil gleda za vstop in kako izstopi. Besedilo mora ustrezati shadow.ts; ob spremembi pravil popravi oboje.
 const SHADOW_RULES = {
   "v1.0": {
@@ -114,6 +114,31 @@ SHADOW_RULES["v1.2-cilj50"] = {
   ],
 };
 SHADOW_RULES["v2.2-dip-siroko"] = { vstop: SHADOW_RULES["v2.2-dip"].vstop.map((x) => (x.startsWith("Kovanec:") ? "Kovanec: likvidnost vsaj 10.000 $, v 1 h največ +150 %. Brez omejitve starosti IN BREZ omejitve market capa." : x)), izstop: SHADOW_RULES["v2.2-dip"].izstop };
+// 20. 9. 2026: lestvica ciljev na vstopu v1.2 in družina v3 (vstop, ne izstop).
+SHADOW_RULES["v1.2-cilj10"] = {
+  vstop: SHADOW_RULES["v1.2-filter"].vstop,
+  izstop: ["Proda vse pri +10 %.", "Meja izgube -5 %.", "Brez delne prodaje in brez sledi (geometrija v1.0 in profila Hitri).", "Največ 5 odprtih poslov, en na kovanec."],
+};
+SHADOW_RULES["v1.2-cilj70"] = { vstop: SHADOW_RULES["v1.2-filter"].vstop, izstop: SHADOW_RULES["v1.2-cilj50"].izstop.map((x) => x.replace("+50 %", "+70 %").replace(" To je natanko profil Srednje v aplikaciji od 20. 9.", "")) };
+SHADOW_RULES["v1.2-cilj100"] = { vstop: SHADOW_RULES["v1.2-filter"].vstop, izstop: SHADOW_RULES["v1.2-cilj50"].izstop.map((x) => x.replace("+50 %", "+100 %").replace(" To je natanko profil Srednje v aplikaciji od 20. 9.", "")) };
+SHADOW_RULES["v1.2-sled7"] = { vstop: SHADOW_RULES["v1.2-filter"].vstop, izstop: SHADOW_RULES["v1.2-cilj50"].izstop.map((x) => x.replace("15 %", "7 %").replace(" To je natanko profil Srednje v aplikaciji od 20. 9.", "")) };
+SHADOW_RULES["v3-mirno"] = {
+  vstop: ["Kovanec: likvidnost vsaj 20.000 $, vsaj 5 nakupov v 5 min.", "Premik cene v zadnjih 5 min med -3 in +3 %.", "Premik v zadnji uri med -20 in +30 %."],
+  izstop: ["Cilj +25 %, proda vse.", "Trda meja -12 %.", "Časovna meja 120 min.", "Največ 5 odprtih poslov, en na kovanec, 30 min premora po zaprtju."],
+};
+SHADOW_RULES["v3-kontrola"] = {
+  vstop: ["Naključni vstop v kovanec z likvidnostjo vsaj 10.000 $ in prometom nad 0.", "Ni strategija, ampak merilo: pravilo, ki ne premaga kontrole, ne zna ničesar."],
+  izstop: SHADOW_RULES["v3-mirno"].izstop,
+};
+// 21. 9. 2026: čisti podatki in Jupiter. Isti vstop in izstop kot v1.0, razlika je samo v podatkih.
+SHADOW_RULES["v1.0-cisto"] = {
+  vstop: [...SHADOW_RULES["v1.0"].vstop, "Brez vstopa na sumljivem posnetku: cena z DEX Screenerja se od Jupitrove razlikuje za več kot polovico (brez Jupitra: skok za več kot 3-krat).", "Par z vsaj dvema sumljivima posnetkoma v zadnjih 22 min je izpuščen."],
+  izstop: [...SHADOW_RULES["v1.0"].izstop, "Na sumljivem posnetku ne izstopi, počaka na naslednjega."],
+};
+SHADOW_RULES["v1.0-jup"] = {
+  vstop: [...SHADOW_RULES["v1.0-cisto"].vstop, "Vstopna cena je sveža Jupitrova cena. Brez nje ni vstopa."],
+  izstop: ["Cilj +10 % in meja -5 %, preverjeno na vsaki Jupitrovi ceni (beremo jih na 6 s, ne na 30).", "Če Jupiter za kovanec ne odgovarja, izstopi po DEX Screenerju, a samo na nesumljivem posnetku.", "Največ 5 odprtih poslov, en na kovanec."],
+};
 // Katere vrstice v Laboratoriju so raztegnjene; preživi samodejni izris na 60 s.
 const shadowOpen = new Set();
 const SHADOW_START = Date.parse("2026-09-17T06:44:00Z"); // zagon senčnega testa (collect v3, prvi senčni posel)
@@ -738,12 +763,22 @@ async function fetchRows(sinceMs) {
   return pagedRows(() =>
     db
       .from("memecoin_snapshots")
-      .select("pair,t,token,symbol,name,price,mcap,fdv,liquidity,volume5m,pair_created_ms,image,url,change1h,buys5m,sells5m,has_twitter,twitter_status,has_telegram,has_website,boost_total,source")
+      .select("pair,t,token,symbol,name,price,mcap,fdv,liquidity,volume5m,pair_created_ms,image,url,change1h,buys5m,sells5m,has_twitter,twitter_status,has_telegram,has_website,boost_total,source,suspect")
       .gt("t", new Date(sinceMs).toISOString())
       .order("t", { ascending: true })
       .order("pair", { ascending: true }),
   );
 }
+// Sumljivi posnetki (21. 9. 2026): zbiralec posnetek označi, ko se cena z DEX Screenerja od Jupitrove razlikuje
+// za več kot polovico (brez Jupitra: skok za več kot 3-krat). Takega posnetka aplikacija ne upošteva, par z vsaj
+// dvema takima posnetkoma v zadnjih 22 minutah pa ne dobi samodejnega vstopa. Analiza 21. 9.: +1 točka na posel.
+const suspectLog = new Map();
+function noteSuspect(pair, tm) {
+  const a = (suspectLog.get(pair) || []).filter((x) => tm - x <= 22 * 60000);
+  a.push(tm);
+  suspectLog.set(pair, a);
+}
+const unreliable = (pair, tm) => (suspectLog.get(pair) || []).filter((x) => tm - x <= 22 * 60000).length >= 2;
 // Pravila za en nov posnetek kovanca c ob času tm: zapiranje odprtih poslov, samodejni vstop, opozorila.
 function applyTradeLogic(c, tm) {
   const id = c.id,
@@ -757,7 +792,7 @@ function applyTradeLogic(c, tm) {
     }
   }
   const s = signal(c);
-  const blocked = s.signal ? entryFilter(c) : null;
+  const blocked = s.signal ? (unreliable(id, tm) ? "nezanesljivi podatki: DEX Screener in Jupiter se razhajata" : entryFilter(c)) : null;
   if (
     s.signal &&
     !blocked &&
@@ -779,10 +814,11 @@ async function reconcileOpenTrades() {
     try {
       const from = t.lastObserved || t.opened;
       const data = await pagedRows(() =>
-        db.from("memecoin_snapshots").select("t,price").eq("pair", t.id).gt("t", new Date(from).toISOString()).order("t", { ascending: true }),
+        db.from("memecoin_snapshots").select("t,price,suspect").eq("pair", t.id).gt("t", new Date(from).toISOString()).order("t", { ascending: true }),
       );
       let prev = from;
       for (const r of data) {
+        if (r.suspect) continue;
         const tm = new Date(r.t).getTime();
         if (tm - prev > 75000) {
           interruptTrade(t, "Strežnik za ta par ni imel podatkov več kot 75 sekund");
@@ -829,6 +865,10 @@ async function poll() {
     const times = [...groups.keys()].sort((a, b) => a - b);
     for (const tm of times) {
       for (const r of groups.get(tm)) {
+        if (r.suspect) {
+          noteSuspect(r.pair, tm);
+          continue;
+        }
         const old = coins.get(r.pair);
         const history = old?.history || [];
         if (!history.length || tm > history.at(-1).t) {
@@ -2274,7 +2314,7 @@ function renderComparison() {
       label.textContent = v.toFixed(4) + " SOL";
       svg.append(label);
     }
-    for (const s of SHADOW_STRATEGIES) {
+    for (const s of SHADOW_STRATEGIES.filter((k) => !SHADOW_PAUSED[k])) {
       const st = stats.get(s);
       const pts = [{ t: t0, v: 0 }, ...st.curve];
       if (st.curve.length) pts.push({ t: t1, v: st.net });
@@ -2551,6 +2591,17 @@ function renderOpenTrades() {
 // Po tem ostane vnos samo se v dnevniku sprememb v zavihku Kako deluje.
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
+  {
+    id: 9,
+    at: "2026-09-21T19:30:00Z",
+    date: "21. 9. 2026",
+    title: "Drugi vir cen: Jupiter",
+    short:
+      "<b>Sonar zdaj bere še Jupiter.</b> Posnetkov, kjer se DEX Screener in Jupiter razlikujeta za več kot polovico, pri tvojih pozicijah ne upošteva.",
+    body:
+      "DEX Screener vsak odgovor 30 sekund predpomni, zato ceno vidimo vsakih 32 sekund. Nekateri pari pa so imeli povsem napačne podatke: JEANJAK je izmenično kazal 353K in 5,7K, tik za tikom, šest ur. Na takem posnetku je meja -5 % sprožila izstop in zapisala -98 %, čeprav cena nikoli ni padla. Od danes zbiralec vsakih 6 sekund bere še Jupitrovo ceno (cena zadnje menjave) in vsak posnetek DEX Screenerja preveri. Sumljivega posnetka aplikacija ne upošteva ne pri vstopu ne pri izstopu, par z vsaj dvema takima posnetkoma v 22 minutah pa ne dobi samodejnega vstopa. V Laboratoriju sta dve novi pravili, ki merita, koliko prinesejo čisti podatki in koliko hitrejša cena. Tam so zdaj vidna tudi pravila, ki sem jih dodal 20. 9. in jih prej ni bilo na seznamu.",
+    tags: [["Jupiter na 6 s", "ok"], ["Sumljivi posnetki izločeni", "ok"], ["Laboratorij: v1.0 čisto, v1.0 Jupiter", ""]],
+  },
   {
     id: 8,
     at: "2026-09-20T20:30:00Z",
