@@ -977,7 +977,8 @@ function render(){
   var pctA = gE>0 ? Math.min(100, earned/gE*100) : 0;
   var pctB = gE>0 ? Math.min(100, (earned+planEur)/gE*100) : 0;
   var pctTxt=Math.round(pctA)+'%'+(planH>0?' · plan '+Math.round(pctB)+'%':'');
-  animateRing(earned, gE>0?'od '+eur(gE)+' cilja':'nastavi cilj ⚙︎', pctA, pctB, pctTxt, planH>0?'9.5px':'12px');
+  var noGoalTxt = (SESS && !firstPullDone) ? 'nalagam iz oblaka ☁' : 'nastavi cilj ⚙︎';
+  animateRing(earned, gE>0?'od '+eur(gE)+' cilja':noGoalTxt, pctA, pctB, pctTxt, planH>0?'9.5px':'12px');
 
   var nl=document.getElementById('netoLine');
   if(S.netPct>0 && earned>0){ nl.style.display=''; nl.textContent='≈ '+eur(netOf(earned))+' na roke ('+S.netPct+'%)'; }
@@ -1586,7 +1587,17 @@ function setCalc(){
     else el.textContent='Vpiši postavko in znesek, da vidiš potrebne ure';
   }
 }
+/* nastavitve, ki se sinhronizirajo kot celota (novejsi settingsTs zmaga) */
+var SET_FIELDS=['rate','goalHours','goalMode','goalMoney','reward','rewPrice','netPct','wkx'];  /* tema je fiksno temna */
+function setSnap(){ var o={}; SET_FIELDS.forEach(function(f){ o[f]=S[f]; }); return JSON.stringify(o); }
 function saveSettings(){
+  /* varovalka: naprava, ki se se ni nikoli uskladila z oblakom, ne sme z (praznimi)
+     nastavitvami povoziti tistih v oblaku - najprej pocakamo prvo sinhronizacijo */
+  if(SESS && !firstPullDone && !lsGet('uraplus_lastsync')){
+    toast('Trenutek, nalagam tvoje nastavitve iz oblaka ☁');
+    closeOvl('setOvl'); syncStart(); return;
+  }
+  var before=setSnap();
   var r=parseFloat(String(document.getElementById('sRate').value).replace(',','.'));
   S.rate=isNaN(r)||r<0?0:r;
   S.goalMode=goalMode;
@@ -1599,8 +1610,16 @@ function saveSettings(){
   S.netPct=isNaN(np)||np<0||np>100?0:np;
   var wx=parseFloat(String(document.getElementById('sWkx').value).replace(',','.'));
   S.wkx=isNaN(wx)||wx<1?1:Math.min(3,wx);
-  S.meta.settingsTs=Date.now();
-  save(); closeOvl('setOvl'); render(); toast('Nastavitve shranjene ✓');
+  /* vsako polje ima svoj cas spremembe: posodobi se samo tisto, kar si res spremenil,
+     zato shranjevanje ene nastavitve nikoli ne povozi ostalih v oblaku */
+  var prev=JSON.parse(before), after=JSON.parse(setSnap()), nowTs=Date.now(), changedSet=false;
+  if(!S.meta.setTs) S.meta.setTs={};
+  SET_FIELDS.forEach(function(f){
+    if(!(f in S.meta.setTs)) S.meta.setTs[f]=S.meta.settingsTs||0;
+    if(JSON.stringify(after[f])!==JSON.stringify(prev[f])){ S.meta.setTs[f]=nowTs; changedSet=true; }
+  });
+  if(changedSet) S.meta.settingsTs=nowTs;   /* brez spremembe ne povozimo oblaka */
+  save(); closeOvl('setOvl'); render(); toast(changedSet? 'Nastavitve shranjene ✓' : 'Ni sprememb');
 }
 function toggleLog(ev){
   ev.preventDefault();
@@ -1656,7 +1675,8 @@ var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI
    prijava skupna: prijavis se enkrat, veljavno je povsod.                   */
 var SB_REF='cgnihdlprjqpawvpznsw';
 var SHARED_KEY='sb-'+SB_REF+'-auth-token';
-var SESS_KEY='uraplus_sess';   /* stari kljuc — le se za migracijo */
+var SESS_KEY='uraplus_sess';
+var OWNER_KEY='uraplus_owner';  /* cigavi so podatki v tem brskalniku (id racuna) */   /* stari kljuc — le se za migracijo */
 var memSess=null;
 
 function parseSess(raw){
@@ -1700,6 +1720,19 @@ function storeSess(s){
 var SESS=findAnySession();
 if(SESS) storeSess(SESS);   /* poenoti kljuce, da nas vidijo tudi druge aplikacije */
 var syncState='—', syncTimer=null, lastPull=0;
+var firstPullDone=false, welcomeShown=false;
+/* "Dobrodošel, nastavi postavko" samo, ce res ni nastavitev - pri prijavljenem
+   uporabniku sele PO prvem nalaganju iz oblaka (prej je lokalno stanje lahko prazno) */
+function maybeWelcome(){
+  if(welcomeShown) return;
+  if(S.rate || S.goalHours || S.goalMoney) return;
+  if(SESS && !firstPullDone) return;
+  welcomeShown=true;
+  setTimeout(function(){
+    if(S.rate || S.goalHours || S.goalMoney) return;
+    openSettings(); toast('Dobrodošel! Najprej nastavi postavko in cilj 👇');
+  },400);
+}
 function setSyncState(t){ syncState=t; renderAcct(); renderSyncLine(); }
 function renderSyncLine(){
   var el=document.getElementById('syncLine'); if(!el) return;
@@ -1742,6 +1775,21 @@ function ensureToken(){
 }
 function anyLocalData(){ return !!(S.rate || S.goalHours || S.goalMoney || Object.keys(S.data).length); }
 
+/* cas zadnje spremembe posamezne nastavitve. Novi odjemalci pisejo meta.setTs po poljih
+   in meta.settingsTs = najnovejsi med njimi. Ce je settingsTs novejsi od vseh polj, je
+   zadnji shranjeval starejsi odjemalec (cel blok naenkrat) - takrat velja za vsa polja. */
+function fieldTs(meta, f, fallback){
+  var st=(meta && meta.setTs)||{}, mx=0;
+  for(var k in st) if(st[k]>mx) mx=st[k];
+  var base=(meta && meta.settingsTs)||fallback||0;
+  if(base>mx) return base;
+  return st[f]||0;
+}
+function hasSettings(o){ return !!(o && (o.rate || o.goalHours || o.goalMoney)); }
+/* podpis vsebine: ce se lokalno in oblak ujemata, ne pisemo v oblak (brez praznih zapisov) */
+function sortObj(o){ var r={}; Object.keys(o||{}).sort().forEach(function(k){ r[k]=o[k]; }); return r; }
+function stateSig(o){ o=o||{}; return JSON.stringify([sortObj(o.data), SET_FIELDS.map(function(f){ return o[f]; }), sortObj((o.meta||{}).del)]); }
+
 /* zdruzi oddaljeno stanje v lokalno: po dnevih, z nagrobniki */
 function mergeRemote(remote){
   var rem=remote.state||{};
@@ -1750,14 +1798,23 @@ function mergeRemote(remote){
   var lPer=S.meta.perDay, lDel=S.meta.del;
   function rTs(k){ return rPer[k] || ((rem.data && k in rem.data)? remTs : 0); }
   var changed=false;
-  /* nastavitve: novejsi settingsTs zmaga (legacy oddaljeno stanje = remTs) */
-  var rst=rm.settingsTs||remTs, lst=S.meta.settingsTs||0;
-  if(rst>lst){
-    ['rate','goalHours','goalMode','goalMoney','reward','rewPrice','theme','netPct','wkx'].forEach(function(f){
-      if(f in rem && JSON.stringify(rem[f])!==JSON.stringify(S[f])){ S[f]=rem[f]; changed=true; }
-    });
-    S.meta.settingsTs=rst;
-  }
+  /* nastavitve: po poljih, novejsa sprememba zmaga. Ce lokalni podatki niso zanesljivo
+     tega racuna (nova naprava, prej uporaba brez prijave), zmaga oblak v celoti -
+     brskalnik je samo predpomnilnik (enako kot foqs.sonar). */
+  var trustLocal = lsGet(OWNER_KEY)===sessUser(SESS).id;
+  var cloudWins = !trustLocal && hasSettings(rem);
+  var lTs={}, rTsF={}, newTs={};
+  SET_FIELDS.forEach(function(f){ lTs[f]=fieldTs(S.meta,f,0); rTsF[f]=fieldTs(rm,f,remTs); });
+  SET_FIELDS.forEach(function(f){
+    if(!(f in rem)){ newTs[f]=lTs[f]; return; }
+    if(cloudWins || rTsF[f]>lTs[f]){
+      if(JSON.stringify(rem[f])!==JSON.stringify(S[f])){ S[f]=rem[f]; changed=true; }
+      newTs[f]=rTsF[f];
+    } else newTs[f]=lTs[f];
+  });
+  S.meta.setTs=newTs;
+  var mxTs=0; SET_FIELDS.forEach(function(f){ if(newTs[f]>mxTs) mxTs=newTs[f]; });
+  S.meta.settingsTs=mxTs;
   /* dnevi */
   var keys={};
   Object.keys(S.data).forEach(function(k){keys[k]=1;});
@@ -1802,14 +1859,22 @@ function syncStart(){
       headers:sbHeaders(true)
     }).then(function(r){ if(!r.ok) throw 0; return r.json(); })
       .then(function(rows){
+        var me=sessUser(SESS).id, owner=lsGet(OWNER_KEY), wasFirst=!firstPullDone, reset=false, changed=false;
+        /* v tem brskalniku so podatki drugega racuna - zavrzemo jih, velja samo oblak */
+        if(owner && owner!==me){ S=defState(); reset=true; }
         if(rows.length){
-          var changed=mergeRemote(rows[0]);
+          var rem=rows[0].state||{};
+          changed=mergeRemote(rows[0]);
+          lsSet(OWNER_KEY, me);
+          firstPullDone=true;
           S=migrate(S);
           persist();
-          if(changed){ applyTheme(); render(); }
-          syncPush();
-        } else if(anyLocalData()){ syncPush(); }
-        else { lsSet('uraplus_lastsync', String(Date.now())); setSyncState('usklajeno ✓'); }
+          if(stateSig(S)!==stateSig(rem)) syncPush();
+          else { lsSet('uraplus_lastsync', String(Date.now())); setSyncState('usklajeno ✓'); }
+        } else if(anyLocalData()){ lsSet(OWNER_KEY, me); firstPullDone=true; persist(); syncPush(); }
+        else { lsSet(OWNER_KEY, me); firstPullDone=true; persist(); lsSet('uraplus_lastsync', String(Date.now())); setSyncState('usklajeno ✓'); }
+        if(changed || reset || wasFirst){ applyTheme(); render(); }
+        maybeWelcome();
       });
   }).catch(function(){ setSyncState('offline — uskladim kasneje'); });
 }
@@ -1912,15 +1977,34 @@ window.addEventListener('storage', function(e){
   adoptShared(true);
 });
 window.addEventListener('online', function(){ if(SESS) syncStart(); });
+/* uskladi ob vsaki vrnitvi v aplikacijo in vsakih 30 s, dokler je odprta */
+var PULL_EVERY=30000;
+function pullIfStale(minGap){ if(SESS && !document.hidden && Date.now()-lastPull>(minGap||0)) syncStart(); }
 document.addEventListener('visibilitychange', function(){
   if(document.hidden) return;
   if(adoptShared(true)) return;
-  if(SESS && Date.now()-lastPull>60000) syncStart();
+  pullIfStale(3000);
 });
+window.addEventListener('focus', function(){ pullIfStale(3000); });
+setInterval(function(){ pullIfStale(PULL_EVERY-2000); }, PULL_EVERY);
 
 /* PWA */
 if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){
-  navigator.serviceWorker.register('sw.js').catch(function(){});
+  /* updateViaCache:'none' + preverjanje ob vsaki vrnitvi: nova verzija pride na telefon
+     sama, ne sele ko app do konca zapres (enako kot habit) */
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(function(reg){
+    reg.update().catch(function(){});
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden) reg.update().catch(function(){}); });
+  }).catch(function(){});
+  var hadCtrl=!!navigator.serviceWorker.controller, swReloading=false;
+  navigator.serviceWorker.addEventListener('controllerchange', function(){
+    if(!hadCtrl || swReloading) return;
+    swReloading=true;
+    (function tryReload(){
+      if(document.querySelector('.ovl.on')) return setTimeout(tryReload, 1500); /* ne prekinjaj odprtega vnosa */
+      location.reload();
+    })();
+  });
 }
 
 /* zagon */
@@ -1928,10 +2012,8 @@ applyTheme();
 persist(); /* shrani morebitno migracijo */
 render();
 renderAcct();
-if(SESS) setTimeout(syncStart, 300);
-if(!S.rate && !S.goalHours && !S.goalMoney){
-  setTimeout(function(){ openSettings(); toast('Dobrodošel! Najprej nastavi postavko in cilj 👇'); },400);
-}
+if(SESS) syncStart();   /* takoj ob odprtju */
+maybeWelcome();
 setInterval(function(){
   var t=new Date();
   if(t.getDate()!==now.getDate()){ now=t; render(); }
