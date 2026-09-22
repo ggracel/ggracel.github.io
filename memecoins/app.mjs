@@ -1,6 +1,10 @@
 // foqs.si/memecoins: posnetke zbira strežnik (Supabase cron vsakih 30 s -> tabela memecoin_snapshots), tudi ko je stran zaprta.
 // Brskalnik ob odprtju naloži zadnjo uro posnetkov, potem bere samo nove. Pravila v1.0 tečejo v brskalniku.
 const HISTORY_MIN = 60;
+// Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
+const SOL_MINT = "So11111111111111111111111111111111111111112",
+  SOL_USD_FIXED = 117.4;
+let solUsd = null;
 let lastSnapshotT = 0,
   primed = false,
   noData = false;
@@ -883,6 +887,10 @@ async function poll() {
       lastSnapshotT = Math.max(lastSnapshotT, tm);
     }
     last = lastSnapshotT;
+    try {
+      const { data: sp } = await db.from("memecoin_prices_now").select("price,t").eq("token", SOL_MINT).maybeSingle();
+      if (sp && sp.price > 0 && Date.now() - new Date(sp.t).getTime() < 3600000) solUsd = sp.price;
+    } catch {}
     healthy = lastSnapshotT > 0 && Date.now() - lastSnapshotT < 75000;
     if (!primed) {
       primed = true;
@@ -1537,14 +1545,13 @@ $("#recentMore").onclick = () => {
   dashboard();
 };
 $("#quality").onchange = dashboard;
-$("#usdRate").oninput = dashboard;
 function dashboard() {
-  const rate = Number($("#usdRate").value),
+  const rate = solUsd || SOL_USD_FIXED,
     prices = new Map([...coins.values()].map((c) => [c.id, { price: c.price, fresh: fresh(c) }]));
   const o = overview(trades, {
     period: $("#period").value || "all",
     quality: $("#quality").value || "all",
-    rate: rate > 0 ? rate : null,
+    rate,
     prices,
   });
   $("#excludedNote").textContent = !o.excluded
@@ -1558,10 +1565,10 @@ function dashboard() {
     (o.net > 0 ? "Dobiček " : o.net < 0 ? "Izguba " : "Nevtralno ") + signed(o.net) + " SOL po stroških",
   );
   $("#winFill").style.width = (o.success === null ? 0 : o.success * 100) + "%";
+  const usd = (x) =>
+    (x > 0 ? "+" : "") + new Intl.NumberFormat("sl-SI", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(x);
   $("#dashUsd").textContent =
-    o.usd === null
-      ? "USD: znesek ni izračunan, vnesi tečaj spodaj."
-      : "≈ " + money(o.usd) + " pri ročno vnesenem tečaju " + money(rate) + " / SOL";
+    "≈ " + usd(o.usd) + " · 1 SOL = " + usd(rate).replace("+", "") + (solUsd ? " (sproti, Jupiter)" : " (fiksen tečaj 22. 9.)");
   $("#dashSuccess").textContent =
     o.success === null ? "Še ni podatkov" : (o.success * 100).toLocaleString("sl-SI", { maximumFractionDigits: 1 }) + " %";
   $("#dashDenominator").textContent = o.closed.length
