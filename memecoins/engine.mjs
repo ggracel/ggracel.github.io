@@ -17,7 +17,7 @@ export function pattern(points,now=Date.now()){
 export function result(entry,exit,sizeSOL=0.1){return sizeSOL*(exit*(1-.0025)*(1-.001)/(entry*(1+.0025)*(1+.001))-1)-.0002;}
 
 export function overview(trades,{now=Date.now(),period='all',quality='all',rate=null,prices=new Map()}={}){
- const day=new Date(now);day.setHours(0,0,0,0);const since=period==='today'?day.getTime():period==='24h'?now-86400000:-Infinity;
+ const day=new Date(now);day.setHours(0,0,0,0);const since=period==='today'?day.getTime():period==='24h'?now-86400000:period==='7d'?now-7*86400000:period==='30d'?now-30*86400000:-Infinity;
  const events=trades.filter(t=>!t.practice&&!t.deletedAt&&t.interrupted),live=trades.filter(t=>!t.practice&&!t.deletedAt&&!t.interrupted),eligible=live.filter(t=>t.closed&&t.closed>=since&&t.closed<=now&&Number.isFinite(t.pnl)),excluded=events.length,closed=live.filter(t=>t.closed&&t.closed>=since&&t.closed<=now&&Number.isFinite(t.pnl)&&(quality!=='continuous'||!t.interrupted)).sort((a,b)=>a.closed-b.closed),open=live.filter(t=>!t.closed);
  const wins=closed.filter(t=>t.pnl>0).length,losses=closed.filter(t=>t.pnl<0).length;let net=0;const curve=closed.map(t=>({t:t.closed,pnl:(net+=t.pnl)}));
  const marks=open.map(t=>{const quote=prices.get(t.id);return {trade:t,pnl:!t.interrupted&&quote?.fresh&&Number.isFinite(quote.price)&&quote.price>0?markToMarket(t,quote.price):null};});

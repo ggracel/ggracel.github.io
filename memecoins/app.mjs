@@ -4,7 +4,7 @@ const HISTORY_MIN = 60;
 let lastSnapshotT = 0,
   primed = false,
   noData = false;
-import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint, PROFILES, DEFAULT_PROFILE, exitPlan, stepExit, markToMarket } from "./engine.mjs?v=13";
+import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint, PROFILES, DEFAULT_PROFILE, exitPlan, stepExit, markToMarket } from "./engine.mjs?v=14";
 // Konstante senčnega testa so tu zgoraj, ker jih berejo funkcije, ki se kličejo že ob nalaganju modula (TDZ).
 // Primerjava: senčni posli, ki jih strežnik (edge funkcija collect, datoteka shadow.ts) piše v tabelo memecoin_shadow_trades.
 // Brskalnik jih samo bere in sešteje. Pravila so v strežniku zamrznjena; tu se nič ne odloča.
@@ -185,6 +185,7 @@ let mode = "live",
   busy = false,
   alerts = [],
   announced = new Map(),
+  showAllRecent = false,
   step = 0;
 let trades = [];
 try {
@@ -1531,6 +1532,10 @@ $("#boardMore").onclick = () => {
 
 $("#overview").onclick = () => navigate("dashboard", "live");
 $("#period").onchange = dashboard;
+$("#recentMore").onclick = () => {
+  showAllRecent = !showAllRecent;
+  dashboard();
+};
 $("#quality").onchange = dashboard;
 $("#usdRate").oninput = dashboard;
 function dashboard() {
@@ -1607,7 +1612,11 @@ function dashboard() {
     ".";
   const rows = $("#dashRecent");
   rows.replaceChildren();
-  for (const t of [...o.closed].reverse().slice(0, 5)) {
+  const recent = [...o.closed].sort((a, b) => b.closed - a.closed);
+  const more = $("#recentMore");
+  more.hidden = recent.length <= 5;
+  more.textContent = showAllRecent ? "Pokaži manj" : "Pokaži vseh " + recent.length + " v izbranem obdobju";
+  for (const t of showAllRecent ? recent : recent.slice(0, 5)) {
     const row = document.createElement("div");
     row.className = "tradeRow";
     const name = document.createElement("div");
