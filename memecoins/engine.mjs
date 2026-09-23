@@ -16,9 +16,11 @@ export function pattern(points,now=Date.now()){
 // omrežnina s prioriteto in Jito napitnino ~0,0001 SOL na transakcijo. Skupaj ~1 % na cel posel, prej smo računali 3 %.
 export function result(entry,exit,sizeSOL=0.1){return sizeSOL*(exit*(1-.0025)*(1-.001)/(entry*(1+.0025)*(1+.001))-1)-.0002;}
 
-export function overview(trades,{now=Date.now(),period='all',quality='all',rate=null,prices=new Map()}={}){
- const day=new Date(now);day.setHours(0,0,0,0);const since=period==='today'?day.getTime():period==='24h'?now-86400000:period==='7d'?now-7*86400000:period==='30d'?now-30*86400000:-Infinity;
- const events=trades.filter(t=>!t.practice&&!t.deletedAt&&t.interrupted),live=trades.filter(t=>!t.practice&&!t.deletedAt&&!t.interrupted),eligible=live.filter(t=>t.closed&&t.closed>=since&&t.closed<=now&&Number.isFinite(t.pnl)),excluded=events.length,closed=live.filter(t=>t.closed&&t.closed>=since&&t.closed<=now&&Number.isFinite(t.pnl)&&(quality!=='continuous'||!t.interrupted)).sort((a,b)=>a.closed-b.closed),open=live.filter(t=>!t.closed);
+export function overview(trades,{now=Date.now(),period='all',quality='all',rate=null,prices=new Map(),from=null,to=null}={}){
+ const day=new Date(now);day.setHours(0,0,0,0);const d0=day.getTime();
+ const since=period==='today'?d0:period==='yesterday'?d0-86400000:period==='24h'?now-86400000:period==='7d'?now-7*86400000:period==='30d'?now-30*86400000:period==='custom'&&Number.isFinite(from)?from:-Infinity;
+ const till=period==='yesterday'?d0-1:period==='custom'&&Number.isFinite(to)?Math.min(to,now):now;
+ const events=trades.filter(t=>!t.practice&&!t.deletedAt&&t.interrupted),live=trades.filter(t=>!t.practice&&!t.deletedAt&&!t.interrupted),eligible=live.filter(t=>t.closed&&t.closed>=since&&t.closed<=till&&Number.isFinite(t.pnl)),excluded=events.length,closed=live.filter(t=>t.closed&&t.closed>=since&&t.closed<=till&&Number.isFinite(t.pnl)&&(quality!=='continuous'||!t.interrupted)).sort((a,b)=>a.closed-b.closed),open=live.filter(t=>!t.closed);
  const wins=closed.filter(t=>t.pnl>0).length,losses=closed.filter(t=>t.pnl<0).length;let net=0;const curve=closed.map(t=>({t:t.closed,pnl:(net+=t.pnl)}));
  const marks=open.map(t=>{const quote=prices.get(t.id);return {trade:t,pnl:!t.interrupted&&quote?.fresh&&Number.isFinite(quote.price)&&quote.price>0?markToMarket(t,quote.price):null};});
  return {events,excluded,closed,open,wins,losses,flat:closed.length-wins-losses,net,usd:Number.isFinite(rate)&&rate>0?net*rate:null,success:closed.length?wins/closed.length:null,curve,marks,unrealized:marks.some(m=>m.pnl===null)?null:marks.reduce((s,m)=>s+m.pnl,0)};

@@ -8,7 +8,7 @@ let solUsd = null;
 let lastSnapshotT = 0,
   primed = false,
   noData = false;
-import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint, PROFILES, DEFAULT_PROFILE, exitPlan, stepExit, markToMarket } from "./engine.mjs?v=14";
+import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, entryPoint, PROFILES, DEFAULT_PROFILE, exitPlan, stepExit, markToMarket } from "./engine.mjs?v=15";
 // Konstante senčnega testa so tu zgoraj, ker jih berejo funkcije, ki se kličejo že ob nalaganju modula (TDZ).
 // Primerjava: senčni posli, ki jih strežnik (edge funkcija collect, datoteka shadow.ts) piše v tabelo memecoin_shadow_trades.
 // Brskalnik jih samo bere in sešteje. Pravila so v strežniku zamrznjena; tu se nič ne odloča.
@@ -190,6 +190,8 @@ let mode = "live",
   alerts = [],
   announced = new Map(),
   showAllRecent = false,
+  customFrom = null,
+  customTo = null,
   step = 0;
 let trades = [];
 try {
@@ -1539,7 +1541,148 @@ $("#boardMore").onclick = () => {
 };
 
 $("#overview").onclick = () => navigate("dashboard", "live");
-$("#period").onchange = dashboard;
+// Koledar po meri za Bilanco: lasten izbirnik v foqs barvah namesto privzetega brskalnikovega.
+const DAY_MS = 86400000,
+  CAL_DAYS = ["P", "T", "S", "Č", "P", "S", "N"],
+  dayStart = (ms) => {
+    const d = new Date(ms);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  },
+  dateShort = (ms) => new Date(ms).toLocaleDateString("sl-SI", { day: "numeric", month: "numeric", year: "numeric" }),
+  dayMonth = (ms) => new Date(ms).toLocaleDateString("sl-SI", { day: "numeric", month: "numeric" }),
+  rangeShort = (a, b) => (a === b ? dateShort(a) : new Date(a).getFullYear() === new Date(b).getFullYear() ? dayMonth(a) + " do " + dateShort(b) : dateShort(a) + " do " + dateShort(b));
+let calMonth = 0,
+  pickFrom = null,
+  pickTo = null;
+const calClose = () => ($("#cal").hidden = true);
+function rangeText() {
+  return customFrom === null ? "Izberi datume" : rangeShort(customFrom, dayStart(customTo));
+}
+function calOpen() {
+  pickFrom = customFrom;
+  pickTo = customTo === null ? null : dayStart(customTo);
+  calMonth = dayStart(pickFrom || Date.now());
+  $("#cal").hidden = false;
+  calDraw();
+}
+function calShift(months) {
+  const d = new Date(calMonth);
+  d.setDate(1);
+  d.setMonth(d.getMonth() + months);
+  calMonth = d.getTime();
+  calDraw();
+}
+function calDraw() {
+  const cal = $("#cal");
+  cal.replaceChildren();
+  const cur = new Date(calMonth);
+  cur.setDate(1);
+  const head = document.createElement("div");
+  head.className = "calHead";
+  for (const [label, step] of [
+    ["‹", -1],
+    ["›", 1],
+  ]) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "calNav";
+    b.textContent = label;
+    b.setAttribute("aria-label", step < 0 ? "Prejšnji mesec" : "Naslednji mesec");
+    b.onclick = () => calShift(step);
+    if (step < 0) head.append(b);
+    else {
+      const name = cur.toLocaleDateString("sl-SI", { month: "long", year: "numeric" });
+      const title = document.createElement("strong");
+      title.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+      head.append(title, b);
+    }
+  }
+  cal.append(head);
+  const grid = document.createElement("div");
+  grid.className = "calGrid";
+  for (const d of CAL_DAYS) {
+    const s = document.createElement("small");
+    s.textContent = d;
+    grid.append(s);
+  }
+  const lead = (cur.getDay() + 6) % 7,
+    start = dayStart(cur.getTime()) - lead * DAY_MS,
+    today = dayStart(Date.now());
+  for (let i = 0; i < 42; i++) {
+    const ms = start + i * DAY_MS,
+      d = new Date(ms),
+      b = document.createElement("button");
+    b.type = "button";
+    b.className = "calDay";
+    b.textContent = d.getDate();
+    if (d.getMonth() !== cur.getMonth()) b.classList.add("out");
+    if (ms === today) b.classList.add("today");
+    if (ms > today) b.disabled = true;
+    if (pickFrom !== null && (ms === pickFrom || ms === pickTo)) b.classList.add("edge");
+    else if (pickFrom !== null && pickTo !== null && ms > pickFrom && ms < pickTo) b.classList.add("mid");
+    b.onclick = () => {
+      if (pickFrom === null || pickTo !== null) {
+        pickFrom = ms;
+        pickTo = null;
+      } else if (ms < pickFrom) {
+        pickTo = pickFrom;
+        pickFrom = ms;
+      } else pickTo = ms;
+      calDraw();
+    };
+    grid.append(b);
+  }
+  cal.append(grid);
+  const foot = document.createElement("div");
+  foot.className = "calFoot";
+  const note = document.createElement("small");
+  note.textContent =
+    pickFrom === null
+      ? "Klikni začetni dan"
+      : pickTo === null
+        ? dateShort(pickFrom) + ", klikni še zadnji dan ali uporabi samo tega"
+        : rangeShort(pickFrom, pickTo);
+  const apply = document.createElement("button");
+  apply.type = "button";
+  apply.className = "calApply";
+  apply.textContent = "Uporabi";
+  apply.disabled = pickFrom === null;
+  apply.onclick = () => {
+    customFrom = pickFrom;
+    customTo = (pickTo === null ? pickFrom : pickTo) + DAY_MS - 1;
+    $("#rangeBtn").textContent = rangeText();
+    calClose();
+    dashboard();
+  };
+  foot.append(note, apply);
+  cal.append(foot);
+}
+$("#rangeBtn").onclick = () => ($("#cal").hidden ? calOpen() : calClose());
+// Klik v koledarju ne sme zapreti koledarja: mreža se ob vsakem kliku izriše na novo, zato klikani gumb
+// do dokumenta pride že odstranjen iz strani in preverba "je klik znotraj koledarja" ne bi delovala.
+$("#cal").onclick = (e) => e.stopPropagation();
+document.addEventListener("click", (e) => {
+  const w = $("#rangeWrap");
+  if (!w || w.hidden || $("#cal").hidden || w.contains(e.target)) return;
+  calClose();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("#cal").hidden) calClose();
+});
+$("#period").onchange = () => {
+  const custom = $("#period").value === "custom";
+  $("#rangeWrap").hidden = !custom;
+  if (custom) {
+    if (customFrom === null) {
+      customFrom = dayStart(Date.now());
+      customTo = customFrom + DAY_MS - 1;
+    }
+    $("#rangeBtn").textContent = rangeText();
+    calOpen();
+  } else calClose();
+  dashboard();
+};
 $("#recentMore").onclick = () => {
   showAllRecent = !showAllRecent;
   dashboard();
@@ -1551,6 +1694,8 @@ function dashboard() {
   const o = overview(trades, {
     period: $("#period").value || "all",
     quality: $("#quality").value || "all",
+    from: customFrom,
+    to: customTo,
     rate,
     prices,
   });
