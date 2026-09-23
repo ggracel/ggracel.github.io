@@ -190,6 +190,7 @@ let mode = "live",
   alerts = [],
   announced = new Map(),
   showAllRecent = false,
+  livePrices = new Map(),
   customFrom = null,
   customTo = null,
   step = 0;
@@ -1138,6 +1139,24 @@ $("#autoState").textContent = $("#auto").checked ? "VKLJUČENI" : "IZKLJUČENI";
 renderBotPill();
 poll();
 setInterval(poll, 30000);
+// Prikaz odprtih pozicij se osvežuje na 6 s z Jupitrovimi cenami (tabela memecoin_prices_now), posnetki
+// DEX Screenerja pa ostajajo na 30 s. To je SAMO prikaz: vstopi, izstopi in dnevnik še naprej tečejo po
+// posnetkih, da ostanejo meritve primerljive s senco (pravilo v1.0-jup posebej meri, ali so Jupitrovi
+// izstopi boljši).
+async function fetchLive() {
+  if (!db || document.hidden || mode === "practice" || view !== "watching") return;
+  const tokens = [...new Set(trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && !t.practice).map((t) => t.token).filter(Boolean))];
+  if (!tokens.length) return;
+  try {
+    const { data, error } = await db.from("memecoin_prices_now").select("token,price,t").in("token", tokens);
+    if (error || !data) return;
+    for (const r of data) if (r.price > 0) livePrices.set(r.token, { price: r.price, t: new Date(r.t).getTime() });
+    renderOpenTrades();
+  } catch {
+    // prikaz je dodatek, napaka ne sme motiti ostalega
+  }
+}
+setInterval(fetchLive, 6000);
 setInterval(() => {
   if (view === "comparison" && !document.hidden) loadShadow();
 }, 60000);
@@ -2573,7 +2592,11 @@ function renderOpenTrades() {
     return e;
   };
   for (const t of open) {
-    const c = coins.get(t.id);
+    const snap = coins.get(t.id);
+    const jl = livePrices.get(t.token);
+    // Jupitrova cena je iz istega para le priblizno, zato MC preracunamo iz razmerja s posnetkom.
+    const useJup = !!(snap && jl && jl.price > 0 && snap.price > 0 && Date.now() - jl.t < 20000 && Math.abs(snap.price / jl.price - 1) <= 0.5);
+    const c = useJup ? { ...snap, price: jl.price, mcap: Number.isFinite(snap.mcap) ? (snap.mcap * jl.price) / snap.price : snap.mcap, time: jl.t, jup: true } : snap;
     const price = c?.price,
       live = c && fresh(c) && price > 0,
       pnl = c && price > 0 ? markToMarket(t, price) : null,
@@ -2627,7 +2650,7 @@ function renderOpenTrades() {
               ? "še " + pct1((t.target / price - 1) * 100)
               : "";
     stats.append(
-      tile("now", "MC zdaj", c && Number.isFinite(c.mcap) ? compact(c.mcap) : "-", live ? "posnetek " + new Date(c.time).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : c ? "zastarelo · " + new Date(c.time).toLocaleTimeString("sl-SI") : "ni podatkov"),
+      tile("now", "MC zdaj", c && Number.isFinite(c.mcap) ? compact(c.mcap) : "-", live ? (c.jup ? "Jupiter " : "posnetek ") + new Date(c.time).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : c ? "zastarelo · " + new Date(c.time).toLocaleTimeString("sl-SI") : "ni podatkov"),
       tile("entry", "Vstop", Number.isFinite(t.entryMcap) ? compact(t.entryMcap) : money(t.entry), money(t.entry) + " / kovanec"),
       tile("target", L.targetLabel, c && Number.isFinite(L.targetValue) ? mcText(c, L.targetValue).replace("MC ", "") : money(L.targetValue), targetNote),
       tile("stop", L.stopLabel + (L.trailing ? " (sledi vrhu)" : ""), c ? mcText(c, t.stop).replace("MC ", "") : money(t.stop), toStop === null ? "" : pct1(toStop) + " do meje"),
