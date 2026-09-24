@@ -381,6 +381,7 @@ function draw() {
   }
   if (interruptedNow) save();
   dashboard();
+  miniDash();
   watching();
   renderOpenTrades();
   renderBoardGraph();
@@ -1707,6 +1708,23 @@ $("#recentMore").onclick = () => {
   dashboard();
 };
 $("#quality").onchange = dashboard;
+// Mini bilanca na vrhu Pozicij: današnje številke, iste kot v Bilanci pri obdobju Danes.
+function miniDash() {
+  if (!$("#miniKpis")) return;
+  const rate = solUsd || SOL_USD_FIXED,
+    prices = new Map([...coins.values()].map((c) => [c.id, { price: c.price, fresh: fresh(c) }]));
+  const o = overview(trades, { period: "today", quality: "all", rate, prices });
+  const usd = (x) =>
+    (x > 0 ? "+" : "") + new Intl.NumberFormat("sl-SI", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(x);
+  $("#mkNet").textContent = signed(o.net) + " SOL";
+  $("#mkNet").className = tone(o.net);
+  $("#mkUsd").textContent = "≈ " + usd(o.usd) + " · 1 SOL = " + usd(rate).replace("+", "");
+  $("#mkWin").textContent = o.success === null ? "-" : (o.success * 100).toLocaleString("sl-SI", { maximumFractionDigits: 1 }) + " %";
+  $("#mkWinNote").textContent = o.closed.length ? o.wins + " od " + o.closed.length : "še ni zaključkov";
+  $("#mkWinFill").style.width = (o.success === null ? 0 : o.success * 100) + "%";
+  $("#mkCounts").textContent = o.closed.length + " / " + o.open.length;
+  $("#mkOutcomes").textContent = o.wins + " dobitkov · " + o.losses + " izgub";
+}
 function dashboard() {
   const rate = solUsd || SOL_USD_FIXED,
     prices = new Map([...coins.values()].map((c) => [c.id, { price: c.price, fresh: fresh(c) }]));
@@ -2649,10 +2667,15 @@ function renderOpenTrades() {
             : price > 0
               ? "še " + pct1((t.target / price - 1) * 100)
               : "";
+    // Cilj dobi svojo ploščico, kadar ga ploščica "target" še ne kaže (Srednje: pol prodaje, Agresivno: vrh).
+    const showCap = hasCap && !!(t.plan.halfAt || t.plan.trail);
+    const capTile = showCap ? tile("cap", "Cilj +" + Math.round(t.plan.cap * 100) + " %", c ? mcText(c, t.cap).replace("MC ", "") : money(t.cap), price > 0 ? "še " + pct1((t.cap / price - 1) * 100) + " · proda vse" : "proda vse") : null;
+    if (showCap) stats.classList.add("five");
     stats.append(
       tile("now", "MC zdaj", c && Number.isFinite(c.mcap) ? compact(c.mcap) : "-", live ? (c.jup ? "Jupiter " : "posnetek ") + new Date(c.time).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : c ? "zastarelo · " + new Date(c.time).toLocaleTimeString("sl-SI") : "ni podatkov"),
       tile("entry", "Vstop", Number.isFinite(t.entryMcap) ? compact(t.entryMcap) : money(t.entry), money(t.entry) + " / kovanec"),
       tile("target", L.targetLabel, c && Number.isFinite(L.targetValue) ? mcText(c, L.targetValue).replace("MC ", "") : money(L.targetValue), targetNote),
+      ...(capTile ? [capTile] : []),
       tile("stop", L.stopLabel + (L.trailing ? " (sledi vrhu)" : ""), c ? mcText(c, t.stop).replace("MC ", "") : money(t.stop), toStop === null ? "" : pct1(toStop) + " do meje"),
     );
     card.append(stats);
