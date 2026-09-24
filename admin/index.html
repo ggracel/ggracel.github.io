@@ -151,7 +151,7 @@ input:focus{outline:none;border-color:var(--teal)}
     <div class="card kpi"><p class="eyebrow">New visitors</p><strong id="kNew">-</strong><small class="sub" id="kNewSub"></small></div>
     <div class="card kpi"><p class="eyebrow">Pageviews</p><strong id="kViews">-</strong><small class="sub" id="kViewsSub"></small></div>
     <div class="card kpi"><p class="eyebrow">Avg time on page</p><strong id="kTime">-</strong><small class="sub" id="kTimeSub"></small></div>
-    <div class="card kpi"><p class="eyebrow">Signed in</p><strong id="kSigned">-</strong><small class="sub">visitors with a foqs. login</small></div>
+    <div class="card kpi"><p class="eyebrow">Registered users</p><strong id="kSigned">-</strong><small class="sub" id="kSignedSub"></small></div>
   </div>
 
   <div class="grid one">
@@ -187,6 +187,16 @@ input:focus{outline:none;border-color:var(--teal)}
       <h2>Last 20 pageviews</h2>
       <p class="note">Newest first, whatever the range above.</p>
       <div class="flow" id="flow"></div>
+    </div>
+  </div>
+
+  <div class="grid one" style="margin-top:14px">
+    <div class="card">
+      <h2>People</h2>
+      <p class="note">Everyone with a foqs. account. Devices and views follow the range above, last seen is all time.</p>
+      <div style="overflow-x:auto">
+      <table><thead><tr><th>Name</th><th>Email</th><th>Registered</th><th class="num">Devices</th><th class="num">Views</th><th class="num">Last seen</th></tr></thead><tbody id="tPeople"></tbody></table>
+      </div>
     </div>
   </div>
 
@@ -297,7 +307,10 @@ function render(d) {
   $('kViewsSub').textContent = t.visitors ? (t.views / t.visitors).toFixed(1) + ' views per visitor' : '';
   $('kTime').textContent = secs(t.avg_s);
   $('kTimeSub').textContent = nf(t.measured) + ' of ' + nf(t.views) + ' views measured';
-  $('kSigned').textContent = nf(t.signed_in);
+  $('kSigned').textContent = nf(d.registered);
+  $('kSignedSub').textContent = d.registered_new
+    ? '+' + d.registered_new + ' new in this range \u00b7 ' + nf(t.signed_in) + ' devices signed in'
+    : nf(t.signed_in) + ' devices signed in, none new';
 
   if (d.live > 0) { $('livePill').hidden = false; $('liveTxt').textContent = d.live + (d.live === 1 ? ' visitor right now' : ' visitors right now'); }
   else { $('livePill').hidden = true; }
@@ -330,6 +343,16 @@ function render(d) {
     return '<div><time>' + ago(r.at) + ' ago</time><b>' + esc(r.path) + '</b>' +
       '<em>' + esc(r.src) + ' · ' + esc(r.device || '?') + (r.secs ? ' · ' + secs(r.secs) : '') + who + '</em></div>';
   }).join('') : '<div><em>No pageviews recorded yet.</em></div>';
+
+  $('tPeople').innerHTML = (d.people || []).length ? d.people.map(function (p) {
+    var reg = p.registered ? new Date(p.registered).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
+    return '<tr><td>' + esc(p.name) + '</td>' +
+      '<td style="color:var(--mute);white-space:normal;word-break:break-all">' + esc(p.email) + '</td>' +
+      '<td>' + reg + '</td>' +
+      '<td class="num">' + nf(p.devices) + '</td>' +
+      '<td class="num">' + nf(p.views) + '</td>' +
+      '<td class="num">' + (p.last_at ? ago(p.last_at) + ' ago' : 'never') + '</td></tr>';
+  }).join('') : '<tr><td colspan="6" style="color:#8b8586">No accounts yet.</td></tr>';
 
   $('stamp').textContent = 'Updated ' + new Date().toLocaleTimeString('sl-SI');
   $('msg').textContent = '';
