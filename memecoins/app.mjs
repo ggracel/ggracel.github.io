@@ -186,6 +186,7 @@ let mode = "live",
   coins = new Map(),
   healthy = false,
   last = 0,
+  remoteStamp = "",
   busy = false,
   alerts = [],
   announced = new Map(),
@@ -257,6 +258,7 @@ async function loadRemote() {
     }
     const { data, error } = await db.from("memecoin_state").select("trades,stake,auto_entries,profile,updated_at").eq("user_id", user.id).maybeSingle();
     if (error) throw error;
+    remoteStamp = data?.updated_at || "";
     const remote = Array.isArray(data?.trades) ? data.trades : [];
     const remoteKeys = new Set(remote.map((t) => t.key));
     const added = trades.filter((t) => t.key && !remoteKeys.has(t.key)).length;
@@ -305,11 +307,21 @@ function mergeTrades(local, remote) {
   return merged;
 }
 // Občasna ponovna združitev s profilom, da drug brskalnik (telefon, drug zavihek) vidi iste posle.
+// Časovni žig profila, kot ga nazadnje poznamo. Profil (700 kB in več) beremo samo, kadar se je žig spremenil,
+// sicer je vsak zavihek vsakih 30 do 45 s vlekel cel profil in to je stalo okrog 3 GB prenosa na dan (Supabase, 24. 9.).
+// Spremenljivka remoteStamp je deklarirana zgoraj pri "last = 0", ker se profil bere pred to vrstico (TDZ).
+async function remoteChanged() {
+  const { data, error } = await db.from("memecoin_state").select("updated_at").eq("user_id", remoteUser.id).maybeSingle();
+  if (error) throw error;
+  return !!data && data.updated_at !== remoteStamp;
+}
 async function syncRemote() {
   if (!db || !remoteUser) return;
   try {
-    const { data, error } = await db.from("memecoin_state").select("trades").eq("user_id", remoteUser.id).maybeSingle();
+    if (!(await remoteChanged())) return;
+    const { data, error } = await db.from("memecoin_state").select("trades,updated_at").eq("user_id", remoteUser.id).maybeSingle();
     if (error || !Array.isArray(data?.trades)) return;
+    remoteStamp = data.updated_at || remoteStamp;
     const before = JSON.stringify(trades);
     trades = mergeTrades(trades, data.trades);
     if (JSON.stringify(trades) !== before) {
@@ -322,17 +334,25 @@ setInterval(syncRemote, 45000);
 let lastPushed = "";
 async function pushRemote(force = false) {
   if (!db || !remoteUser) return;
-  // Pred pisanjem še enkrat združimo s profilom, da ne povozimo poslov iz drugega brskalnika.
+  const snapshot = () => JSON.stringify({ user_id: remoteUser.id, trades, stake, auto_entries: !!$("#auto")?.checked, profile });
+  if (!force && snapshot() === lastPushed) return; // nič novega, ne pošiljaj (in ne beri) vsakih 30 s
+  // Pred pisanjem združimo s profilom, da ne povozimo poslov iz drugega brskalnika, ampak samo, če ga je kdo medtem spremenil.
   try {
-    const { data } = await db.from("memecoin_state").select("trades").eq("user_id", remoteUser.id).maybeSingle();
-    if (Array.isArray(data?.trades)) trades = mergeTrades(trades, data.trades);
+    if (await remoteChanged()) {
+      const { data } = await db.from("memecoin_state").select("trades,updated_at").eq("user_id", remoteUser.id).maybeSingle();
+      if (Array.isArray(data?.trades)) {
+        trades = mergeTrades(trades, data.trades);
+        remoteStamp = data.updated_at || remoteStamp;
+      }
+    }
   } catch {}
   const row = { user_id: remoteUser.id, trades, stake, auto_entries: !!$("#auto")?.checked, profile };
   const fingerprint = JSON.stringify(row);
-  if (!force && fingerprint === lastPushed) return; // nič novega, ne pošiljaj vsakih 30 s
   try {
-    const { error } = await db.from("memecoin_state").upsert({ ...row, updated_at: new Date().toISOString() });
+    const stamp = new Date().toISOString();
+    const { error } = await db.from("memecoin_state").upsert({ ...row, updated_at: stamp });
     if (error) throw error;
+    remoteStamp = stamp;
     lastPushed = fingerprint;
     syncNote("sinhronizirano " + hhmm(Date.now()));
   } catch {
