@@ -163,25 +163,15 @@ SHADOW_RULES["v1.2-cilj50-jup"] = {
 const SPOT_A = "v1.2-cilj30-jup",
   SPOT_B = "v1.2-cilj50-jup",
   SPOT_START = "2026-09-25T17:35:00Z";
-let spotTrades = [],
+let spotStats = new Map(),
   spotAt = 0;
 async function loadSpot() {
   if (!db || Date.now() - spotAt < 55000) return;
   spotAt = Date.now();
-  const all = [];
-  for (let page = 0; page < 20; page++) {
-    const { data, error } = await db
-      .from("memecoin_shadow_trades")
-      .select("id,strategy,opened_at,closed_at,pnl_net_sol,size_sol,status,outcome")
-      .in("strategy", [SPOT_A, SPOT_B])
-      .gte("opened_at", SPOT_START)
-      .order("opened_at", { ascending: true })
-      .range(page * 1000, page * 1000 + 999);
-    if (error) return;
-    all.push(...(data || []));
-    if (!data || data.length < 1000) break;
-  }
-  spotTrades = all;
+  // Samo seštevki dveh pravil od začetka primerjave (strežnik jih izračuna), ne vsi posli.
+  const { data, error } = await db.rpc("memecoin_lab", { p_since: SPOT_START, p_strategies: [SPOT_A, SPOT_B], p_filter: "none" });
+  if (error || !data) return;
+  spotStats = new Map((data.stats || []).map((x) => [x.s, labToStats(x)]));
 }
 function renderSpot(anchor) {
   let box = $("#cmpSpot");
@@ -191,8 +181,8 @@ function renderSpot(anchor) {
     box.style.cssText = "border:2px solid #00e5ff;box-shadow:0 0 0 4px rgba(0,229,255,.08);margin-bottom:18px";
     anchor.parentNode.insertBefore(box, anchor);
   }
-  const a = shadowStats(spotTrades.filter((t) => t.strategy === SPOT_A)),
-    b = shadowStats(spotTrades.filter((t) => t.strategy === SPOT_B));
+  const a = spotStats.get(SPOT_A) || labToStats({}),
+    b = spotStats.get(SPOT_B) || labToStats({});
   const n = Math.min(a.closed.length, b.closed.length);
   const diff = a.expectancy !== null && b.expectancy !== null ? a.expectancy - b.expectancy : null;
   const mk = (tag, cls, txt) => {
@@ -2224,6 +2214,7 @@ function renderBoardGraph() {
 }
 
 let shadowTrades = [],
+  shadowLab = { total: 0, openNow: 0, filterCount: 0, stats: new Map() },
   shadowError = "",
   shadowBusy = false;
 // Negativne številke z navadnim minusom "-" (locale sicer vrne znak U+2212).
@@ -2231,20 +2222,18 @@ const plainMinus = (s) => s.replace(/\u2212/g, "-");
 const pct1 = (x) => (Number.isFinite(x) ? (x > 0 ? "+" : "") + plainMinus(x.toLocaleString("sl-SI", { maximumFractionDigits: 1 })) + " %" : "-");
 const sol4 = (x) => (Number.isFinite(x) ? (x > 0 ? "+" : "") + plainMinus(x.toLocaleString("sl-SI", { minimumFractionDigits: 4, maximumFractionDigits: 4 })) + " SOL" : "-");
 
+// 25. 9. 2026: seštevki na strežniku (RPC memecoin_lab) za celo obdobje. Prej je brskalnik vsakih 60 s bral
+// zadnjih 3000 poslov vseh pravil, kar je pri ~1.500 poslih na dan pokrilo le ~15 ur in porabilo veliko prenosa.
 async function loadShadow() {
   if (!db || shadowBusy) return;
   shadowBusy = true;
   try {
     const days = $("#cmpPeriod").value;
-    let q = db
-      .from("memecoin_shadow_trades")
-      .select("id,strategy,pair,token,symbol,opened_at,entry_price,entry_mcap,size_sol,peak,half_sold,closed_at,exit_price,outcome,pnl_gross_pct,pnl_net_sol,entry_reason,status")
-      .order("opened_at", { ascending: false })
-      .limit(3000);
-    if (days !== "all") q = q.gte("opened_at", new Date(Date.now() - Number(days) * 86400000).toISOString());
-    const { data, error } = await q;
+    const since = days === "all" ? null : new Date(Date.now() - Number(days) * 86400000).toISOString();
+    const { data, error } = await db.rpc("memecoin_lab", { p_since: since, p_strategies: null, p_filter: $("#cmpFilter").value || "all" });
     if (error) throw error;
-    shadowTrades = data || [];
+    shadowTrades = data?.trades || [];
+    shadowLab = { total: data?.total || 0, openNow: data?.open_now || 0, filterCount: data?.filter_count || 0, stats: new Map((data?.stats || []).map((x) => [x.s, labToStats(x)])) };
     shadowError = "";
   } catch (e) {
     shadowError = "Senčnih poslov ni bilo mogoče naložiti: " + (e?.message || e);
@@ -2252,6 +2241,30 @@ async function loadShadow() {
     shadowBusy = false;
   }
   renderComparison();
+}
+// Seštevek s strežnika v obliki, ki jo pričakuje izris (closed/open imata samo .length).
+function labToStats(x) {
+  const closed = x.closed || 0,
+    wins = x.wins || 0,
+    losses = x.losses || 0,
+    winSol = x.win_sol || 0,
+    lossSol = x.loss_sol || 0;
+  return {
+    closed: { length: closed },
+    open: { length: x.open || 0 },
+    wins,
+    losses,
+    winRate: closed ? wins / closed : null,
+    avgWin: wins ? x.sum_win_pct / wins : null,
+    avgLoss: losses ? x.sum_loss_pct / losses : null,
+    pf: lossSol > 0 ? winSol / lossSol : winSol > 0 ? Infinity : null,
+    expectancy: closed ? x.sum_pct / closed : null,
+    net: x.net || 0,
+    maxDD: x.max_dd || 0,
+    rug: x.rug || 0,
+    gap: x.gap || 0,
+    curve: (x.curve || []).map(([t, v]) => ({ t, v: Number(v) })),
+  };
 }
 
 // Statistika ene strategije: dobitki, faktor dobička, pričakovanje, največji padec, krivulja (čas, kumulativni SOL).
@@ -2488,8 +2501,8 @@ function renderComparison() {
   renderExportReminder();
   const daysRun = (Date.now() - SHADOW_START) / 86400000;
   const statusEl = $("#cmpStatus");
-  const total = shadowTrades.length,
-    openNow = shadowTrades.filter((t) => t.status === "open").length;
+  const total = shadowLab.total,
+    openNow = shadowLab.openNow;
   if (shadowError) {
     statusEl.className = "notice stopped";
     statusEl.textContent = shadowError;
@@ -2514,7 +2527,7 @@ function renderComparison() {
       openNow +
       " trenutno odprtih · osvežitev na 60 s.";
   }
-  const stats = new Map(SHADOW_STRATEGIES.map((s) => [s, shadowStats(shadowTrades.filter((t) => t.strategy === s))]));
+  const stats = new Map(SHADOW_STRATEGIES.map((s) => [s, shadowLab.stats.get(s) || labToStats({})]));
   let lead = null;
   for (const [s, st] of stats) if (st.closed.length && (!lead || st.net > stats.get(lead).net)) lead = s;
   const rows = $("#cmpRows");
@@ -2675,11 +2688,11 @@ function renderComparison() {
     body.append(tr);
   }
   $("#cmpTradesNote").textContent = listed.length
-    ? "Prikazanih " + listed.length + " od " + shadowTrades.filter((t) => filter === "all" || t.strategy === filter).length + " · Vstop MC = market cap ob vstopu · Vrh = najvišja cena med poslom glede na vstop · s kazalcem nad vrstico vidiš razlog vstopa."
+    ? "Prikazanih " + listed.length + " od " + shadowLab.filterCount + " · Vstop MC = market cap ob vstopu · Vrh = najvišja cena med poslom glede na vstop · s kazalcem nad vrstico vidiš razlog vstopa."
     : "V izbranem obdobju ni senčnih poslov za ta filter.";
 }
 $("#cmpPeriod").onchange = loadShadow;
-$("#cmpFilter").onchange = renderComparison;
+$("#cmpFilter").onchange = loadShadow;
 
 
 // Odprti demo posli: vrsta kartic z grafi na vrhu zavihka Kaj program spremlja.
