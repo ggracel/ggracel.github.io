@@ -14,7 +14,7 @@ import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, ent
 // Brskalnik jih samo bere in sešteje. Pravila so v strežniku zamrznjena; tu se nič ne odloča.
 const SHADOW_STRATEGIES = ["v1.2-cilj30-jup", "v1.2-cilj50-jup", "v1.0", "v1.0-cisto", "v1.0-jup", "v1.2-filter", "v1.2-cilj10", "v1.2-cilj50", "v1.2-cilj70", "v1.2-cilj100", "v1.2-sled7", "v1.2-srednje", "v2.2-dip", "v3-mirno", "v3-kontrola", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj", "v2.2-dip-siroko"];
 // Ustavljene: ne odpirajo novih poslov, zgodovina in odprti posli ostanejo (glej shadow.ts PAUSED). Ta seznam mora ustrezati shadow.ts.
-const SHADOW_PAUSED = { "v2.0": "20. 9.", "v2.0-brez-holderjev": "19. 9.", "v2.1-preboj": "20. 9.", "v2.2-dip-siroko": "20. 9.", "v1.2-srednje": "20. 9." };
+const SHADOW_PAUSED = { "v2.0": "20. 9.", "v2.0-brez-holderjev": "19. 9.", "v2.1-preboj": "20. 9.", "v2.2-dip-siroko": "20. 9.", "v1.2-srednje": "20. 9.", "v1.0-cisto": "25. 9." };
 const SHADOW_LABEL = { "v1.2-cilj30-jup": "★ NOVO · v1.2 Jupiter, cilj +30", "v1.2-cilj50-jup": "v1.2 Jupiter, cilj +50 (kontrola za +30)", "v1.0": "v1.0 +10/-5", "v1.0-cisto": "v1.0 čisto (brez sumljivih posnetkov)", "v1.0-jup": "v1.0 Jupiter (cene na 6 s)", "v1.2-filter": "v1.2 staro Srednje (pol +25, sled 20)", "v1.2-cilj10": "v1.2 cilj +10 / meja -5", "v1.2-cilj50": "v1.2 Srednje + cilj +50 (profil Srednje)", "v1.2-cilj70": "v1.2 Srednje + cilj +70", "v1.2-cilj100": "v1.2 Srednje + cilj +100", "v1.2-sled7": "v1.2 Srednje, sled 7 %", "v1.2-srednje": "v1.2 Srednje brez cilja (pol +20, sled 15)", "v2.2-dip": "v2.2 dip s kupci", "v3-mirno": "v3 mirno", "v3-kontrola": "v3 kontrola (naključni vstop)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj", "v2.2-dip-siroko": "v2.2 dip s kupci, široko" };
 const SHADOW_COLOR = { "v1.2-cilj30-jup": "#00e5ff", "v1.2-cilj50-jup": "#8ea2ff", "v1.0": "#9fb0c8", "v1.0-cisto": "#dbe6f5", "v1.0-jup": "#a8ff60", "v1.2-filter": "#f0a6ff", "v1.2-cilj10": "#ffb3c7", "v1.2-cilj50": "#ffd166", "v1.2-cilj70": "#ffa94d", "v1.2-cilj100": "#ff6b6b", "v1.2-sled7": "#b197fc", "v1.2-srednje": "#c98cff", "v2.2-dip": "#46bec5", "v3-mirno": "#74c0fc", "v3-kontrola": "#adb5bd", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff", "v2.2-dip-siroko": "#ff9f7a" };
 // Kaj vsak set pravil gleda za vstop in kako izstopi. Besedilo mora ustrezati shadow.ts; ob spremembi pravil popravi oboje.
@@ -2233,7 +2233,7 @@ async function loadShadow() {
     const { data, error } = await db.rpc("memecoin_lab", { p_since: since, p_strategies: null, p_filter: $("#cmpFilter").value || "all" });
     if (error) throw error;
     shadowTrades = data?.trades || [];
-    shadowLab = { total: data?.total || 0, openNow: data?.open_now || 0, filterCount: data?.filter_count || 0, stats: new Map((data?.stats || []).map((x) => [x.s, labToStats(x)])) };
+    shadowLab = { total: data?.total || 0, openNow: data?.open_now || 0, filterCount: data?.filter_count || 0, invalid: data?.invalid || 0, stats: new Map((data?.stats || []).map((x) => [x.s, labToStats(x)])) };
     shadowError = "";
   } catch (e) {
     shadowError = "Senčnih poslov ni bilo mogoče naložiti: " + (e?.message || e);
@@ -2525,7 +2525,9 @@ function renderComparison() {
       total +
       " senčnih poslov v obdobju, " +
       openNow +
-      " trenutno odprtih · osvežitev na 60 s.";
+      " trenutno odprtih" +
+      (shadowLab.invalid ? " · izločenih " + shadowLab.invalid + " neveljavnih (vstop ali izstop na lažni ceni)" : "") +
+      " · osvežitev na 60 s.";
   }
   const stats = new Map(SHADOW_STRATEGIES.map((s) => [s, shadowLab.stats.get(s) || labToStats({})]));
   let lead = null;
@@ -2924,6 +2926,16 @@ function renderOpenTrades() {
 // Po tem ostane vnos samo se v dnevniku sprememb v zavihku Kako deluje.
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
+  {
+    id: 11,
+    at: "2026-09-25T19:30:00Z",
+    date: "25. 9. 2026",
+    title: "Laboratorij: lažne cene izločene",
+    short: "<b>Laboratorij ne šteje več poslov na lažnih cenah.</b> v1.0 in v3 zato padeta v minus, kjer v resnici sta.",
+    body:
+      "Nekatera senčna pravila so vstopala in izstopala tudi na sumljivih posnetkih, kjer se cena z DEX Screenerja od Jupitrove razlikuje za več kot polovico. Največji primer je GATO 23. 9.: trem pravilom (v1.0, v3 mirno, v3 kontrola) je izstop na 132-krat previsoki ceni pripisal po okrog +9 SOL. Od danes vsa pravila sumljive posnetke preskočijo, tako kot tvoj bot in dvojček. 69 starejših poslov je označenih kot neveljavnih in izločenih iz seštevkov, ne izbrisanih. v1.0 čisto je ustavljen, ker zdaj dela skoraj isto kot v1.0. Na tvoj račun to nima vpliva.",
+    tags: [["Samo Laboratorij", ""], ["Lažne cene izločene", "ok"]],
+  },
   {
     id: 10,
     at: "2026-09-25T18:00:00Z",
