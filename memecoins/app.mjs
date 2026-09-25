@@ -12,11 +12,11 @@ import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, ent
 // Konstante senčnega testa so tu zgoraj, ker jih berejo funkcije, ki se kličejo že ob nalaganju modula (TDZ).
 // Primerjava: senčni posli, ki jih strežnik (edge funkcija collect, datoteka shadow.ts) piše v tabelo memecoin_shadow_trades.
 // Brskalnik jih samo bere in sešteje. Pravila so v strežniku zamrznjena; tu se nič ne odloča.
-const SHADOW_STRATEGIES = ["v1.0", "v1.0-cisto", "v1.0-jup", "v1.2-filter", "v1.2-cilj10", "v1.2-cilj50", "v1.2-cilj70", "v1.2-cilj100", "v1.2-sled7", "v1.2-srednje", "v2.2-dip", "v3-mirno", "v3-kontrola", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj", "v2.2-dip-siroko"];
+const SHADOW_STRATEGIES = ["v1.2-cilj30-jup", "v1.2-cilj50-jup", "v1.0", "v1.0-cisto", "v1.0-jup", "v1.2-filter", "v1.2-cilj10", "v1.2-cilj50", "v1.2-cilj70", "v1.2-cilj100", "v1.2-sled7", "v1.2-srednje", "v2.2-dip", "v3-mirno", "v3-kontrola", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj", "v2.2-dip-siroko"];
 // Ustavljene: ne odpirajo novih poslov, zgodovina in odprti posli ostanejo (glej shadow.ts PAUSED). Ta seznam mora ustrezati shadow.ts.
 const SHADOW_PAUSED = { "v2.0": "20. 9.", "v2.0-brez-holderjev": "19. 9.", "v2.1-preboj": "20. 9.", "v2.2-dip-siroko": "20. 9.", "v1.2-srednje": "20. 9." };
-const SHADOW_LABEL = { "v1.0": "v1.0 +10/-5", "v1.0-cisto": "v1.0 čisto (brez sumljivih posnetkov)", "v1.0-jup": "v1.0 Jupiter (cene na 6 s)", "v1.2-filter": "v1.2 staro Srednje (pol +25, sled 20)", "v1.2-cilj10": "v1.2 cilj +10 / meja -5", "v1.2-cilj50": "v1.2 Srednje + cilj +50 (profil Srednje)", "v1.2-cilj70": "v1.2 Srednje + cilj +70", "v1.2-cilj100": "v1.2 Srednje + cilj +100", "v1.2-sled7": "v1.2 Srednje, sled 7 %", "v1.2-srednje": "v1.2 Srednje brez cilja (pol +20, sled 15)", "v2.2-dip": "v2.2 dip s kupci", "v3-mirno": "v3 mirno", "v3-kontrola": "v3 kontrola (naključni vstop)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj", "v2.2-dip-siroko": "v2.2 dip s kupci, široko" };
-const SHADOW_COLOR = { "v1.0": "#9fb0c8", "v1.0-cisto": "#dbe6f5", "v1.0-jup": "#a8ff60", "v1.2-filter": "#f0a6ff", "v1.2-cilj10": "#ffb3c7", "v1.2-cilj50": "#ffd166", "v1.2-cilj70": "#ffa94d", "v1.2-cilj100": "#ff6b6b", "v1.2-sled7": "#b197fc", "v1.2-srednje": "#c98cff", "v2.2-dip": "#46bec5", "v3-mirno": "#74c0fc", "v3-kontrola": "#adb5bd", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff", "v2.2-dip-siroko": "#ff9f7a" };
+const SHADOW_LABEL = { "v1.2-cilj30-jup": "★ NOVO · v1.2 Jupiter, cilj +30", "v1.2-cilj50-jup": "v1.2 Jupiter, cilj +50 (kontrola za +30)", "v1.0": "v1.0 +10/-5", "v1.0-cisto": "v1.0 čisto (brez sumljivih posnetkov)", "v1.0-jup": "v1.0 Jupiter (cene na 6 s)", "v1.2-filter": "v1.2 staro Srednje (pol +25, sled 20)", "v1.2-cilj10": "v1.2 cilj +10 / meja -5", "v1.2-cilj50": "v1.2 Srednje + cilj +50 (profil Srednje)", "v1.2-cilj70": "v1.2 Srednje + cilj +70", "v1.2-cilj100": "v1.2 Srednje + cilj +100", "v1.2-sled7": "v1.2 Srednje, sled 7 %", "v1.2-srednje": "v1.2 Srednje brez cilja (pol +20, sled 15)", "v2.2-dip": "v2.2 dip s kupci", "v3-mirno": "v3 mirno", "v3-kontrola": "v3 kontrola (naključni vstop)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj", "v2.2-dip-siroko": "v2.2 dip s kupci, široko" };
+const SHADOW_COLOR = { "v1.2-cilj30-jup": "#00e5ff", "v1.2-cilj50-jup": "#8ea2ff", "v1.0": "#9fb0c8", "v1.0-cisto": "#dbe6f5", "v1.0-jup": "#a8ff60", "v1.2-filter": "#f0a6ff", "v1.2-cilj10": "#ffb3c7", "v1.2-cilj50": "#ffd166", "v1.2-cilj70": "#ffa94d", "v1.2-cilj100": "#ff6b6b", "v1.2-sled7": "#b197fc", "v1.2-srednje": "#c98cff", "v2.2-dip": "#46bec5", "v3-mirno": "#74c0fc", "v3-kontrola": "#adb5bd", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff", "v2.2-dip-siroko": "#ff9f7a" };
 // Kaj vsak set pravil gleda za vstop in kako izstopi. Besedilo mora ustrezati shadow.ts; ob spremembi pravil popravi oboje.
 const SHADOW_RULES = {
   "v1.0": {
@@ -143,6 +143,94 @@ SHADOW_RULES["v1.0-jup"] = {
   vstop: [...SHADOW_RULES["v1.0-cisto"].vstop, "Vstopna cena je sveža Jupitrova cena. Brez nje ni vstopa."],
   izstop: ["Cilj +10 % in meja -5 %, preverjeno na vsaki Jupitrovi ceni (beremo jih na 6 s, ne na 30).", "Če Jupiter za kovanec ne odgovarja, izstopi po DEX Screenerju, a samo na nesumljivem posnetku.", "Največ 5 odprtih poslov, en na kovanec."],
 };
+// 25. 9. 2026 (obrat-research.md): nižji cilj, na Jupitrovih cenah. Isti vstop kot v1.2, oba po Jupitru, zato razlika meri samo cilj.
+SHADOW_RULES["v1.2-cilj30-jup"] = {
+  vstop: [...SHADOW_RULES["v1.2-filter"].vstop, "Vstopna cena je sveža Jupitrova cena. Brez nje ali na sumljivem posnetku ni vstopa."],
+  izstop: [
+    "Pri +20 % proda polovico in premakne mejo na vstopno ceno.",
+    "Cilj: pri +30 % proda vse preostalo (namesto +50 %).",
+    "Do cilja sledilna meja 15 % pod najvišjo doseženo ceno. Trda meja -12 %.",
+    "Vse preverjeno na vsaki Jupitrovi ceni (6 s, ne 30 s). Če Jupiter za kovanec ne odgovarja, izstopi po DEX Screenerju.",
+    "Samo senca: na tvoje posle in na bota nima vpliva.",
+  ],
+};
+SHADOW_RULES["v1.2-cilj50-jup"] = {
+  vstop: SHADOW_RULES["v1.2-cilj30-jup"].vstop,
+  izstop: SHADOW_RULES["v1.2-cilj30-jup"].izstop.map((x) => x.replace("pri +30 % proda vse preostalo (namesto +50 %)", "pri +50 % proda vse preostalo (kot profil Srednje)")),
+};
+// Pod drobnogledom: cilj +30 proti +50 na Jupitru. Lastno nalaganje (po straneh), ker glavna tabela
+// naloži samo zadnjih nekaj tisoč senčnih poslov vseh pravil skupaj.
+const SPOT_A = "v1.2-cilj30-jup",
+  SPOT_B = "v1.2-cilj50-jup",
+  SPOT_START = "2026-09-25T17:35:00Z";
+let spotTrades = [],
+  spotAt = 0;
+async function loadSpot() {
+  if (!db || Date.now() - spotAt < 55000) return;
+  spotAt = Date.now();
+  const all = [];
+  for (let page = 0; page < 20; page++) {
+    const { data, error } = await db
+      .from("memecoin_shadow_trades")
+      .select("id,strategy,opened_at,closed_at,pnl_net_sol,size_sol,status,outcome")
+      .in("strategy", [SPOT_A, SPOT_B])
+      .gte("opened_at", SPOT_START)
+      .order("opened_at", { ascending: true })
+      .range(page * 1000, page * 1000 + 999);
+    if (error) return;
+    all.push(...(data || []));
+    if (!data || data.length < 1000) break;
+  }
+  spotTrades = all;
+}
+function renderSpot(anchor) {
+  let box = $("#cmpSpot");
+  if (!box) {
+    box = document.createElement("article");
+    box.id = "cmpSpot";
+    box.style.cssText = "border:2px solid #00e5ff;box-shadow:0 0 0 4px rgba(0,229,255,.08);margin-bottom:18px";
+    anchor.parentNode.insertBefore(box, anchor);
+  }
+  const a = shadowStats(spotTrades.filter((t) => t.strategy === SPOT_A)),
+    b = shadowStats(spotTrades.filter((t) => t.strategy === SPOT_B));
+  const n = Math.min(a.closed.length, b.closed.length);
+  const diff = a.expectancy !== null && b.expectancy !== null ? a.expectancy - b.expectancy : null;
+  const mk = (tag, cls, txt) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (txt !== undefined) e.textContent = txt;
+    return e;
+  };
+  box.replaceChildren();
+  const head = mk("div", "row");
+  const h = mk("h3", "", "Pod drobnogledom: cilj +30 proti cilju +50");
+  h.style.color = "#00e5ff";
+  head.append(h, mk("span", "badge", "SAMO SENCA · OD 25. 9."));
+  box.append(head);
+  box.append(mk("p", "muted", "Isti vstop (v1.2), ista cena (Jupiter na 6 s), edina razlika je cilj. Posli se zaprejo na strežniku, tudi ko je stran zaprta. Na tvoje posle in na bota nima vpliva."));
+  const grid = mk("div", "kpis");
+  const col = (label, st, color) => {
+    const k = mk("article", "kpi");
+    const sm = mk("small", "", label);
+    sm.style.color = color;
+    const big = mk("strong", st.expectancy === null ? "" : tone(st.expectancy), st.expectancy === null ? "-" : pct1(st.expectancy));
+    const p1 = mk("p", "", "na posel · " + st.closed.length + " zaključenih, " + st.open.length + " odprtih");
+    const p2 = mk("p", "", "neto " + sol4(st.net) + " · dobitkov " + (st.winRate === null ? "-" : Math.round(st.winRate * 100) + " %"));
+    k.append(sm, big, p1, p2);
+    return k;
+  };
+  const dk = mk("article", "kpi resultKpi");
+  dk.append(mk("small", "", "RAZLIKA NA POSEL"), mk("strong", diff === null ? "" : tone(diff), diff === null ? "-" : (diff > 0 ? "+" : "") + plainMinus(diff.toLocaleString("sl-SI", { maximumFractionDigits: 2 })) + " točke"));
+  const verdict = n < 30 ? "Premalo poslov za sodbo (" + n + " / 100)." : n < 100 ? "Vmesni rezultat (" + n + " / 100). Za odločitev rabimo vsaj 100 poslov vsakega." : diff > 0 ? "Cilj +30 vodi na " + n + " poslih. Kandidat za profil v aplikaciji." : "Cilj +30 ne vodi na " + n + " poslih. Ostanemo pri +50.";
+  dk.append(mk("p", "", verdict));
+  const track = mk("div", "wintrack");
+  const fill = mk("span");
+  fill.style.width = Math.min(100, n) + "%";
+  track.append(fill);
+  dk.append(track);
+  grid.append(col("CILJ +30 · NOVO", a, "#00e5ff"), col("CILJ +50 · KONTROLA", b, "#8ea2ff"), dk);
+  box.append(grid);
+}
 // Katere vrstice v Laboratoriju so raztegnjene; preživi samodejni izris na 60 s.
 const shadowOpen = new Set();
 const SHADOW_START = Date.parse("2026-09-17T06:44:00Z"); // zagon senčnega testa (collect v3, prvi senčni posel)
@@ -2431,10 +2519,13 @@ function renderComparison() {
   for (const [s, st] of stats) if (st.closed.length && (!lead || st.net > stats.get(lead).net)) lead = s;
   const rows = $("#cmpRows");
   rows.replaceChildren();
+  renderSpot(rows.closest("article"));
+  loadSpot().then(() => renderSpot(rows.closest("article")));
   for (const s of SHADOW_STRATEGIES) {
     const st = stats.get(s);
     const tr = document.createElement("tr");
     if (s === lead && st.net > 0) tr.className = "lead";
+    if (s === SPOT_A) tr.style.cssText = "outline:2px solid #00e5ff;outline-offset:-2px;background:#0b2629";
     const enough = st.closed.length >= SHADOW_MIN_TRADES || (daysRun >= SHADOW_MIN_DAYS && st.closed.length >= SHADOW_MIN_JUDGE);
     const pfOk = st.pf !== null && st.pf > SHADOW_MIN_PF,
       expOk = st.expectancy !== null && st.expectancy > SHADOW_MIN_EXP;
@@ -2542,7 +2633,7 @@ function renderComparison() {
       line.setAttribute("points", pts.map((p) => `${x(p.t)},${y(p.v)}`).join(" "));
       line.setAttribute("fill", "none");
       line.setAttribute("stroke", SHADOW_COLOR[s]);
-      line.setAttribute("stroke-width", s === lead ? "3" : "2");
+      line.setAttribute("stroke-width", s === SPOT_A ? "4" : s === lead ? "3" : "2");
       if (!st.curve.length) line.setAttribute("stroke-dasharray", "3 6");
       svg.append(line);
       const item = document.createElement("span");
@@ -2820,6 +2911,16 @@ function renderOpenTrades() {
 // Po tem ostane vnos samo se v dnevniku sprememb v zavihku Kako deluje.
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
+  {
+    id: 10,
+    at: "2026-09-25T18:00:00Z",
+    date: "25. 9. 2026",
+    title: "Laboratorij: cilj +30 na Jupitru",
+    short: "<b>V Laboratoriju je novo pravilo: cilj +30 %</b> na Jupitrovih cenah, z lastno primerjavo na vrhu. Samo senca, bot ostaja isti.",
+    body:
+      "Analiza 895 poslov iz 24. in 25. 9. je pokazala, da noben signal z DEX Screenerja (nakupi proti prodajam, volumen, likvidnost, sveče) ne loči poslov, ki bodo šli na +50 %, od tistih, ki se bodo obrnili. Pomagal je samo nižji cilj: pol pri +20 %, vse pri +30 %. Na Jupitrovih cenah je bilo to +0,9 točke na posel boljše od +50 %, v obeh polovicah obdobja. Ker je bil na prejšnjem oknu +30 malo slabši, ga najprej preverimo naprej. V Laboratoriju sta dve novi pravili z istim vstopom in istim virom cene: cilj +30 in cilj +50 kot kontrola. Na vrhu je okvir, ki ju primerja. Na tvoje posle in na bota to nima vpliva.",
+    tags: [["Samo Laboratorij", ""], ["Cilj +30 proti +50", "ok"]],
+  },
   {
     id: 9,
     at: "2026-09-21T19:30:00Z",
