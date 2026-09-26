@@ -1341,7 +1341,7 @@ window.addEventListener("pagehide", () => {
 setInterval(claimLeader, 20000);
 // Nova različica: zavihek na 2 min preveri version.json in se ob novejši sam osveži (prej osveži še index.html v
 // predpomnilniku, sicer bi GitHub Pages do 10 min vračal staro stran). Največ enkrat na različico na zavihek.
-const APP_VERSION = 47;
+const APP_VERSION = 48;
 async function checkVersion() {
   try {
     const r = await fetch("./version.json?t=" + Date.now(), { cache: "no-store" });
@@ -3428,9 +3428,18 @@ function renderTwin() {
   if (!box) {
     box = document.createElement("article");
     box.id = "twinBox";
-    box.style.cssText = "border:2px solid #46bec5;margin:16px 0;padding:16px";
+    box.style.cssText = "border:1px solid rgba(70,190,197,.55);border-radius:12px;margin:12px 0;padding:10px 16px";
     anchor.parentNode.insertBefore(box, anchor.nextSibling);
+    const css = document.createElement("style");
+    css.textContent = "#twinBox > details > summary::-webkit-details-marker{display:none}";
+    document.head.append(css);
   }
+  // 26. 9. 2026: privzeto strnjen v eno vrstico (G: zavzame preveč prostora). Stanje odprto/zaprto si zapomni.
+  let wasOpen = false;
+  try {
+    wasOpen = localStorage.getItem("sonar-twin-open") === "1";
+  } catch {}
+  const innerOpen = new Set([...box.querySelectorAll("details.twinList[open]")].map((d) => d.dataset.k));
   const mk = (tag, cls, txt) => {
     const e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -3438,15 +3447,35 @@ function renderTwin() {
     return e;
   };
   box.replaceChildren();
-  const head = mk("div", "row");
-  const h = mk("h3", "", "Dvojček na strežniku");
-  h.style.color = "#46bec5";
-  head.append(h, mk("span", "badge", "TEST · TEČE 24/7 · NE VPLIVA NA TVOJ RAČUN"));
-  box.append(head);
-  box.append(mk("p", "muted", "Isti bot kot tvoj (isti vzorci, filter, profil in vložek, od 26. 9. izstopi po Jupitru na 6 s in 5 min pavze po izstopu), a teče na strežniku, tudi ko je stran zaprta. Primerjaj ga s svojim: ko je stran odprta, morata vstopati in izstopati skoraj enako, razlika so posli, ki jih ujame ponoči."));
-  if (twinErr) box.append(mk("p", "muted", twinErr));
   const net = twinClosed.reduce((s, t) => s + (t.pnl_sol || 0), 0),
     wins = twinClosed.filter((t) => t.pnl_sol > 0).length;
+  const wrap = mk("details");
+  wrap.open = wasOpen;
+  wrap.addEventListener("toggle", () => {
+    try {
+      localStorage.setItem("sonar-twin-open", wrap.open ? "1" : "0");
+    } catch {}
+  });
+  const sum = mk("summary");
+  sum.style.cssText = "cursor:pointer;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;list-style:none";
+  const h = mk("strong", "", "▸ Dvojček na strežniku");
+  h.style.color = "#46bec5";
+  const ns = mk("span", tone(net), sol4(net));
+  ns.style.fontWeight = "700";
+  const sub = mk("span", "muted", "danes · " + twinClosed.length + " zaključenih" + (twinClosed.length ? " · " + Math.round((wins / twinClosed.length) * 100) + " % dobitnih" : "") + " · odprto " + twinOpen.length);
+  const badge = mk("span", "badge", "TEST · NE VPLIVA NA RAČUN");
+  badge.style.marginLeft = "auto";
+  sum.append(h, ns, sub, badge);
+  wrap.append(sum);
+  const setArrow = () => (h.textContent = (wrap.open ? "▾" : "▸") + " Dvojček na strežniku");
+  setArrow();
+  wrap.addEventListener("toggle", setArrow);
+  box.append(wrap);
+  const body = mk("div");
+  body.style.marginTop = "10px";
+  wrap.append(body);
+  body.append(mk("p", "muted", "Isti bot kot tvoj (isti vzorci, filter, profil in vložek, od 26. 9. izstopi po Jupitru na 6 s in 5 min pavze po izstopu), a teče na strežniku, tudi ko je stran zaprta. Primerjaj ga s svojim: ko je stran odprta, morata vstopati in izstopati skoraj enako, razlika so posli, ki jih ujame ponoči."));
+  if (twinErr) body.append(mk("p", "muted", twinErr));
   let me = null;
   try {
     me = overview(trades, { period: "today", quality: "all" });
@@ -3462,9 +3491,11 @@ function renderTwin() {
     k("TI DANES (BRSKALNIK)", me ? sol4(me.net) : "-", me ? tone(me.net) : "", me ? me.closed.length + " zaključenih · " + (me.closed.length ? Math.round((me.wins / me.closed.length) * 100) + " % dobitnih" : "še ni zaključkov") : ""),
     k("ODPRTO PRI DVOJČKU", String(twinOpen.length), "", "od največ 5"),
   );
-  box.append(grid);
-  const list = (title, rows) => {
-    const d = mk("details");
+  body.append(grid);
+  const list = (title, rows, key) => {
+    const d = mk("details", "twinList");
+    d.dataset.k = key;
+    d.open = innerOpen.has(key);
     d.append(mk("summary", "", title));
     const tb = mk("table");
     const tbody = mk("tbody");
@@ -3486,7 +3517,7 @@ function renderTwin() {
     return d;
   };
   const hm = (x) => new Date(x).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit" });
-  box.append(
+  body.append(
     list(
       "Odprti posli dvojčka (" + twinOpen.length + ")",
       twinOpen.map((t) => {
@@ -3494,6 +3525,7 @@ function renderTwin() {
         const now = c && c.price > 0 ? (c.price / t.entry_price - 1) * 100 : null;
         return [{ text: t.symbol || "?" }, { text: "vstop " + hm(t.opened_at) }, { text: now === null ? "-" : pct1(now), tone: now === null ? "" : tone(now) }, { text: (t.half_sold ? "pol prodano · " : "") + (t.reason || "") }];
       }),
+      "open",
     ),
     list(
       "Današnji zaključki dvojčka (" + twinClosed.length + ")",
@@ -3501,6 +3533,7 @@ function renderTwin() {
         const p = t.size_sol > 0 ? (100 * t.pnl_sol) / t.size_sol : null;
         return [{ text: t.symbol || "?" }, { text: hm(t.opened_at) + " → " + hm(t.closed_at) }, { text: p === null ? "-" : pct1(p), tone: p === null ? "" : tone(p) }, { text: t.outcome || "" }];
       }),
+      "closed",
     ),
   );
 }
