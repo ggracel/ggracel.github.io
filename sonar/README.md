@@ -1,4 +1,4 @@
-# foqs.si/memecoins · Signalni dnevnik (Solana)
+# foqs.si/sonar · Signalni dnevnik (Solana)
 
 Aplikacija za opazovanje novih Solana memecoinov in vajo (demo posli brez pravega denarja).
 Teče kot statična stran na GitHub Pages (ta mapa), podatke in logiko na strežniku pa daje Supabase projekt `ura-plus`.
@@ -71,7 +71,7 @@ Kriteriji za preklop aplikacije na nova pravila: vsaj 100 zaključenih poslov al
 
 1. Uredi datoteke v tej mapi.
 2. V `index.html` povečaj številko pri `app.mjs?v=N` (in v `app.mjs` pri `engine.mjs?v=N`, če se je spremenil engine). GitHub Pages in brskalniki sicer do 10 minut kažejo staro različico.
-3. Commit in Push origin (GitHub Desktop). Stran je živa na https://foqs.si/memecoins čez minuto ali dve; ob prvem odprtju po objavi včasih pomaga Cmd+Shift+R.
+3. Commit in Push origin (GitHub Desktop). Stran je živa na https://foqs.si/sonar čez minuto ali dve; ob prvem odprtju po objavi včasih pomaga Cmd+Shift+R.
 4. Spremembe edge funkcije `collect` se objavijo posebej (Supabase, Deploy); posnetki in senčni posli se pri tem ne izgubijo.
 
 ## Omejitve
