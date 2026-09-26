@@ -1,4 +1,4 @@
-// foqs.si/memecoins: posnetke zbira strežnik (Supabase cron vsakih 30 s -> tabela memecoin_snapshots), tudi ko je stran zaprta.
+// foqs.si/sonar: posnetke zbira strežnik (Supabase cron vsakih 30 s -> tabela memecoin_snapshots), tudi ko je stran zaprta.
 // Brskalnik ob odprtju naloži zadnjo uro posnetkov, potem bere samo nove. Pravila v1.0 tečejo v brskalniku.
 const HISTORY_MIN = 60;
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
@@ -12,11 +12,11 @@ import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, ent
 // Konstante senčnega testa so tu zgoraj, ker jih berejo funkcije, ki se kličejo že ob nalaganju modula (TDZ).
 // Primerjava: senčni posli, ki jih strežnik (edge funkcija collect, datoteka shadow.ts) piše v tabelo memecoin_shadow_trades.
 // Brskalnik jih samo bere in sešteje. Pravila so v strežniku zamrznjena; tu se nič ne odloča.
-const SHADOW_STRATEGIES = ["v1.2-cilj30-jup", "v1.2-cilj50-jup", "v1.0", "v1.0-cisto", "v1.0-jup", "v1.2-filter", "v1.2-cilj10", "v1.2-cilj50", "v1.2-cilj70", "v1.2-cilj100", "v1.2-sled7", "v1.2-srednje", "v2.2-dip", "v3-mirno", "v3-kontrola", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj", "v2.2-dip-siroko"];
+const SHADOW_STRATEGIES = ["v1.2-cilj50-jup-p5", "v1.2-cilj50-jup-p10", "v1.2-cilj50-p5", "v1.2-cilj30-jup", "v1.2-cilj50-jup", "v1.0", "v1.0-cisto", "v1.0-jup", "v1.2-filter", "v1.2-cilj10", "v1.2-cilj50", "v1.2-cilj70", "v1.2-cilj100", "v1.2-sled7", "v1.2-srednje", "v2.2-dip", "v3-mirno", "v3-kontrola", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj", "v2.2-dip-siroko"];
 // Ustavljene: ne odpirajo novih poslov, zgodovina in odprti posli ostanejo (glej shadow.ts PAUSED). Ta seznam mora ustrezati shadow.ts.
 const SHADOW_PAUSED = { "v2.0": "20. 9.", "v2.0-brez-holderjev": "19. 9.", "v2.1-preboj": "20. 9.", "v2.2-dip-siroko": "20. 9.", "v1.2-srednje": "20. 9.", "v1.0-cisto": "25. 9." };
-const SHADOW_LABEL = { "v1.2-cilj30-jup": "★ NOVO · v1.2 Jupiter, cilj +30", "v1.2-cilj50-jup": "v1.2 Jupiter, cilj +50 (kontrola za +30)", "v1.0": "v1.0 +10/-5", "v1.0-cisto": "v1.0 čisto (brez sumljivih posnetkov)", "v1.0-jup": "v1.0 Jupiter (cene na 6 s)", "v1.2-filter": "v1.2 staro Srednje (pol +25, sled 20)", "v1.2-cilj10": "v1.2 cilj +10 / meja -5", "v1.2-cilj50": "v1.2 Srednje + cilj +50 (profil Srednje)", "v1.2-cilj70": "v1.2 Srednje + cilj +70", "v1.2-cilj100": "v1.2 Srednje + cilj +100", "v1.2-sled7": "v1.2 Srednje, sled 7 %", "v1.2-srednje": "v1.2 Srednje brez cilja (pol +20, sled 15)", "v2.2-dip": "v2.2 dip s kupci", "v3-mirno": "v3 mirno", "v3-kontrola": "v3 kontrola (naključni vstop)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj", "v2.2-dip-siroko": "v2.2 dip s kupci, široko" };
-const SHADOW_COLOR = { "v1.2-cilj30-jup": "#00e5ff", "v1.2-cilj50-jup": "#8ea2ff", "v1.0": "#9fb0c8", "v1.0-cisto": "#dbe6f5", "v1.0-jup": "#a8ff60", "v1.2-filter": "#f0a6ff", "v1.2-cilj10": "#ffb3c7", "v1.2-cilj50": "#ffd166", "v1.2-cilj70": "#ffa94d", "v1.2-cilj100": "#ff6b6b", "v1.2-sled7": "#b197fc", "v1.2-srednje": "#c98cff", "v2.2-dip": "#46bec5", "v3-mirno": "#74c0fc", "v3-kontrola": "#adb5bd", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff", "v2.2-dip-siroko": "#ff9f7a" };
+const SHADOW_LABEL = { "v1.2-cilj50-jup-p5": "★ NOVO · tvoj bot od 26. 9. (Jupiter + pavza 5 min)", "v1.2-cilj50-jup-p10": "★ NOVO · Jupiter + pavza 10 min", "v1.2-cilj50-p5": "★ NOVO · DEX 30 s + pavza 5 min", "v1.2-cilj30-jup": "v1.2 Jupiter, cilj +30", "v1.2-cilj50-jup": "v1.2 Jupiter, cilj +50 (kontrola za +30)", "v1.0": "v1.0 +10/-5", "v1.0-cisto": "v1.0 čisto (brez sumljivih posnetkov)", "v1.0-jup": "v1.0 Jupiter (cene na 6 s)", "v1.2-filter": "v1.2 staro Srednje (pol +25, sled 20)", "v1.2-cilj10": "v1.2 cilj +10 / meja -5", "v1.2-cilj50": "v1.2 Srednje + cilj +50 (profil Srednje)", "v1.2-cilj70": "v1.2 Srednje + cilj +70", "v1.2-cilj100": "v1.2 Srednje + cilj +100", "v1.2-sled7": "v1.2 Srednje, sled 7 %", "v1.2-srednje": "v1.2 Srednje brez cilja (pol +20, sled 15)", "v2.2-dip": "v2.2 dip s kupci", "v3-mirno": "v3 mirno", "v3-kontrola": "v3 kontrola (naključni vstop)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj", "v2.2-dip-siroko": "v2.2 dip s kupci, široko" };
+const SHADOW_COLOR = { "v1.2-cilj50-jup-p5": "#46bec5", "v1.2-cilj50-jup-p10": "#ffd43b", "v1.2-cilj50-p5": "#ff8787", "v1.2-cilj30-jup": "#00e5ff", "v1.2-cilj50-jup": "#8ea2ff", "v1.0": "#9fb0c8", "v1.0-cisto": "#dbe6f5", "v1.0-jup": "#a8ff60", "v1.2-filter": "#f0a6ff", "v1.2-cilj10": "#ffb3c7", "v1.2-cilj50": "#ffd166", "v1.2-cilj70": "#ffa94d", "v1.2-cilj100": "#ff6b6b", "v1.2-sled7": "#b197fc", "v1.2-srednje": "#c98cff", "v2.2-dip": "#46bec5", "v3-mirno": "#74c0fc", "v3-kontrola": "#adb5bd", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff", "v2.2-dip-siroko": "#ff9f7a" };
 // Kaj vsak set pravil gleda za vstop in kako izstopi. Besedilo mora ustrezati shadow.ts; ob spremembi pravil popravi oboje.
 const SHADOW_RULES = {
   "v1.0": {
@@ -157,6 +157,20 @@ SHADOW_RULES["v1.2-cilj30-jup"] = {
 SHADOW_RULES["v1.2-cilj50-jup"] = {
   vstop: SHADOW_RULES["v1.2-cilj30-jup"].vstop,
   izstop: SHADOW_RULES["v1.2-cilj30-jup"].izstop.map((x) => x.replace("pri +30 % proda vse preostalo (namesto +50 %)", "pri +50 % proda vse preostalo (kot profil Srednje)")),
+};
+// 26. 9. 2026: ponovni vstop v isti kovanec v 1 do 3 min po izstopu je izgubljal v vseh virih (senca -7 %, dvojček -11 % na posel).
+// Pavza po izstopu. p5 je natanko tvoj bot od 26. 9. (Srednje, Jupiter na 6 s, 5 min pavze), p10 in DEX-p5 sta primerjavi.
+SHADOW_RULES["v1.2-cilj50-jup-p5"] = {
+  vstop: [...SHADOW_RULES["v1.2-cilj50-jup"].vstop, "Po izstopu iz kovanca 5 min brez ponovnega vstopa vanj."],
+  izstop: SHADOW_RULES["v1.2-cilj50-jup"].izstop,
+};
+SHADOW_RULES["v1.2-cilj50-jup-p10"] = {
+  vstop: [...SHADOW_RULES["v1.2-cilj50-jup"].vstop, "Po izstopu iz kovanca 10 min brez ponovnega vstopa vanj."],
+  izstop: SHADOW_RULES["v1.2-cilj50-jup"].izstop,
+};
+SHADOW_RULES["v1.2-cilj50-p5"] = {
+  vstop: [...SHADOW_RULES["v1.2-filter"].vstop, "Po izstopu iz kovanca 5 min brez ponovnega vstopa vanj."],
+  izstop: [...SHADOW_RULES["v1.2-cilj50"].izstop, "Cene z DEX Screenerja na 30 s (kot tvoj bot do 26. 9.). Proti pravilu Jupiter + pavza 5 min meri samo učinek hitrejše cene."],
 };
 // Pod drobnogledom: cilj +30 proti +50 na Jupitru. Lastno nalaganje (po straneh), ker glavna tabela
 // naloži samo zadnjih nekaj tisoč senčnih poslov vseh pravil skupaj.
@@ -853,6 +867,8 @@ function coinFromRow(r, history) {
     image: r.image || "",
     url: r.url || "https://dexscreener.com/solana/" + r.pair,
     time: new Date(r.t).getTime(),
+    // Jupitrova cena ob posnetku (zbiralec jo vpiše samo, če je sveža, prebrana v zadnjih 20 s)
+    jupPrice: r.jup_price > 0 ? r.jup_price : null,
     history,
   };
 }
@@ -872,7 +888,7 @@ async function fetchRows(sinceMs) {
   return pagedRows(() =>
     db
       .from("memecoin_snapshots")
-      .select("pair,t,token,symbol,name,price,mcap,fdv,liquidity,volume5m,pair_created_ms,image,url,change1h,buys5m,sells5m,has_twitter,twitter_status,has_telegram,has_website,boost_total,source,suspect")
+      .select("pair,t,token,symbol,name,price,mcap,fdv,liquidity,volume5m,pair_created_ms,image,url,change1h,buys5m,sells5m,has_twitter,twitter_status,has_telegram,has_website,boost_total,source,suspect,jup_price")
       .gt("t", new Date(sinceMs).toISOString())
       .order("t", { ascending: true })
       .order("pair", { ascending: true }),
@@ -888,7 +904,17 @@ function noteSuspect(pair, tm) {
   suspectLog.set(pair, a);
 }
 const unreliable = (pair, tm) => (suspectLog.get(pair) || []).filter((x) => tm - x <= 22 * 60000).length >= 2;
+// 26. 9. 2026: pavza po izstopu. Ponovni vstop v isti kovanec v 1 do 3 min po izstopu je 25. in 26. 9. izgubljal
+// v vseh virih (senca -7 %, dvojček -11 % na posel): po padcu cena malo odskoči in vzorec to vidi kot odboj.
+// Velja samo za samodejne vstope; ročni vstop je vedno dovoljen. Pavza teče od izstopa, ne glede na razlog.
+const PAUSE_MS = 5 * 60000;
+function pausedPair(id, tm) {
+  const t = trades.find((t) => t.id === id && !t.deletedAt && !t.practice && t.closed && tm - (t.exitObserved || t.closed) < PAUSE_MS);
+  return t ? Math.min(5, Math.max(1, Math.ceil((PAUSE_MS - (tm - (t.exitObserved || t.closed))) / 60000))) : 0;
+}
 // Pravila za en nov posnetek kovanca c ob času tm: zapiranje odprtih poslov, samodejni vstop, opozorila.
+// 26. 9. 2026: posli z vstopom po Jupitru (t.jup) izstopajo po Jupitrovih cenah na 6 s (applyJupPath). Posnetek
+// DEX Screenerja jih zapre samo, ko Jupiter za kovanec nima sveže cene (posnetek brez jup_price).
 function applyTradeLogic(c, tm) {
   const id = c.id,
     price = c.price;
@@ -896,12 +922,20 @@ function applyTradeLogic(c, tm) {
     if (tm - t.lastObserved > 75000) interruptTrade(t, "Strežnik za ta par ni imel podatkov več kot 75 sekund");
     t.lastObserved = tm;
     if (!t.interrupted) {
+      if (t.jup && c.jupPrice) continue;
       const why = stepExit(t, price);
-      if (why) closeAt(t, price, tm, why);
+      if (why) closeAt(t, price, tm, why + (t.jup ? " (DEX, Jupiter brez cene)" : ""));
     }
   }
   const s = signal(c);
-  const blocked = s.signal ? (unreliable(id, tm) ? "nezanesljivi podatki: DEX Screener in Jupiter se razhajata" : entryFilter(c)) : null;
+  const pauseLeft = s.signal ? pausedPair(id, tm) : 0;
+  const blocked = s.signal
+    ? unreliable(id, tm)
+      ? "nezanesljivi podatki: DEX Screener in Jupiter se razhajata"
+      : pauseLeft
+        ? "pavza po izstopu iz tega kovanca, še " + pauseLeft + " min"
+        : entryFilter(c)
+    : null;
   if (
     s.signal &&
     !blocked &&
@@ -912,7 +946,7 @@ function applyTradeLogic(c, tm) {
     enter(c, s, true);
   }
   if (s.signal && Date.now() - (announced.get(id) || 0) > 300000) {
-    alerts.unshift(`${time(Date.now())} · ${c.symbol} · ${s.name}` + (blocked ? " · brez vstopa, izven filtra: " + blocked : ""));
+    alerts.unshift(`${time(Date.now())} · ${c.symbol} · ${s.name}` + (blocked ? (pauseLeft ? " · brez vstopa: " : " · brez vstopa, izven filtra: ") + blocked : ""));
     announced.set(id, Date.now());
   }
 }
@@ -923,21 +957,40 @@ async function reconcileOpenTrades() {
     try {
       const from = t.lastObserved || t.opened;
       const data = await pagedRows(() =>
-        db.from("memecoin_snapshots").select("t,price,suspect").eq("pair", t.id).gt("t", new Date(from).toISOString()).order("t", { ascending: true }),
+        db.from("memecoin_snapshots").select("t,price,suspect,jup_price").eq("pair", t.id).gt("t", new Date(from).toISOString()).order("t", { ascending: true }),
       );
+      // Posli po Jupitru: preigramo posnetke (vrzeli, rezerva brez Jupitra) in Jupitrove cene skupaj, po času.
+      const jrows = t.jup
+        ? await pagedRows(() =>
+            db.from("memecoin_prices").select("t,price").eq("token", t.token).gt("t", new Date(t.jupT || from).toISOString()).order("t", { ascending: true }),
+          )
+        : [];
+      const events = [...data.map((r) => ({ d: r, tm: new Date(r.t).getTime() })), ...jrows.map((r) => ({ j: r, tm: new Date(r.t).getTime() }))].sort((a, b) => a.tm - b.tm || (a.j ? -1 : 1));
       let prev = from;
-      for (const r of data) {
+      for (const e of events) {
+        if (e.j) {
+          if (e.tm <= (t.jupT || 0) || !(e.j.price > 0)) continue;
+          t.jupT = e.tm;
+          const why = stepExit(t, e.j.price);
+          if (why) {
+            closeAt(t, e.j.price, e.tm, why + " (Jupiter)");
+            break;
+          }
+          continue;
+        }
+        const r = e.d;
         if (r.suspect) continue;
-        const tm = new Date(r.t).getTime();
+        const tm = e.tm;
         if (tm - prev > 75000) {
           interruptTrade(t, "Strežnik za ta par ni imel podatkov več kot 75 sekund");
           break;
         }
         prev = tm;
         t.lastObserved = tm;
+        if (t.jup && r.jup_price > 0) continue;
         const why = stepExit(t, r.price);
         if (why) {
-          closeAt(t, r.price, tm, why);
+          closeAt(t, r.price, tm, why + (t.jup ? " (DEX, Jupiter brez cene)" : ""));
           break;
         }
       }
@@ -1087,6 +1140,10 @@ function enter(c, s, automatic) {
     trades.filter((t) => !t.practice && !t.closed && !t.interrupted && !t.deletedAt).length >= 5
   )
     return false;
+  // 26. 9. 2026: vstopna cena je sveža Jupitrova (ista kot pri izstopih), ker DEX Screener ceno predpomni do 30 s.
+  // Brez sveže Jupitrove cene (ali pri razliki nad 50 %) ostane cena posnetka in izstopi po posnetkih kot prej.
+  const jp = !c.practice && c.jupPrice > 0 && c.price > 0 && Math.abs(c.price / c.jupPrice - 1) <= 0.5 ? c.jupPrice : null;
+  const px = jp || c.price;
   trades.push({
     key: crypto.randomUUID(),
     id: c.id,
@@ -1095,9 +1152,10 @@ function enter(c, s, automatic) {
     practice: !!c.practice,
     opened: Date.now(),
     lastObserved: c.time || Date.now(),
-    entry: c.price,
-    entryMcap: Number.isFinite(c.mcap) ? c.mcap : null,
-    ...exitPlan(profile, c.price),
+    entry: px,
+    entryMcap: Number.isFinite(c.mcap) ? (c.mcap * px) / c.price : null,
+    ...(jp ? { jup: true, jupT: c.time || Date.now(), entryDex: c.price } : {}),
+    ...exitPlan(profile, px),
     reason: automatic ? s.name : "Lastna odločitev · " + s.name,
     automatic,
     signalAt: c.time || Date.now(),
@@ -1240,21 +1298,55 @@ $("#autoState").textContent = $("#auto").checked ? "VKLJUČENI" : "IZKLJUČENI";
 renderBotPill();
 poll();
 setInterval(poll, 30000);
-// Prikaz odprtih pozicij se osvežuje na 6 s z Jupitrovimi cenami (tabela memecoin_prices_now), posnetki
-// DEX Screenerja pa ostajajo na 30 s. To je SAMO prikaz: vstopi, izstopi in dnevnik še naprej tečejo po
-// posnetkih, da ostanejo meritve primerljive s senco (pravilo v1.0-jup posebej meri, ali so Jupitrovi
-// izstopi boljši).
+// Na 6 s: Jupitrove cene za odprte pozicije. Prikaz (memecoin_prices_now) in od 26. 9. 2026 tudi izstopi:
+// posli z vstopom po Jupitru (t.jup) gredo skozi vsako Jupitrovo ceno od zadnje obdelane (memecoin_prices),
+// tako da tudi zamujen ali upočasnjen interval (skrit zavihek) ne preskoči nobene cene.
+function applyJupPath(list, rows) {
+  let changed = false;
+  for (const t of list) {
+    for (const r of rows) {
+      if (r.token !== t.token || t.closed || t.interrupted) continue;
+      const tm = new Date(r.t).getTime();
+      if (tm <= (t.jupT || 0) || !(r.price > 0)) continue;
+      t.jupT = tm;
+      changed = true;
+      const why = stepExit(t, r.price);
+      if (why) closeAt(t, r.price, tm, why + " (Jupiter)");
+    }
+  }
+  return changed;
+}
+let liveBusy = false;
 async function fetchLive() {
-  if (!db || document.hidden || mode === "practice" || view !== "watching") return;
-  const tokens = [...new Set(trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && !t.practice).map((t) => t.token).filter(Boolean))];
-  if (!tokens.length) return;
+  if (!db || !primed || liveBusy) return;
+  const open = trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && !t.practice && t.token);
+  if (!open.length) return;
+  liveBusy = true;
   try {
+    const jupOpen = open.filter((t) => t.jup);
+    if (jupOpen.length) {
+      const from = Math.min(...jupOpen.map((t) => t.jupT || t.opened));
+      const rows = await pagedRows(
+        () =>
+          db
+            .from("memecoin_prices")
+            .select("token,t,price")
+            .in("token", [...new Set(jupOpen.map((t) => t.token))])
+            .gt("t", new Date(from).toISOString())
+            .order("t", { ascending: true })
+            .order("token", { ascending: true }),
+        3,
+      );
+      if (applyJupPath(jupOpen, rows)) save();
+    }
+    const tokens = [...new Set(open.map((t) => t.token))];
     const { data, error } = await db.from("memecoin_prices_now").select("token,price,t").in("token", tokens);
-    if (error || !data) return;
-    for (const r of data) if (r.price > 0) livePrices.set(r.token, { price: r.price, t: new Date(r.t).getTime() });
-    renderOpenTrades();
+    if (!error && data) for (const r of data) if (r.price > 0) livePrices.set(r.token, { price: r.price, t: new Date(r.t).getTime() });
+    if (view === "watching" && !document.hidden) renderOpenTrades();
   } catch {
-    // prikaz je dodatek, napaka ne sme motiti ostalega
+    // napaka ne sme motiti ostalega; naslednji krog (ali posnetek brez Jupitra) nadaljuje
+  } finally {
+    liveBusy = false;
   }
 }
 setInterval(fetchLive, 6000);
@@ -2927,6 +3019,16 @@ function renderOpenTrades() {
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
   {
+    id: 12,
+    at: "2026-09-26T09:30:00Z",
+    date: "26. 9. 2026",
+    title: "Bot: izstopi na 6 s in pavza 5 min",
+    short: "<b>Bot zdaj izstopa po Jupitrovih cenah na 6 s</b> in se kovancu 5 min po izstopu ne vrne. Velja za nove posle.",
+    body:
+      "Do zdaj je bot izstopal samo ob 30 s posnetkih DEX Screenerja, ki ceno še dodatno predpomni. Pri slopcannonu je Jupiter ob 10:37:16 pokazal +52 %, DEX Screener pa je še kazal +10 % in naslednji posnetek je prišel šele čez skoraj minuto. Od zdaj bot za nove posle vstopi po sveži Jupitrovi ceni in vsa izstopna pravila (polovica, cilj, sledilna in trda meja) preveri ob vsaki Jupitrovi ceni, torej vsakih 6 s. Na trdi meji je senca s tem v povprečju izgubila -14 % namesto -23 %. Druga sprememba: po izstopu iz kovanca 5 min brez samodejnega ponovnega vstopa vanj. Ponovni vstopi 1 do 3 min po izstopu so 25. in 26. 9. izgubljali v vseh virih (senca -7 %, dvojček -11 % na posel), ker bot odskok po padcu vidi kot odboj. Ročni vstop ostane vedno dovoljen. Že odprti posli se zaključijo po starih pravilih. Isto velja za dvojčka na strežniku. V Laboratoriju so tri nova pravila za primerjavo: tvoj bot (Jupiter + 5 min), Jupiter + 10 min in DEX + 5 min. Ni finančni nasvet, gre za demo.",
+    tags: [["Izstopi na 6 s", "ok"], ["Pavza 5 min", "ok"], ["Tudi dvojček", ""]],
+  },
+  {
     id: 11,
     at: "2026-09-25T19:30:00Z",
     date: "25. 9. 2026",
@@ -3274,7 +3376,7 @@ function renderTwin() {
   h.style.color = "#46bec5";
   head.append(h, mk("span", "badge", "TEST · TEČE 24/7 · NE VPLIVA NA TVOJ RAČUN"));
   box.append(head);
-  box.append(mk("p", "muted", "Isti bot kot tvoj (isti vzorci, filter, profil in vložek), a teče na strežniku, tudi ko je stran zaprta. Primerjaj ga s svojim: ko je stran odprta, morata vstopati in izstopati enako, razlika so posli, ki jih ujame ponoči."));
+  box.append(mk("p", "muted", "Isti bot kot tvoj (isti vzorci, filter, profil in vložek, od 26. 9. izstopi po Jupitru na 6 s in 5 min pavze po izstopu), a teče na strežniku, tudi ko je stran zaprta. Primerjaj ga s svojim: ko je stran odprta, morata vstopati in izstopati skoraj enako, razlika so posli, ki jih ujame ponoči."));
   if (twinErr) box.append(mk("p", "muted", twinErr));
   const net = twinClosed.reduce((s, t) => s + (t.pnl_sol || 0), 0),
     wins = twinClosed.filter((t) => t.pnl_sol > 0).length;
