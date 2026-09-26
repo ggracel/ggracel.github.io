@@ -316,6 +316,9 @@ const OWNER_KEY = "solana-owner-v1";
 let remoteUser = null,
   remoteAuto = null,
   syncTimer = null;
+// vodja (en samodejni bot na račun), glej claimLeader spodaj
+let isLeader = !db,
+  leaderInfo = "";
 function syncNote(text, bad) {
   const el = $("#syncState");
   if (!el) return;
@@ -388,6 +391,21 @@ function mergeTrades(local, remote) {
     byKey.set(t.key, byKey.has(t.key) ? pickTrade(byKey.get(t.key), t) : t);
   }
   const merged = [...byKey.values()].sort((a, b) => (a.opened || 0) - (b.opened || 0));
+  // 26. 9. 2026: dve kopiji bota sta lahko vstopili na isti signal. Ohrani enega (prednost ima vstop po Jupitru).
+  const DEDUPE_FROM = Date.parse("2026-09-25T22:00:00Z"); // od polnoči 26. 9. (začetek podvajanja po selitvi)
+  const bySignal = new Map();
+  for (const t of merged) {
+    if (t.deletedAt || !t.automatic || t.practice || !t.signalAt || (t.opened || 0) < DEDUPE_FROM) continue;
+    const k = t.id + "|" + t.signalAt;
+    const prev = bySignal.get(k);
+    if (!prev) bySignal.set(k, t);
+    else {
+      const [keep, drop] = t.jup && !prev.jup ? [t, prev] : [prev, t];
+      drop.deletedAt = Date.now();
+      drop.deleteReason = "Podvojen vstop: na isti signal sta vstopili dve kopiji bota.";
+      bySignal.set(k, keep);
+    }
+  }
   const seenOpen = new Set();
   for (const t of merged) {
     if (t.deletedAt || t.closed || t.interrupted || t.practice) continue;
@@ -940,6 +958,7 @@ function applyTradeLogic(c, tm) {
     s.signal &&
     !blocked &&
     $("#auto").checked &&
+    isLeader &&
     !trades.some((t) => !t.deletedAt && !t.interrupted && !t.closed && t.id === id) &&
     trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && !t.practice).length < 5
   ) {
@@ -1295,6 +1314,48 @@ if (remoteAuto !== null) {
   $("#autoSaved").textContent = "Nastavitev s profila (velja v vseh brskalnikih).";
 }
 $("#autoState").textContent = $("#auto").checked ? "VKLJUČENI" : "IZKLJUČENI";
+// 26. 9. 2026: en sam samodejni bot na račun. Po selitvi na /sonar sta na G-jevem računu hkrati trgovala star
+// zavihek (/memecoins, stara koda) in nov, vstopi so se podvajali. Zdaj si kopija (zavihek, telefon) na strežniku
+// vzame najem (memecoin_claim_leader, 90 s, obnova na 20 s). Samodejno vstopa samo kopija z najemom; ostale
+// prikazujejo, izstopajo in dovolijo ročne posle. Ko glavna kopija utihne, najem v 90 s prevzame druga.
+const INSTANCE = crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2);
+const DEVICE = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? "telefon" : "računalnik";
+async function claimLeader() {
+  if (!db || !remoteUser) {
+    isLeader = true;
+    return;
+  }
+  try {
+    const { data, error } = await db.rpc("memecoin_claim_leader", { p_instance: INSTANCE, p_info: DEVICE });
+    if (error) throw error;
+    isLeader = !!data?.leader;
+    leaderInfo = data?.info || "";
+  } catch {
+    // brez odgovora strežnika ostane zadnje znano stanje
+  }
+  renderBotPill();
+}
+window.addEventListener("pagehide", () => {
+  if (isLeader && db && remoteUser) db.rpc("memecoin_release_leader", { p_instance: INSTANCE }).then(() => {}, () => {});
+});
+setInterval(claimLeader, 20000);
+// Nova različica: zavihek na 2 min preveri version.json in se ob novejši sam osveži (prej osveži še index.html v
+// predpomnilniku, sicer bi GitHub Pages do 10 min vračal staro stran). Največ enkrat na različico na zavihek.
+const APP_VERSION = 47;
+async function checkVersion() {
+  try {
+    const r = await fetch("./version.json?t=" + Date.now(), { cache: "no-store" });
+    const v = Number((await r.json())?.v);
+    if (!(v > APP_VERSION)) return;
+    const k = "sonar-reload-" + v;
+    if (sessionStorage.getItem(k)) return;
+    sessionStorage.setItem(k, "1");
+    await fetch("./", { cache: "reload" }).catch(() => {});
+    location.reload();
+  } catch {}
+}
+setInterval(checkVersion, 120000);
+await claimLeader();
 renderBotPill();
 poll();
 setInterval(poll, 30000);
@@ -1383,9 +1444,15 @@ function renderBotPill() {
   const on = !!$("#auto").checked;
   const p = PROFILES[profile] || PROFILES[DEFAULT_PROFILE];
   const st = stake.toLocaleString("sl-SI", { maximumSignificantDigits: 21, useGrouping: false });
-  txt.textContent = "BOT · " + (on ? "SAMODEJNO" : "ROČNO") + " · " + st + " SOL · " + p.name.toUpperCase();
+  const elsewhere = on && !isLeader;
+  txt.textContent = "BOT · " + (on ? (elsewhere ? "SAMODEJNO DRUGJE" : "SAMODEJNO") : "ROČNO") + " · " + st + " SOL · " + p.name.toUpperCase();
   pill.classList.toggle("off", !on);
-  pill.title = (on ? "Bot sam odpira demo posle." : "Bot ne odpira sam, vstopaš ročno.") + " Klik odpre nastavitve.";
+  pill.title =
+    (on
+      ? elsewhere
+        ? "Bot samodejno vstopa v drugi odprti kopiji Sonarja (" + (leaderInfo || "drug zavihek") + "). Ta zavihek prikazuje, zapira posle in dovoli ročne vstope."
+        : "Bot sam odpira demo posle v tem zavihku."
+      : "Bot ne odpira sam, vstopaš ročno.") + " Klik odpre nastavitve.";
 }
 // Odpiranje in zapiranje panela z nastavitvami. hidden ne da animirati (display:none),
 // zato hidden samo odstranimo, razred .open pa sproži prehod; ob zapiranju hidden vrnemo po prehodu.
@@ -1449,7 +1516,7 @@ function watching() {
   const expanded = new Set([...document.querySelectorAll("#watchCards details[open], #waitCards details[open]")].map((d) => d.dataset.id));
   host.replaceChildren();
   $("#watchStatus").textContent =
-    "Osveženo " + time(Date.now()) + " · zadnji posnetek " + (last ? time(last) : "še čakamo") + " · bot " + ($("#auto").checked ? "vstopa sam" : "ne vstopa sam");
+    "Osveženo " + time(Date.now()) + " · zadnji posnetek " + (last ? time(last) : "še čakamo") + " · bot " + ($("#auto").checked ? (isLeader ? "vstopa sam v tem zavihku" : "vstopa sam v drugi kopiji (" + (leaderInfo || "drug zavihek") + ")") : "ne vstopa sam");
   const collectRow = $("#collectRow"),
     waitCards = $("#waitCards"),
     waitEmpty = $("#waitEmpty");
