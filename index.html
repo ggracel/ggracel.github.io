@@ -316,6 +316,11 @@ body.reveal[data-view="login"] .view[data-view="hub"]{transform:none;filter:none
 .lg-btn[disabled]{opacity:.65;pointer-events:none}
 main{transition:opacity .22s ease}
 body[data-state="boot"] main{opacity:0;pointer-events:none}
+/* sonar brez dostopa: osivljena, neklikljiva kartica */
+.d-mod.locked{filter:grayscale(1);opacity:.42;pointer-events:none;cursor:default}
+.d-mod.locked .b-led i{background:var(--mute)}
+.d-mod.locked .d-go{color:var(--mute)}
+.d-mod.locked .b-scan{display:none}
 </style>
 <script defer src="/track.js?v=2"></script>
 </head>
@@ -387,7 +392,7 @@ body[data-state="boot"] main{opacity:0;pointer-events:none}
             <div class="d-go"><span>Open Ura+</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></div>
           </div>
         </a>
-        <a class="d-mod" href="/sonar">
+        <a class="d-mod" id="modSonar" href="/sonar">
           <span class="b-cor tl"></span><span class="b-cor tr"></span><span class="b-cor bl"></span><span class="b-cor br"></span>
           <span class="b-scan"></span>
           <div class="d-head"><span>MOD <b>SNR-03</b></span><span class="b-led"><i></i>live feed</span></div>
@@ -496,6 +501,20 @@ function showUser(u){
   const name = (u.user_metadata && u.user_metadata.name) || u.email || '';
   document.getElementById('hubName').textContent = name;
   document.getElementById('hubInitial').textContent = (name.trim()[0] || '\u00b7').toUpperCase();
+  checkSonar();
+}
+/* sonar is invite only: grey the card out for accounts that are not on the list */
+async function checkSonar(){
+  const card = document.getElementById('modSonar');
+  if (!card) return;
+  let ok = false;
+  try { const { data, error } = await sb.rpc('has_app_access', { p_app: 'sonar' }); ok = !error && !!data; }
+  catch (e) { ok = false; }
+  card.classList.toggle('locked', !ok);
+  const go = card.querySelector('.d-go span');
+  if (go) go.textContent = ok ? 'Open sonar' : 'Private \u00b7 invite only';
+  if (ok) { card.setAttribute('href', '/sonar'); card.removeAttribute('aria-disabled'); }
+  else { card.removeAttribute('href'); card.setAttribute('aria-disabled', 'true'); }
 }
 function enterHub(animate){
   if (!animate) { view = 'hub'; paint(); return; }

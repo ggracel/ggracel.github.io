@@ -88,7 +88,12 @@ window.memecoinsClient=sb;
 window.memecoinsSession=async()=>{const {data}=await sb.auth.getSession();return data.session;};
 window.memecoinsDenied=async()=>{await sb.auth.signOut();sessionStorage.setItem('memecoins-denied','1');location.reload();};
 function showUser(u){if(!u)return;const name=(u.user_metadata&&u.user_metadata.name)||u.email||'';document.getElementById('userName').textContent=name;document.getElementById('userInitial').textContent=(name.trim()[0]||'?').toUpperCase();document.getElementById('userBadge').hidden=false;}
-async function start(){if(started)return;started=true;gate.hidden=true;document.getElementById('logout').hidden=false;const {data:{user}}=await sb.auth.getUser();showUser(user);await import('./app.mjs?v=45');}
+async function start(){if(started)return;started=true;
+let allowed=false;
+try{const {data,error}=await sb.rpc('has_app_access',{p_app:'sonar'});if(error)throw error;allowed=!!data;}
+catch(e){started=false;gate.hidden=false;say('Preverjanje dostopa ni uspelo. Poskusi znova cez trenutek.','err');return;}
+if(!allowed){await window.memecoinsDenied();return;}
+gate.hidden=true;document.getElementById('logout').hidden=false;const {data:{user}}=await sb.auth.getUser();showUser(user);await import('./app.mjs?v=45');}
 let mode='login';
 function setMode(m){mode=m;document.getElementById('nameField').hidden=m!=='signup';document.getElementById('loginBtn').textContent=m==='signup'?'Ustvari račun':'Prijava';document.getElementById('signupBtn').textContent=m==='signup'?'Že imaš račun? Prijava':'Nimaš računa? Registracija';document.getElementById('loginPass').autocomplete=m==='signup'?'new-password':'current-password';say(m==='signup'?'Vpiši email, geslo (vsaj 6 znakov) in ime, potem klikni Ustvari račun.':'');if(m==='signup')document.getElementById('signupName').focus();}
 const pop=document.getElementById('namePop');
