@@ -7,591 +7,866 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#141112" id="metaTheme">
 <title>Ura+</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23231F20'/><text x='46' y='66' font-size='50' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>U</text><circle cx='76' cy='62' r='9' fill='%2346BEC5'/></svg>">
 <style>
-  :root{
-    color-scheme:dark;
-    --green:#5FC5CC; --green-d:#8FD8DC; --green2:#46BEC5; --green-soft:#20393B;
-    --ink:#F2F0EF; --muted:#A5A0A1; --line:#3A3536; --bg:#1C1919; --card:#262223;
-    --amber:#E2A24E; --red:#f87171;
-    --daybg:#2B2728; --dayfut:#6E6A6B; --planbg:#20393B; --planbd:#2F6D72; --planink:#6FCFD6;
-    --hasbd:#2F6D72; --chipbg:#312D2E; --tealwash:#20393B; --tealbd:#2F6D72;
-    --ring-a:#46BEC5; --ring-b:#2F6D72; --ring-t:#3A3536;
-    --hdr1:#141112; --hdr2:#262223;
-    --hm0:#2B2728; --hm1:#25494C; --hm2:#2F6D72; --hm3:#46BEC5; --hm4:#8FD8DC;
-    --shadow:0 1px 3px rgba(0,0,0,.35); --shadow2:0 10px 30px rgba(0,0,0,.45);
-  }
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{margin:0;padding:0}
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:var(--bg);color:var(--ink);line-height:1.45;-webkit-font-smoothing:antialiased;
-    padding-bottom:env(safe-area-inset-bottom)}
-  .app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);box-shadow:0 0 40px rgba(15,23,42,.08)}
-  .hdr{background:linear-gradient(150deg,var(--hdr1),var(--hdr2));color:#fff;
-    padding:calc(14px + env(safe-area-inset-top)) 18px 60px;border-radius:0 0 30px 30px;position:relative}
-  .hdr-top{display:flex;align-items:center;justify-content:space-between}
-  .logo{font-weight:800;font-size:19px;letter-spacing:.3px}
-  .logo small{font-weight:600;opacity:.75;font-size:11px;display:block;letter-spacing:.6px;text-transform:uppercase}
-  .icon-btn{background:rgba(255,255,255,.16);border:none;color:#fff;width:38px;height:38px;
-    border-radius:12px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-  .streakb{background:rgba(255,255,255,.14);padding:7px 13px;border-radius:999px;font-size:13px;font-weight:700}
-  .timerb{background:rgba(70,190,197,.22);border:1px solid rgba(70,190,197,.55);padding:7px 12px;border-radius:999px;
-    font-size:12.5px;font-weight:700;cursor:pointer;font-variant-numeric:tabular-nums}
-  .mo-nav{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:14px}
-  .mo-nav > button{background:rgba(255,255,255,.14);border:none;color:#fff;width:34px;height:34px;border-radius:10px;font-size:16px;cursor:pointer}
-  .mo-nav .mo{font-size:15px;font-weight:700;flex:1;max-width:150px;min-width:0;text-align:center;text-transform:capitalize;white-space:nowrap;overflow:hidden}
-  .viewt{display:flex;gap:2px;background:rgba(255,255,255,.12);border-radius:11px;padding:3px;margin-left:4px;flex:none}
-  .viewt button{flex:none;background:transparent;border:none;color:#fff;font-size:10.5px;font-weight:700;padding:5px 10px;letter-spacing:.02em;border-radius:8px;cursor:pointer;opacity:.7;white-space:nowrap}
-  .viewt button.on{background:rgba(255,255,255,.92);color:#231F20;opacity:1}
+/* ================= foqs zetoni (isti kot hub) ================= */
+:root{
+  color-scheme:dark;
+  --ink:#141112; --ink2:#1a1617; --ink3:#211d1e; --ink4:#2a2526;
+  --line:#322c2d; --line2:#453e3f;
+  --fg:#f4f2f2; --mute:#8b8586; --dim:#5f5859;
+  --teal:#46BEC5; --teal-d:#2ea4ab; --teal-l:#A6E9EC; --teal-w:rgba(70,190,197,.13); --teal-dd:#1d4f53;
+  --warn:#e8b463; --warn-w:rgba(232,180,99,.12); --bad:#ee8a7e; --bad-w:rgba(238,138,126,.12);
+  --page:#0c0a0b;
+  /* zdruzljivost s starimi imeni iz zive aplikacije */
+  --green:#46BEC5; --amber:#e8b463; --muted:#8b8586; --chipbg:#241f20;
+  --poppins:Poppins,"Segoe UI",system-ui,sans-serif;
+  --inter:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+html{height:100%;box-sizing:border-box;background:var(--page)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;height:100%;background:var(--page);color:var(--fg);font-family:var(--inter);-webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
+button{font:inherit;color:inherit;-webkit-tap-highlight-color:transparent}
+button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+[hidden]{display:none!important}
 
-  @media(max-width:389px){
-    .mo-nav > button{width:29px;height:29px;font-size:14px}
-    .mo-nav .mo{font-size:13.5px}
-    .logo{font-size:17px}
-  }
-  /* day (ritual) card */
-  .daycard{margin:-44px 16px 0;background:var(--card);border-radius:20px;padding:14px 16px;box-shadow:var(--shadow2);position:relative;z-index:3}
-  .daycard .dtit{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--green)}
-  .daycard .dmsg{font-size:15px;font-weight:700;margin:3px 0 10px}
-  .daycard .dmsg small{display:block;font-weight:500;color:var(--muted);font-size:12.5px;margin-top:1px}
-  .drow{display:flex;gap:8px}
-  .dbtn{flex:1;border:none;border-radius:12px;padding:11px 6px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit}
-  .dbtn.p{background:var(--green2);color:#141112}
-  .dbtn.s{background:var(--chipbg);color:var(--ink)}
-  .dbtn.g{background:var(--ink);color:var(--bg)}
-  .dchip{font-size:11.5px;color:var(--muted);margin-top:9px}
-  .dchip b{color:var(--green)}
 
-  .ring-card{background:var(--card);margin:12px 16px 0;border-radius:22px;padding:20px 18px 14px;box-shadow:var(--shadow2);position:relative;z-index:2}
-  .ring-flex{display:flex;align-items:center;gap:18px}
-  .ring{width:138px;height:138px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center}
-  .ring .in{width:106px;height:106px;background:var(--card);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 6px}
-  .ring .in b{font-size:20px;line-height:1.08;font-variant-numeric:tabular-nums;letter-spacing:-.01em;white-space:nowrap}
-  .ring .in small{color:var(--muted);font-size:10px;line-height:1.25;margin-top:2px;white-space:nowrap}
-  .ring .in .pct{color:var(--green);font-weight:800;font-size:11.5px;line-height:1.2;margin-top:3px;white-space:nowrap}
-  .ring-side{flex:1;min-width:0}
-  .ks{padding:5px 0;border-bottom:1px dashed var(--line)}
-  .ks:last-child{border-bottom:none}
-  .ks small{display:block;color:var(--muted);font-size:11px}
-  .ks b{font-size:13.5px;line-height:1.35}
-  .ks b.g{color:var(--green)}
-  .neto{font-size:11.5px;color:var(--muted);text-align:center;margin-top:6px}
-  .reward{margin-top:12px;background:var(--tealwash);border:1px solid var(--tealbd);border-radius:12px;padding:8px 12px;font-size:13px;display:none}
-  .reward.on{display:block}
-  .reward .bar{height:6px;background:var(--line);border-radius:99px;margin-top:6px;overflow:hidden}
-  .reward .bar i{display:block;height:100%;background:var(--green2);border-radius:99px;transition:width .4s}
-  .goal-hit{margin-top:12px;background:linear-gradient(135deg,#231F20,#2C9AA1);color:#fff;border-radius:12px;padding:10px 12px;font-size:13.5px;font-weight:700;text-align:center;display:none;animation:pop .5s}
-  .goal-hit.on{display:block}
-  @keyframes pop{0%{transform:scale(.85);opacity:0}100%{transform:scale(1);opacity:1}}
-  .pacechip{margin-top:12px;border-radius:12px;padding:9px 12px;font-size:13px;font-weight:600;display:none}
-  .pacechip.on{display:block}
-  .pc-ok{background:var(--tealwash);color:var(--green-d);border:1px solid var(--tealbd)}
-  .pc-warn{background:rgba(217,119,6,.12);color:var(--amber);border:1px solid rgba(217,119,6,.35)}
+html{height:100%;box-sizing:border-box;background:var(--ink);overflow:hidden}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;height:100%;background:var(--ink);color:var(--fg);font-family:var(--inter);
+  -webkit-font-smoothing:antialiased;overscroll-behavior:none}
+button{font:inherit;color:inherit;-webkit-tap-highlight-color:transparent}
+button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+[hidden]{display:none!important}
+.app{position:fixed;inset:0;overflow:hidden;isolation:isolate;background:var(--ink)}
+.scr{height:100%;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;position:relative;z-index:2;background:var(--ink)}
+.scr::-webkit-scrollbar{display:none}
+.app .hdr{padding-top:calc(12px + env(safe-area-inset-top,0px))}
+.app .fab{bottom:calc(18px + env(safe-area-inset-bottom,0px))}
+.app .sheet{padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+/* ================= skupne komponente aplikacije ================= */
+.app{background:var(--ink);color:var(--fg);font-family:var(--inter)}
+.ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic .f{fill:currentColor;stroke:none}
+.hdr{position:sticky;top:0;z-index:5;transition:box-shadow .3s,border-color .3s}
+.top{display:flex;align-items:center;justify-content:space-between}
+.logo{line-height:1.05}
+.logo .w{font-family:var(--poppins);font-weight:700;font-size:23px;letter-spacing:-.01em}
+.logo .w i{font-style:normal;color:var(--teal)}
+.logo small{display:block;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute);font-weight:600;margin-top:1px}
+.act{display:flex;align-items:center;gap:8px}
+.av,.ico{width:36px;height:36px;display:grid;place-items:center;cursor:pointer;border:none}
+.timer{display:flex;align-items:center;gap:7px;height:32px;padding:0 12px;cursor:pointer;font-variant-numeric:tabular-nums}
+.tdot{width:7px;height:7px;border-radius:50%;background:var(--teal)}
+.nav{display:flex;align-items:center;gap:6px;margin-top:12px}
+.navb{width:34px;height:34px;display:grid;place-items:center;cursor:pointer;border:none}
+.mo{flex:1;text-align:center;font-weight:600;white-space:nowrap;overflow:hidden}
+.mo span{display:inline-block}
+.mo.swap span{animation:moSwap .35s cubic-bezier(.2,.8,.2,1)}
+@keyframes moSwap{from{opacity:0;transform:translateY(8px)}}
+.seg{position:relative;display:flex;flex:none}
+.seg button{position:relative;z-index:1;flex:1;min-width:58px;border:none;background:none;cursor:pointer;transition:color .25s}
+.seg-ind{position:absolute;top:3px;bottom:3px;left:3px;width:calc(50% - 3px);transition:transform .4s cubic-bezier(.3,1.25,.5,1)}
+.seg[data-on="1"] .seg-ind{transform:translateX(100%)}
 
-  .strip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 16px 0}
-  .tile{background:var(--card);border-radius:14px;padding:10px 8px;text-align:center;box-shadow:var(--shadow)}
-  .tile small{display:block;color:var(--muted);font-size:10px;letter-spacing:.3px;text-transform:uppercase;font-weight:600}
-  .tile b{font-size:12.5px;line-height:1.35;font-variant-numeric:tabular-nums;display:block;padding:0 2px}
+.content{display:flex;flex-direction:column}
+.card{position:relative}
+.rowhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:12px}
+.rowhead h3{margin:0}
+.tmsg b{display:block}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.row2 > [hidden] + .btn{grid-column:1 / -1}
+.row3{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;margin-top:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;white-space:nowrap;transition:transform .15s,background .2s}
+.btn:active{transform:scale(.97)}
+.btn.wide{width:100%}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.stat{min-width:0}
+.stat small,.stat b,.stat em{display:block}
+.stat em{font-style:normal}
+.pace{display:flex;gap:8px;align-items:flex-start}
+.xrow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.wbars{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;align-items:end}
+.wb{display:flex;flex-direction:column;align-items:center;gap:6px;height:100%}
+.minis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.minis small,.minis b{display:block}
+.track{position:relative}
+.tfill{position:absolute;left:0;top:0;bottom:0;width:var(--w,0%);transition:width 1.3s cubic-bezier(.22,1,.36,1)}
+.node{position:absolute;top:50%}
+.tlabels{position:relative;height:16px}
+.tlabels span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.dow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center;margin-bottom:8px}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.day{position:relative;display:flex;flex-direction:column;border:none;cursor:pointer;padding:0;overflow:hidden;min-width:0}
+.day.blank{background:none!important;border:none!important;pointer-events:none}
+.day .dn,.day .dh{position:relative;z-index:1}
+.day .fill{position:absolute;pointer-events:none}
+.grid.anim .day{animation:cellIn .45s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i)*9ms)}
+.grid.anim.sl .day{animation-name:cellL}
+.grid.anim.sr .day{animation-name:cellR}
+@keyframes cellIn{from{opacity:0;transform:translateY(8px) scale(.96)}}
+@keyframes cellL{from{opacity:0;transform:translateX(22px)}}
+@keyframes cellR{from{opacity:0;transform:translateX(-22px)}}
+.day.pop{animation:dayPop .5s cubic-bezier(.3,1.4,.5,1)}
+@keyframes dayPop{0%{transform:scale(.86)}100%{transform:scale(1)}}
+.calfoot{display:flex;justify-content:space-between;align-items:baseline}
+.wkrow{display:grid;grid-template-columns:54px 1fr 64px;align-items:center;gap:10px}
+.wkbar{overflow:hidden}
+.wkbar i{display:block;height:100%;width:var(--w,0%);transition:width .9s cubic-bezier(.22,1,.36,1)}
+.wkrow b{text-align:right}
+.ynav{display:flex;justify-content:center;align-items:center;gap:14px;margin-bottom:12px}
+.hmwrap{overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
+.hmwrap::-webkit-scrollbar{display:none}
+.hm{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,9px);gap:3px;width:max-content}
+.hm i{width:9px;height:9px;animation:cellIn .45s both;animation-delay:calc(var(--i)*5ms)}
+.hmleg{display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:10px}
+.hm.hmleg{grid-template-rows:none;width:auto}
+.hm.hmleg i{animation:none}
+.hmleg i{width:9px;height:9px;display:inline-block}
+.mbars{display:flex;align-items:flex-end;gap:6px;height:130px}
+.mb{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;height:100%}
+.mb i{display:block;width:100%;height:var(--h,3px);min-height:3px;transition:height 1s cubic-bezier(.22,1,.36,1)}
+.arow{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.arow small,.arow b{display:block}
+.arow .r{text-align:right}
+.foot{display:flex;flex-direction:column;align-items:center;gap:6px;padding:22px 0 110px}
+.foot .sync{display:flex;align-items:center;gap:6px}
+.foot .sync .ic{width:14px;height:14px}
+.pw b{color:var(--teal)}
+.fab{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:8px;cursor:pointer;white-space:nowrap;transition:transform .2s,opacity .25s}
+.fab:active{transform:translateX(-50%) scale(.96)}
+.float{position:absolute;left:50%;top:44%;z-index:4;pointer-events:none;white-space:nowrap;animation:floatUp 1.05s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes floatUp{0%{opacity:0;transform:translate(-50%,10px)}18%{opacity:1}100%{opacity:0;transform:translate(-50%,-52px)}}
+.ovl{position:absolute;inset:0;z-index:20;display:flex;align-items:flex-end;background:rgba(6,5,5,.6);opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s}
+.ovl.on{opacity:1;visibility:visible}
+.sheet{width:100%;max-height:90%;overflow-y:auto;transform:translateY(100%);transition:transform .5s cubic-bezier(.2,1.12,.3,1)}
+.ovl.on .sheet{transform:none}
+.sheet h2{margin:0}
+.sheet label{display:block}
+.sheet input{display:block;width:100%;margin-top:6px}
+.fld2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.toast{position:absolute;left:50%;bottom:84px;z-index:30;transform:translate(-50%,16px);opacity:0;pointer-events:none;white-space:nowrap;transition:opacity .3s,transform .4s cubic-bezier(.2,1.2,.3,1)}
+.toast.on{opacity:1;transform:translate(-50%,0)}
 
-  .ach{background:var(--card);margin:12px 16px 0;border-radius:16px;padding:12px 14px;box-shadow:var(--shadow)}
-  .ach .at{font-size:10px;letter-spacing:.5px;text-transform:uppercase;font-weight:700;color:var(--muted);margin-bottom:8px}
-  .xrow{display:flex;gap:8px}
-  .xc{flex:1;background:var(--bg);border-radius:10px;padding:9px 6px;text-align:center}
-  .xc small{display:block;color:var(--muted);font-size:10px;font-weight:700;margin-bottom:2px}
-  .xc b{color:var(--green);font-size:14px}
-  .bdgs{display:flex;justify-content:space-between;gap:4px}
-  .bdg{display:flex;flex-direction:column;align-items:center;gap:1px;flex:1;min-width:0}
-  .bdg .bi{font-size:19px;line-height:1.2}
-  .bdg .bl{font-size:8.5px;color:var(--muted);font-weight:700;white-space:nowrap}
-  .bdg.lock{opacity:.28;filter:grayscale(1)}
-  .recrow{margin-top:10px;padding-top:8px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--muted)}
-  .recrow b{color:var(--ink)}
+/* ============================================================
+   C · TEMPO  (moj predlog: krivulja zasluzka, tipografija, obcutek)
+   ============================================================ */
+.app{--c1:#1b1718;--c2:#241f20;--c3:#2e2829;font-family:var(--inter)}
+.app .hdr{padding:12px 18px 10px;background:rgba(20,17,18,.8);-webkit-backdrop-filter:blur(18px) saturate(1.3);backdrop-filter:blur(18px) saturate(1.3);border-bottom:1px solid transparent;transition:border-color .3s,opacity .5s}
+.app.booting .hdr{opacity:0}
+.app:not(.logo-in) .hdr .logo .w{visibility:hidden}
+.app .c-dotg circle{transform-box:fill-box;transform-origin:center}
+.app .hdr.sc{border-color:var(--line)}
+.app .av{width:34px;height:34px;border-radius:50%;background:var(--c2);color:var(--fg);font-family:var(--poppins);font-weight:600;font-size:13px;box-shadow:inset 0 0 0 1.5px var(--teal)}
+.app .ico{width:34px;height:34px;border-radius:50%;background:var(--c2);color:var(--fg)}
+.app .timer{height:30px;border-radius:99px;background:var(--teal);color:var(--ink);font-family:var(--poppins);font-weight:600;font-size:12.5px}
+.app .tdot{background:var(--ink)}
+.app .navb{border-radius:50%;background:transparent;color:var(--mute);width:32px;height:32px;transition:background .2s,color .2s}
+.app .navb:active{background:var(--c2);color:var(--fg)}
+.app .mo{font-family:var(--poppins);font-size:17px;text-transform:capitalize}
+.app .mo .yr{color:var(--mute);font-weight:500}
+.app .seg{background:var(--c2);border-radius:99px;padding:3px}
+.app .seg button{font-size:12px;font-weight:600;color:var(--mute);padding:6px 10px}
+.app .seg button.on{color:var(--ink)}
+.app .seg-ind{border-radius:99px;background:var(--fg)}
 
-  .cal-card{background:var(--card);margin:12px 16px;border-radius:20px;padding:14px 12px 12px;box-shadow:var(--shadow)}
-  .dow{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;color:var(--muted);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
-  .dow .we{color:var(--green2)}
-  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-  .day{aspect-ratio:.82;border-radius:12px;border:1px solid transparent;background:var(--daybg);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:13px;transition:transform .08s}
-  .day:active{transform:scale(.93)}
-  .day.blank{background:transparent;cursor:default}
-  .day .dn{font-weight:600;color:var(--ink)}
-  .day .hh{font-size:9.5px;font-weight:800;color:var(--green);line-height:1.1}
-  .day .ee{font-size:8.5px;color:var(--muted);line-height:1.1}
-  .day.has{background:var(--green-soft);border-color:var(--hasbd)}
-  .day.plan{background:var(--planbg);border:1.5px dashed var(--planbd)}
-  .day.plan .hh{color:var(--planink)}
-  .day.wait{background:var(--planbg);border:1.5px solid var(--amber)}
-  .day.today{border:2px solid var(--green);font-weight:800}
-  .day.future .dn{color:var(--dayfut)}
-  .cal-sum{display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
-  .cal-sum b{color:var(--ink)}
-  .wchart{display:flex;gap:8px;align-items:flex-end;height:118px;padding-top:16px}
-  .wcol{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0}
-  .wval{font-size:9px;color:var(--muted);margin-bottom:3px;font-weight:700;white-space:nowrap}
-  .wbar{width:100%;max-width:46px;border-radius:7px 7px 0 0;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
-  .wa{background:var(--ring-a)} .wp{background:var(--ring-b)}
-  .wlab{font-size:9px;color:var(--muted);margin-top:5px;white-space:nowrap}
-  .wempty{color:var(--muted);font-size:12.5px;text-align:center;padding:18px 0}
+.app .content{gap:0;padding:0}
+.app .sec{position:relative;padding:22px 18px;border-top:1px solid var(--line)}
+.app .content>.sec{animation:riseC .75s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--k)*90ms + 120ms)}
+@keyframes riseC{from{opacity:0;transform:translateY(18px)}}
+.app .content.slide-l>.sec{animation:slideCL .5s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--k)*40ms)}
+.app .content.slide-r>.sec{animation:slideCR .5s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--k)*40ms)}
+@keyframes slideCL{from{opacity:0;transform:translateX(34px)}}
+@keyframes slideCR{from{opacity:0;transform:translateX(-34px)}}
+.app .rowhead h3{font-family:var(--poppins);font-size:17px;font-weight:600;letter-spacing:-.01em}
+.app .rowhead span{font-size:13px;color:var(--mute);font-variant-numeric:tabular-nums}
+.app .tap{transition:transform .18s cubic-bezier(.3,1.4,.5,1)}
+.app .tap:active{transform:scale(.94)}
 
-  /* year view */
-  #yearView{display:none}
-  .ynav{display:flex;align-items:center;justify-content:center;gap:10px;margin:14px 0 2px}
-  .ynav button{background:var(--chipbg);border:none;color:var(--ink);width:32px;height:32px;border-radius:10px;font-size:15px;cursor:pointer}
-  .ynav b{font-size:16px}
-  .hmwrap{overflow-x:auto;padding-bottom:4px}
-  .hmgrid{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,10px);gap:2px;width:max-content}
-  .hmc{width:10px;height:10px;border-radius:2px;background:var(--hm0)}
-  .hmleg{display:flex;align-items:center;gap:4px;justify-content:flex-end;font-size:9.5px;color:var(--muted);margin-top:8px}
-  .hmleg i{width:10px;height:10px;border-radius:2px;display:inline-block}
-  .report{background:var(--tealwash);border:1px solid var(--tealbd);border-radius:14px;padding:12px 14px;font-size:13px;margin:12px 16px 0}
-  .report b{color:var(--green-d)}
-  .arch{display:grid;gap:8px;margin-top:10px}
-  .arow{background:var(--bg);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center}
-  .arow .an b{font-size:14px;text-transform:capitalize}
-  .arow .an small{display:block;color:var(--muted);font-size:11px}
-  .arow .av{text-align:right}
-  .arow .av b{color:var(--green);font-size:14px;font-variant-numeric:tabular-nums}
-  .arow .av small{display:block;font-size:10px;color:var(--muted)}
+/* hero */
+.app .chero{border-top:none;padding-top:18px;background:radial-gradient(130% 80% at 50% -12%,rgba(70,190,197,.17),rgba(70,190,197,0) 62%)}
+.app .ctop{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.app .clab{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);font-weight:600}
+.app .big{font-family:var(--poppins);font-size:46px;font-weight:600;letter-spacing:-.035em;line-height:1.05;margin-top:6px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.app .big .dec{font-size:24px;color:var(--mute);letter-spacing:-.01em}
+.app .pctp{flex:none;font-family:var(--poppins);font-weight:600;font-size:13px;color:var(--ink);background:var(--teal);padding:6px 12px;border-radius:99px;margin-bottom:9px;font-variant-numeric:tabular-nums;transition:transform .3s}
+.app .csub{font-size:13.5px;color:var(--mute);margin-top:6px}
+.app .csub b{color:var(--fg);font-weight:600}
+.app .reward{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:12px;color:var(--mute);background:var(--c2);padding:5px 10px;border-radius:99px}
+.app .reward b{color:var(--fg);font-weight:600}
+.app .chart{position:relative;margin:18px -2px 0;height:176px;touch-action:pan-y;cursor:crosshair;-webkit-user-select:none;user-select:none}
+.app .chart svg{display:block;width:100%;height:150px;overflow:visible}
+.app .c-base{stroke:var(--line);stroke-width:1}
+.app .c-today{stroke:var(--line2);stroke-width:1;stroke-dasharray:2 3}
+.app .c-goal{stroke:var(--fg);stroke-opacity:.38;stroke-width:1;stroke-dasharray:3 4;transition:stroke .4s,stroke-opacity .4s}
+.app .hero-hit .c-goal{stroke:var(--teal);stroke-opacity:1}
+.app .c-pace{fill:none;stroke:var(--fg);stroke-opacity:.12;stroke-width:1}
+.app .c-area{fill:url(#gC);transition:opacity 1s}
+.app .c-line{fill:none;stroke:var(--teal);stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
+.app .c-plan{fill:none;stroke:var(--teal-l);stroke-opacity:.6;stroke-width:2;stroke-dasharray:1.5 5;stroke-linecap:round;transition:opacity .6s}
+.app .c-proj{fill:none;stroke:var(--fg);stroke-opacity:.5;stroke-width:1.5;stroke-dasharray:1 5;stroke-linecap:round;transition:opacity .6s}
+.app .c-lab{font-family:var(--inter);font-size:10px;fill:var(--mute);font-weight:500}
+.app .c-lab.pj{fill:var(--fg)}
+.app .c-dotg circle{transition:transform .5s cubic-bezier(.3,1.5,.5,1)}
+.app .c-dot{fill:var(--teal)}
+.app .c-dot2{fill:none;stroke:var(--teal);stroke-opacity:.3;stroke-width:6}
+.app .c-dot3{fill:var(--ink)}
+.app .c-dotg.off circle{transform:scale(0)}
+.app .c-scrubl{stroke:var(--fg);stroke-opacity:.45;stroke-width:1;opacity:0;transition:opacity .2s}
+.app .c-x{display:flex;justify-content:space-between;font-size:10.5px;color:var(--mute);margin-top:8px;font-variant-numeric:tabular-nums}
+.app .c-tip{position:absolute;top:0;left:0;z-index:3;transform:translate(-50%,calc(-100% - 12px));background:var(--fg);color:var(--ink);font-size:12px;padding:6px 9px;border-radius:10px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .2s;font-variant-numeric:tabular-nums}
+.app .c-tip.on{opacity:1}
+.app .c-tip b{font-weight:700}
+.app .c-tip em{font-style:normal;color:var(--teal-d);font-weight:600}
+.app .burst{position:absolute;inset:-20px;width:calc(100% + 40px);height:calc(100% + 40px);pointer-events:none;z-index:4}
+.app .float{top:22%;font-family:var(--poppins);font-weight:600;font-size:18px;color:var(--teal)}
+.app .boost{margin-top:14px;padding:14px 14px 12px;border-radius:18px;background:var(--c1);transition:box-shadow .4s}
+.app .boost.good{box-shadow:inset 0 0 0 1px rgba(70,190,197,.55)}
+.app .boost-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.app .boost-top small{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--mute);font-weight:600;white-space:nowrap}
+.app .boost-top span{font-family:var(--poppins);font-weight:600;font-size:13px;color:var(--teal);white-space:nowrap;margin-left:auto}
+.app .boost-res{font-size:13px;color:var(--mute);margin-top:8px}
+.app .boost-res b{color:var(--fg);font-family:var(--poppins);font-weight:600}
+.app .boost.good .boost-res b{color:var(--teal)}
+.app input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;margin:8px 0 0;background:transparent;cursor:pointer;--p:0%}
+.app input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:99px;background:linear-gradient(90deg,var(--teal) var(--p),var(--c3) var(--p))}
+.app input[type=range]::-moz-range-track{height:6px;border-radius:99px;background:linear-gradient(90deg,var(--teal) var(--p),var(--c3) var(--p))}
+.app input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;margin-top:-9px;border-radius:50%;background:var(--fg);box-shadow:0 0 0 4px rgba(70,190,197,.35),0 4px 10px rgba(0,0,0,.4);transition:transform .15s}
+.app input[type=range]:active::-webkit-slider-thumb{transform:scale(1.15)}
+.app input[type=range]::-moz-range-thumb{width:24px;height:24px;border:none;border-radius:50%;background:var(--fg);box-shadow:0 0 0 4px rgba(70,190,197,.35)}
 
-  .fab{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);
-    background:var(--ink);color:var(--bg);border:none;border-radius:999px;padding:14px 26px;font-size:15px;font-weight:700;
-    box-shadow:0 10px 24px rgba(20,17,18,.38);cursor:pointer;z-index:5;white-space:nowrap}
-  .fab .plus{color:#46BEC5;font-weight:800}
-  .spacer{height:90px}
-  .syncline{text-align:center;font-size:10.5px;color:var(--muted);padding:0 0 4px}
-  .powered{text-align:center;padding:2px 0 4px;font-size:10.5px;letter-spacing:.6px;color:var(--muted);opacity:.75;font-weight:600}
-  .powered span{color:#46BEC5}
-  .ovl{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:10;display:none;align-items:flex-end;justify-content:center}
-  .ovl.on{display:flex}
-  .sheet{background:var(--card);width:100%;max-width:480px;border-radius:24px 24px 0 0;padding:18px 18px calc(22px + env(safe-area-inset-bottom));
-    animation:up .22s ease-out;max-height:88vh;overflow:auto;color:var(--ink)}
-  @keyframes up{from{transform:translateY(40px);opacity:.5}to{transform:translateY(0);opacity:1}}
-  .sheet h3{margin:0 0 2px;font-size:18px}
-  .sheet .sub{color:var(--muted);font-size:13px;margin:0 0 14px}
-  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
-  .chip{border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:10px 0;font-size:15px;font-weight:700;cursor:pointer;flex:1 1 28%;text-align:center;min-width:70px}
-  .chip small{display:block;font-weight:600;color:var(--muted);font-size:10.5px}
-  .chip.sel{border-color:var(--green2);background:var(--green-soft);color:var(--green-d)}
-  .mtabs{display:flex;gap:6px;background:var(--chipbg);border-radius:12px;padding:4px;margin:4px 0 2px}
-  .mt{flex:1;border:none;background:transparent;border-radius:9px;padding:9px 0;font-size:13.5px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit}
-  .mt.sel{background:var(--card);color:var(--green-d);box-shadow:0 1px 3px rgba(15,23,42,.12)}
-  label{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin:12px 0 4px;letter-spacing:.2px}
-  input[type=number],input[type=text],input[type=time],select{width:100%;border:1.5px solid var(--line);border-radius:12px;
-    padding:12px;font-size:16px;font-family:inherit;background:var(--card);color:var(--ink);-webkit-appearance:none;appearance:none}
-  input:focus,select:focus{outline:none;border-color:var(--green2)}
-  .row2{display:flex;gap:10px}
-  .row2>*{flex:1}
-  .btn{width:100%;border:none;border-radius:14px;padding:14px;font-size:15.5px;font-weight:700;cursor:pointer;margin-top:14px;font-family:inherit}
-  .btn.p{background:var(--green2);color:#141112}
-  .btn.s{background:var(--chipbg);color:var(--ink);margin-top:8px}
-  .btn.d{background:rgba(220,38,38,.1);color:var(--red);margin-top:8px}
-  .live-calc{background:var(--tealwash);border-radius:12px;padding:10px 12px;font-size:13.5px;margin-top:12px;color:var(--green-d);text-align:center;font-weight:600}
-  .set-sec{border-top:1px solid var(--line);margin-top:16px;padding-top:12px}
-  .set-sec h4{margin:0 0 2px;font-size:14px}
-  .set-sec p{margin:0 0 8px;color:var(--muted);font-size:12.5px}
-  .seg{display:flex;gap:6px;background:var(--chipbg);border-radius:12px;padding:4px}
-  .seg button{flex:1;border:none;background:transparent;border-radius:9px;padding:9px 0;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit}
-  .seg button.sel{background:var(--card);color:var(--green-d);box-shadow:0 1px 3px rgba(15,23,42,.12)}
-  .acct{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--bg)}
-  .acct .who{display:flex;align-items:center;gap:10px}
-  .acct .av{width:36px;height:36px;border-radius:50%;background:var(--green2);color:#141112;font-weight:800;
-    display:flex;align-items:center;justify-content:center;font-size:15px;flex:none}
-  .acct .who b{font-size:14px;display:block;line-height:1.25;word-break:break-all}
-  .acct .who small{color:var(--muted);font-size:11.5px}
-  .acct .sso{margin-top:9px;font-size:11.5px;color:var(--green-d);background:var(--tealwash);
-    border:1px solid var(--tealbd);border-radius:10px;padding:7px 10px}
-  .acctb{background:rgba(255,255,255,.14);border:none;color:#fff;height:38px;min-width:38px;padding:0 10px;
-    border-radius:12px;font-size:12.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px}
-  .acctb .av{width:22px;height:22px;border-radius:50%;background:var(--green2);color:#141112;
-    display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}
-  .loglist{font-size:11.5px;color:var(--muted);max-height:140px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:none}
-  .loglist div{padding:2px 0;border-bottom:1px dashed var(--line)}
-  .loglist div:last-child{border-bottom:none}
-  .toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:#231F20;color:#fff;
-    padding:10px 18px;border-radius:12px;font-size:14px;z-index:50;display:none;box-shadow:0 8px 20px rgba(0,0,0,.25);max-width:90vw}
-  .toast button{background:none;border:none;color:#46BEC5;font-weight:800;font-size:14px;margin-left:12px;cursor:pointer;font-family:inherit}
-  .warn{display:none;margin:10px 16px 0;background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.4);color:var(--amber);border-radius:12px;padding:10px 12px;font-size:12.5px}
+/* danes */
+.app .trow{display:flex;align-items:center;gap:14px}
+.app .trow .tmsg{flex:1;min-width:0}
+.app .tmsg small{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);font-weight:700}
+.app .tmsg b{font-family:var(--poppins);font-size:20px;font-weight:600;letter-spacing:-.01em;margin-top:4px}
+.app .tmsg span{font-size:13px;color:var(--mute)}
+.app .plusbtn{flex:none;width:62px;height:62px;border-radius:50%;border:none;background:var(--teal);color:var(--ink);display:grid;place-items:center;cursor:pointer;box-shadow:0 12px 28px rgba(70,190,197,.25)}
+.app .plusbtn .ic{width:26px;height:26px;stroke-width:2.4}
+.app .tlive{font-family:var(--poppins);font-size:38px;font-weight:600;letter-spacing:-.02em;margin-top:12px;font-variant-numeric:tabular-nums}
+.app .tlive small{font-family:var(--inter);font-size:12px;color:var(--mute);font-weight:500;letter-spacing:0;margin-left:8px}
+.app .tchips{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.app .tchip{height:38px;padding:0 14px;border-radius:99px;border:none;background:var(--c2);color:var(--fg);font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:7px;cursor:pointer}
+.app .tchip .ic{width:15px;height:15px}
+.app .tchip.run{background:var(--teal-w);color:var(--teal)}
 
-  /* ================= postavitev: mobile stolpec + namizna nadzorna plosca ================= */
-  .hdr-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap}
+/* stevilke */
+.app .stats{gap:18px 16px}
+.app .stat small{font-size:12px;color:var(--mute)}
+.app .stat b{font-family:var(--poppins);font-size:21px;font-weight:600;margin-top:2px;letter-spacing:-.01em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.app #kPlanRow,.app #kCmpRow{grid-column:1/-1}
+.app #kPlanRow b,.app #kCmpRow b,.app #kLeft{white-space:normal;font-size:18px}
+.app .stat em{font-size:12px;color:var(--mute);margin-top:1px}
+.app .tl{color:var(--teal)}
+.app .pace{margin-top:16px;font-size:13px;line-height:1.45;color:var(--mute)}
+.app .pace .ic{width:16px;height:16px;margin-top:1px}
+.app .pace.warn .ic{color:var(--warn)}
+.app .pace.ok .ic{color:var(--teal)}
+
+/* teden */
+.app .wbars{height:118px;gap:0}
+.app .wv{font-family:var(--poppins);font-size:10.5px;color:var(--mute);height:14px;font-variant-numeric:tabular-nums}
+.app .wt{flex:1;width:12px;border-radius:99px;background:var(--c2);display:flex;align-items:flex-end;overflow:hidden}
+.app .wt i{display:block;width:100%;height:var(--h,0%);border-radius:99px;background:var(--teal);transition:height .9s cubic-bezier(.22,1,.36,1)}
+.app .wb.plan .wt i{background:rgba(166,233,236,.3)}
+.app .wb small{font-size:11px;color:var(--mute)}
+.app .wb.today small{color:var(--fg);font-weight:700}
+.app .wb.today .wt{box-shadow:0 0 0 2px var(--ink),0 0 0 3.5px var(--teal)}
+.app .minis{margin-top:18px}
+.app .minis small{font-size:12px;color:var(--mute)}
+.app .minis b{font-family:var(--poppins);font-size:17px;font-weight:600;margin-top:1px;font-variant-numeric:tabular-nums}
+
+/* dosezki */
+.app .mnext{font-size:13px;color:var(--mute);margin:-4px 0 18px}
+.app .mnext b{color:var(--fg);font-weight:600}
+.app .track{height:4px;background:var(--c2);border-radius:99px;margin:0 18px}
+.app .tfill{border-radius:99px;background:var(--teal)}
+.app .node{width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--ink);border:2px solid var(--c3);transition:background .4s,border-color .4s;transition-delay:.6s}
+.app .node.got{background:var(--teal);border-color:var(--teal)}
+.app .node.nx{border-color:var(--fg)}
+.app .tlabels{margin:10px 18px 16px}
+.app .tlabels span{font-family:var(--poppins);font-size:10.5px;color:var(--mute)}
+.app .tlabels span.nx{color:var(--fg);font-weight:600}
+.app .best{font-size:13px;color:var(--mute)}
+.app .best b{color:var(--fg);font-weight:600}
+
+/* koledar */
+.app .dow{font-size:11px;color:var(--mute);font-weight:600}
+.app .dow .we{color:var(--teal)}
+.app .grid{gap:5px}
+.app .day{aspect-ratio:1/1.02;border-radius:12px;background:var(--c1);color:var(--fg);align-items:center;justify-content:center;gap:3px;transition:transform .18s cubic-bezier(.3,1.4,.5,1),background .4s}
+.app .day:active{transform:scale(.9)}
+.app .day .dn{font-family:var(--poppins);font-size:13.5px;font-weight:500;line-height:1}
+.app .day .dh{font-family:var(--poppins);font-size:9.5px;font-weight:600;line-height:1;color:var(--fg);opacity:.85}
+.app .day .fill{display:none}
+.app .day.has{background:rgba(166,233,236,calc(.14 + var(--r,0) * .82))}
+.app .day.has.hi .dn,.app .day.has.hi .dh{color:var(--ink);opacity:1}
+.app .day.plan{background:transparent;outline:1.5px dashed rgba(70,190,197,.55);outline-offset:-1.5px}
+.app .day.plan .dh{color:var(--teal)}
+.app .day.fut .dn{color:var(--dim)}
+.app .day.today{box-shadow:inset 0 0 0 2px var(--fg)}
+.app .calfoot{margin-top:16px;font-size:13px;color:var(--mute)}
+.app .calfoot b{font-family:var(--poppins);font-size:17px;font-weight:600;color:var(--teal)}
+.app .wklist{margin-top:18px}
+.app .wklist .rowhead h3{font-size:14px}
+.app .wkrow{font-size:12px;color:var(--mute);margin-top:9px;font-variant-numeric:tabular-nums}
+.app .wkbar{height:6px;border-radius:99px;background:var(--c2)}
+.app .wkbar i{border-radius:99px;background:var(--teal)}
+.app .wkrow.pl .wkbar i{background:rgba(166,233,236,.3)}
+.app .wkrow b{font-family:var(--poppins);font-weight:600;color:var(--fg)}
+
+/* leto */
+.app .ynav b{font-family:var(--poppins);font-size:19px}
+.app .ynav button{width:34px;height:34px;border-radius:50%;border:none;background:var(--c2);color:var(--fg);display:grid;place-items:center;cursor:pointer}
+.app .hm i{border-radius:2.5px;background:var(--c3)}
+.app .hm i.l1{background:rgba(166,233,236,.2)}.app .hm i.l2{background:rgba(166,233,236,.42)}.app .hm i.l3{background:var(--teal)}.app .hm i.l4{background:var(--teal-l)}
+.app .hmleg{font-size:11px;color:var(--mute)}
+.app .mb i{border-radius:99px 99px 4px 4px;background:var(--c2);max-width:30px;margin:0 auto}
+.app .mb.v i{background:rgba(244,242,242,.2)}
+.app .mb.cur i{background:var(--teal)}
+.app .mb small{font-size:10px;color:var(--mute)}
+.app .mb em{font-style:normal;font-family:var(--poppins);font-size:10px;font-weight:600;height:12px}
+.app .report{font-size:13.5px;line-height:1.55;color:var(--mute)}
+.app .report b{color:var(--fg);font-weight:600}
+.app .arow{padding:13px 0;border-bottom:1px solid var(--line)}
+.app .arow:last-of-type{border-bottom:none}
+.app .arow b{font-family:var(--poppins);font-weight:600;font-size:15px;text-transform:capitalize}
+.app .arow .r b{color:var(--teal);text-transform:none}
+.app .arow small{font-size:12px;color:var(--mute)}
+.app .btn{height:46px;border-radius:14px;font-size:14px;font-weight:600}
+.app .btn .ic{width:16px;height:16px}
+.app .btn.soft{background:var(--c2);color:var(--fg)}
+.app .btn.pri{background:var(--teal);color:var(--ink);height:54px;border-radius:18px;font-size:15.5px}
+.app .btn.danger{background:var(--bad-w);color:var(--bad)}
+.app .foot{font-size:11px;color:var(--mute)}
+.app .pw{font-family:var(--poppins);font-weight:600;letter-spacing:.04em}
+
+/* lebdeci gumb se pokaze sele, ko odscrollas mimo "danes" */
+.app .fab{left:auto;right:16px;bottom:18px;width:58px;height:58px;padding:0;border-radius:50%;border:none;justify-content:center;background:var(--teal);color:var(--ink);box-shadow:0 14px 30px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.06);transform:translateY(110px) scale(.7);transition:transform .45s cubic-bezier(.3,1.35,.5,1),opacity .3s}
+.app .fab.show{transform:none}
+.app .fab:active{transform:scale(.9)}
+.app .fab span{display:none}
+.app .fab .ic{width:24px;height:24px;stroke-width:2.5}
+.app .fab.ok{background:var(--fg)}
+
+/* poteg navzdol za uskladitev */
+.app .ptr{position:absolute;top:12px;left:50%;z-index:1;width:30px;height:30px;margin-left:-15px;opacity:0;pointer-events:none;color:var(--teal)}
+.app .ptr svg{width:30px;height:30px;display:block;transform:rotate(-90deg)}
+.app .ptr circle{fill:none;stroke-width:2.5;stroke-linecap:round}
+.app .ptr .t{stroke:var(--c3)}
+.app .ptr .p{stroke:var(--teal);stroke-dasharray:69.1;stroke-dashoffset:69.1}
+.app .ptr.spin svg{animation:ptrSpin .8s linear infinite}
+.app .ptr.spin .p{stroke-dashoffset:48}
+.app .ptr .okc{position:absolute;inset:0;display:grid;place-items:center;opacity:0;transform:scale(.5);transition:all .3s cubic-bezier(.3,1.5,.5,1)}
+.app .ptr.done .okc{opacity:1;transform:none}
+.app .ptr.done svg{opacity:0}
+@keyframes ptrSpin{to{transform:rotate(270deg)}}
+.app .scr{position:relative;z-index:2;background:var(--ink)}
+.app .scr.pulling{-webkit-user-select:none;user-select:none}
+
+/* vnos: steklen list s stevilcnico */
+.app .ovl{background:rgba(6,5,5,.5);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.app .sheet{background:rgba(29,25,26,.94);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border-radius:30px 30px 0 0;padding:0 18px 22px;box-shadow:0 -1px 0 rgba(255,255,255,.06)}
+.app .sheet.drag{transition:none}
+.app .grab{padding:12px 0 14px;cursor:grab;touch-action:none}
+.app .grab::before{content:"";display:block;width:40px;height:5px;border-radius:9px;background:var(--c3);margin:0 auto}
+.app .sheet h2{font-family:var(--poppins);font-size:20px;font-weight:600}
+.app .ssub{margin:2px 0 14px;color:var(--mute);font-size:13px}
+.app .tabs{position:relative;display:flex;background:var(--c2);border-radius:99px;padding:3px}
+.app .tabs button{position:relative;z-index:1;flex:1;border:none;background:none;color:var(--mute);font-weight:600;font-size:13px;padding:8px;cursor:pointer;transition:color .25s}
+.app .tabs button.on{color:var(--ink)}
+.app .tabs .seg-ind{border-radius:99px;background:var(--fg)}
+.app .tabs[data-on="1"] .seg-ind{transform:translateX(100%)}
+.app .npd{display:flex;justify-content:center;align-items:baseline;gap:6px;height:74px;margin-top:10px;font-family:var(--poppins);font-weight:600;font-variant-numeric:tabular-nums}
+.app .npd .v{font-size:58px;letter-spacing:-.04em;line-height:74px;display:inline-flex}
+.app .npd .v span{display:inline-block}
+.app .npd .v span.in{animation:npIn .25s cubic-bezier(.2,.9,.3,1.3)}
+.app .npd .v.shake{animation:npShake .35s}
+.app .npd em{font-style:normal;font-size:22px;color:var(--mute)}
+@keyframes npIn{from{opacity:0;transform:translateY(40%) scale(.8)}}
+@keyframes npShake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.app .npe{text-align:center;color:var(--teal);font-family:var(--poppins);font-weight:600;font-size:15px;min-height:22px;font-variant-numeric:tabular-nums}
+.app .presets{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0 10px}
+.app .presets button{height:36px;border-radius:99px;border:none;background:var(--c2);color:var(--fg);font-weight:600;font-size:13px;cursor:pointer}
+.app .keys{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
+.app .keys button{height:52px;border-radius:16px;border:none;background:transparent;color:var(--fg);font-family:var(--poppins);font-size:22px;font-weight:500;cursor:pointer;display:grid;place-items:center;transition:background .15s,transform .15s}
+.app .keys button:active{background:var(--c2);transform:scale(.92)}
+.app .keys .ic{width:22px;height:22px}
+.app .sheet label{font-size:12px;color:var(--mute);font-weight:600;margin-top:14px}
+.app .sheet input:not([type=range]){height:50px;border-radius:14px;border:1.5px solid var(--c3);background:var(--c2);color:var(--fg);padding:0 14px;font:500 16px var(--inter)}
+.app .sheet input:focus{outline:none;border-color:var(--teal)}
+.app [data-epane="t"] + .calc{display:block}
+.app .calc{margin:14px 0 12px;border-radius:15px;background:var(--teal-w);color:var(--teal);text-align:center;padding:12px;font-family:var(--poppins);font-weight:600;font-size:15px}
+.app .toast{top:10px;bottom:auto;transform:translate(-50%,-24px) scale(.9);background:var(--fg);color:var(--ink);padding:10px 16px;border-radius:99px;font-weight:600;font-size:13px;box-shadow:0 12px 30px rgba(0,0,0,.5);display:flex;align-items:center;gap:8px}
+.app .toast.on{transform:translate(-50%,0) scale(1)}
+
+/* zagon C: crke, plus, uskladitev, logo odleti v glavo */
+.spC{z-index:41}
+.spC-logo{position:absolute;left:0;top:0;font-family:var(--poppins);font-weight:700;font-size:52px;letter-spacing:-.01em;white-space:nowrap;transform-origin:0 0;line-height:1}
+.spC-logo .l{display:inline-block;animation:spC 0.7s cubic-bezier(.2,.9,.3,1.2) both}
+.spC-logo .pl{display:inline-block;color:var(--teal);animation:spPlus .8s cubic-bezier(.3,1.6,.5,1) .32s both}
+@keyframes spC{from{opacity:0;transform:translateY(60%)}}
+@keyframes spPlus{from{opacity:0;transform:scale(0) rotate(-180deg)}}
+.spC-under{position:absolute;left:50%;top:calc(50% + 46px);width:150px;margin-left:-75px;text-align:center;transition:opacity .3s}
+.spC-bar{height:3px;border-radius:99px;background:var(--ink4);overflow:hidden}
+.spC-bar i{display:block;height:100%;width:0;border-radius:99px;background:var(--teal);transition:width .95s cubic-bezier(.6,0,.2,1)}
+.spC-txt{position:relative;height:18px;margin-top:10px;font-size:12px;color:var(--mute)}
+.spC-txt span{position:absolute;left:0;right:0;transition:opacity .3s,transform .35s}
+.spC-txt .s2{opacity:0;transform:translateY(8px);color:var(--teal);font-weight:600}
+.spC.synced .s1{opacity:0;transform:translateY(-8px)}
+.spC.synced .s2{opacity:1;transform:none}
+.spC.fly .spC-under{opacity:0}
+.spC.fly{background:transparent;transition:background .5s ease}
+.spC-bg{position:absolute;inset:0;background:var(--ink);transition:opacity .55s ease}
+.spC.fly .spC-bg{opacity:0}
+
+/* ============================================================
+   D · MIX  (obroc iz A, postavitev in obcutek iz C)
+   ============================================================ */
+.app .chero{padding-bottom:18px}
+.app .clab{text-align:center}
+.app .ringwrap{position:relative;width:min(254px,74vw);aspect-ratio:1;margin:14px auto 2px}
+.app .ring{width:100%;height:100%;display:block;overflow:visible}
+.app .ring .arc{fill:none;stroke-width:14;stroke-linecap:round;transform:rotate(-90deg);transform-origin:120px 120px}
+.app .r-track{stroke:var(--c2)}
+.app .r-plan,.app .r-act{stroke-dasharray:628.3;stroke-dashoffset:628.3;transition:stroke-dashoffset 1.3s cubic-bezier(.22,1,.36,1)}
+.app .r-plan{stroke:var(--teal-l);stroke-opacity:.22}
+.app .r-act{stroke:url(#gD)}
+.app .r-proj{fill:none;stroke:var(--fg);stroke-opacity:.4;stroke-width:2.5;stroke-dasharray:1.5 6;stroke-linecap:round;transition:opacity .4s,stroke .4s,stroke-opacity .4s}
+.app .r-proj2{fill:none;stroke:var(--fg);stroke-opacity:.4;stroke-width:2.5;stroke-dasharray:1.5 6;stroke-linecap:round;transition:opacity .4s,stroke .4s,stroke-opacity .4s}
+.app .r-proj.over,.app .r-proj2.over{stroke:var(--teal);stroke-opacity:.95}
+.app .r-projdot{fill:var(--fg);transition:fill .4s,opacity .4s}
+.app .r-projdot.over{fill:var(--teal)}
+.app .r-tipg{transform-origin:120px 120px;transition:transform 1.3s cubic-bezier(.22,1,.36,1),opacity .3s}
+.app .r-tip{fill:#fff;filter:drop-shadow(0 0 6px rgba(70,190,197,.95))}
+.app .ring-in{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 38px}
+.app .big{font-size:36px;margin-top:0;letter-spacing:-.03em}
+.app .big .dec{font-size:19px}
+.app .gsub{font-size:12px;color:var(--mute);margin-top:7px}
+.app .pctp{margin:10px 0 0;padding:5px 11px;font-size:12px}
+.app .hero-hit .pctp{background:var(--fg)}
+.app .hero-hit .ring{animation:ringHitD 1.8s ease-out}
+@keyframes ringHitD{0%{filter:drop-shadow(0 0 0 rgba(70,190,197,0))}25%{filter:drop-shadow(0 0 20px rgba(70,190,197,.75))}100%{filter:drop-shadow(0 0 0 rgba(70,190,197,0))}}
+.app .burst{position:absolute;inset:-46px;width:calc(100% + 92px);height:calc(100% + 92px);pointer-events:none;z-index:3}
+.app .float{top:38%}
+.app .reward{display:flex;width:-moz-fit-content;width:fit-content;margin:14px auto 0}
+.app .chips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+.app .chip{height:46px;border-radius:99px;border:none;background:var(--c2);color:var(--fg);font-family:var(--poppins);font-size:14.5px;font-weight:600;cursor:pointer;transition:transform .16s cubic-bezier(.3,1.4,.5,1),background .25s,color .25s}
+.app .chip:active{transform:scale(.92)}
+.app .chip.pop{animation:chipD .6s}
+@keyframes chipD{0%{background:var(--teal);color:var(--ink)}100%{background:var(--c2);color:var(--fg)}}
+.app .trow .tmsg b{font-size:19px}
+/* koledar iz A: dan se polni od spodaj navzgor glede na ure */
+.app .grid{gap:6px}
+.app .day{aspect-ratio:1/1.08;border-radius:13px;background:var(--c2);align-items:center;justify-content:space-between;padding:7px 0 6px;gap:0}
+.app .day .dn{font-family:var(--poppins);font-size:13.5px;font-weight:500;line-height:1;color:var(--fg)}
+.app .day .dh{font-family:var(--poppins);font-size:10px;font-weight:700;line-height:1;color:var(--ink);opacity:1}
+.app .day .fill{display:block;left:0;right:0;bottom:0;top:auto;width:auto;height:calc(var(--lv,0)*76%);
+  background:linear-gradient(180deg,var(--teal-l),var(--teal));transition:height .85s cubic-bezier(.22,1,.36,1)}
+.app .day.has{background:var(--c2)}
+.app .day.has.hi .dn{color:var(--ink)}
+.app .day.plan{background:transparent;outline:1.5px dashed rgba(70,190,197,.55);outline-offset:-1.5px}
+.app .day.plan .dh{color:var(--teal)}
+.app .day.plan .fill{display:none}
+.app .day.fut .dn{color:var(--dim)}
+.app .day.today{box-shadow:inset 0 0 0 2px var(--fg)}
+/* ================= zagon (vse tri smeri) ================= */
+.booting .content>*,.booting .foot{animation:none!important;opacity:0}
+.booting .fab{opacity:0!important}
+.splash{position:absolute;inset:0;z-index:40;display:grid;place-items:center;background:var(--ink);transition:opacity .5s ease,visibility .5s}
+.splash.out{opacity:0;visibility:hidden;pointer-events:none}
+
+/* ---- dodatki, ki jih ima ziva aplikacija ---- */
+.neto{text-align:center;font-size:12.5px;color:var(--mute);margin-top:10px}
+.app .reward{display:none}
+.app .reward.on{display:block;width:-moz-fit-content;width:fit-content;margin:14px auto 0;text-align:center;background:var(--c2);padding:9px 16px;border-radius:16px}
+.app .reward .bar{display:block;height:5px;background:var(--c3);border-radius:99px;margin:7px 0 4px;overflow:hidden}
+.app .reward .bar i{display:block;height:100%;background:var(--teal);border-radius:99px;transition:width .6s cubic-bezier(.22,1,.36,1)}
+.app .reward small{display:block;font-size:11px;color:var(--mute)}
+.goal-hit{display:none;margin:12px auto 0;width:-moz-fit-content;width:fit-content;background:var(--teal);color:var(--ink);
+  border-radius:99px;padding:7px 14px;font-family:var(--poppins);font-weight:600;font-size:13px}
+.goal-hit.on{display:block;animation:pop .5s cubic-bezier(.3,1.4,.5,1)}
+@keyframes pop{from{transform:scale(.85);opacity:0}}
+.pace{display:none}
+.pace.on{display:flex}
+.pace.pc-warn .ic{color:var(--warn)} .pace.pc-warn{color:var(--warn)}
+.pace.pc-ok .ic{color:var(--teal)} .pace.pc-ok{color:var(--teal)}
+.warn{display:none;margin:0 18px 16px;background:var(--warn-w);border:1px solid rgba(232,180,99,.35);color:var(--warn);
+  border-radius:14px;padding:11px 13px;font-size:12.5px}
+.day.wait{background:transparent;outline:1.5px solid var(--warn);outline-offset:-1.5px}
+.day.wait .dh{color:var(--warn)}
+.sheet select{display:block;width:100%;margin-top:6px;height:50px;border-radius:14px;border:1.5px solid var(--c3);
+  background:var(--c2);color:var(--fg);padding:0 12px;font:500 15px var(--inter);-webkit-appearance:none;appearance:none}
+.set-sec{border-top:1px solid var(--line);margin-top:20px;padding-top:16px}
+.set-sec h4{margin:0 0 4px;font-family:var(--poppins);font-size:15px;font-weight:600}
+.set-sec p{margin:0 0 10px;color:var(--mute);font-size:12.5px;line-height:1.5}
+.who{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.who .av{width:42px;height:42px;border-radius:50%;background:var(--teal-w);color:var(--teal);display:grid;place-items:center;
+  font-family:var(--poppins);font-weight:600;font-size:17px;box-shadow:none}
+.who b{display:block;font-size:14px;word-break:break-all}
+.who small{display:block;color:var(--mute);font-size:12px}
+.sso{font-size:12px;color:var(--mute);background:var(--c2);border-radius:12px;padding:9px 11px;margin-bottom:10px;line-height:1.45}
+.loglist{display:none;font-size:11.5px;color:var(--mute);max-height:150px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:9px 11px;margin-top:8px}
+.loglist div{padding:3px 0;border-bottom:1px dashed var(--line)}
+.loglist div:last-child{border-bottom:none}
+.kpi small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.etabwrap{max-height:420px;overflow:auto;margin-top:12px}
+.etab{width:100%;border-collapse:collapse;font-size:12.5px}
+.etab th{position:sticky;top:0;background:var(--c1);text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:.09em;
+  color:var(--mute);font-weight:700;padding:0 8px 7px;border-bottom:1px solid var(--line)}
+.etab td{padding:8px;border-bottom:1px dashed var(--line);font-variant-numeric:tabular-nums}
+.etab tbody tr{cursor:pointer}
+.etab tbody tr:hover td{background:var(--c2)}
+.etab td.e{color:var(--teal);font-weight:700}
+.etab td.mut{color:var(--mute)}
+.etab .pill{font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--c2);color:var(--mute)}
+.etab .pill.pl{background:var(--teal-w);color:var(--teal)}
+.etab .pill.wt{background:var(--warn-w);color:var(--warn)}
+.etab .empty{color:var(--mute);text-align:center;padding:18px 0}
+.quickrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;align-items:end;background:var(--c2);border-radius:16px;padding:12px}
+.quickrow .qsave{grid-column:1/-1;background:var(--teal);color:var(--ink);border:none;border-radius:12px;height:44px;
+  font-weight:700;font-size:14px;cursor:pointer;font-family:var(--inter)}
+.quickrow label{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);font-weight:700;margin-bottom:5px}
+.quickrow input{width:100%;height:42px;border-radius:11px;border:1px solid var(--c3);background:var(--c1);color:var(--fg);padding:0 10px;font:500 14px var(--inter)}
+
+/* ================= namizje: dvostolpicna plosca (spremenimo kasneje) ================= */
+.deskonly{display:none}
+@media(min-width:1080px){
+  html,body{overflow:auto;height:auto}
+  .app{position:static;overflow:visible}
+  .scr{height:auto;overflow:visible;background:transparent}
+  .hdr{position:sticky;max-width:1560px;margin:0 auto;display:flex;align-items:center;gap:18px;padding:14px 22px 12px}
+  .hdr .top{display:contents}
   .logo{order:1}
-  .hdr-actions{order:2;display:flex;gap:8px;align-items:center}
-  .hdr-top .mo-nav{order:3;width:100%}
-  .addb{display:none;background:var(--green2);border:none;color:#141112;font-weight:800;font-size:13px;
-    padding:9px 15px;border-radius:11px;cursor:pointer;font-family:inherit;white-space:nowrap}
-  #monthView{display:flex;flex-direction:column}
+  .nav{order:2;margin-top:0;width:auto;flex:none}
+  .act{order:3;margin-left:auto}
+  .mo{min-width:150px}
+  .content{max-width:1560px;margin:0 auto;padding:16px 22px 40px}
+  .content[data-pane="m"]{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start}
+  .colL,.colR{display:flex;flex-direction:column;gap:16px;min-width:0}
+  #kpiRow{grid-column:1/-1;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+  .kpi{background:var(--c1);border-radius:18px;padding:13px 15px;min-width:0}
+  .kpi small{display:block;font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--mute)}
+  .kpi b{display:block;font-family:var(--poppins);font-size:20px;font-weight:600;margin-top:5px;letter-spacing:-.015em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .kpi b.g{color:var(--teal)}
+  .kpi i{display:block;font-style:normal;font-size:11.5px;line-height:1.35;color:var(--mute);margin-top:3px}
+  .sec{border-top:none;background:var(--c1);border-radius:22px;padding:20px}
+  .sec.chero{background:linear-gradient(var(--c1),var(--c1)) padding-box,var(--c1)}
+  .chero{background:var(--c1)}
+  .deskonly{display:block}
+  .fab,.ptr{display:none}
+  .toast{position:fixed;top:16px;bottom:auto}
+  .ovl{position:fixed;align-items:center}
+  .sheet{max-width:520px;border-radius:24px;margin:0 auto}
+  .ringwrap{width:236px}
+  .warn{margin:0}
+  .foot{padding:26px 0 30px}
+  .day:active{transform:none}
+  .day:hover{filter:brightness(1.12)}
+}
+@media(max-width:1079px){
   .colL,.colR{display:contents}
-  @media(max-width:1079px){
-    #ringCard{order:1} #stripCard{order:2} #extraCard{order:3} #achCard{order:4}
-    #storWarn{order:5} #calCard{order:6} #wkCard{order:7}
-  }
-  .deskonly{display:none}
-  .day .rng{display:none}
-  .ctitle{font-size:10px;letter-spacing:.5px;text-transform:uppercase;font-weight:700;color:var(--muted);margin-bottom:10px}
-  .ctitle span{color:var(--green)}
+  .content[data-pane="m"]{display:flex;flex-direction:column}
+  #heroSec{order:1} #todaySec{order:2} #statsSec{order:3} #weekSec{order:4} #milesSec{order:5} #calSec{order:6} #storWarn{order:7}
+}
 
-  /* namizni moduli */
-  .kpi{background:var(--card);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);min-width:0}
-  .kpi small{display:block;color:var(--muted);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:800}
-  .kpi b{font-size:19px;font-variant-numeric:tabular-nums;display:block;margin-top:3px;line-height:1.15;white-space:nowrap;
-    overflow:hidden;text-overflow:ellipsis}
-  .kpi b.g{color:var(--green)}
-  .kpi i{font-style:normal;font-size:11.5px;color:var(--muted);display:block;margin-top:2px;white-space:nowrap;
-    overflow:hidden;text-overflow:ellipsis}
-  .quickrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;align-items:end;
-    background:var(--tealwash);border:1px solid var(--tealbd);border-radius:13px;padding:11px 12px}
-  .quickrow .qsave{grid-column:1/-1}
-  .quickrow label{margin:0 0 4px;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase}
-  .quickrow input{padding:9px 10px;font-size:14px;border-radius:9px;border-width:1px}
-  .qsave{background:var(--ink);color:var(--bg);border:none;border-radius:9px;padding:10px 16px;font-weight:800;
-    font-size:13.5px;cursor:pointer;font-family:inherit;white-space:nowrap}
-  .etabwrap{max-height:420px;overflow:auto}
-  .etab{width:100%;border-collapse:collapse;font-size:12.5px}
-  .etab th{position:sticky;top:0;background:var(--card);text-align:left;font-size:9.5px;text-transform:uppercase;
-    letter-spacing:.09em;color:var(--muted);font-weight:800;padding:0 8px 7px;border-bottom:1px solid var(--line)}
-  .etab td{padding:7px 8px;border-bottom:1px dashed var(--line);font-variant-numeric:tabular-nums}
-  .etab tbody tr{cursor:pointer}
-  .etab tbody tr:hover td{background:var(--tealwash)}
-  .etab td.e{color:var(--green);font-weight:800}
-  .etab td.mut{color:var(--muted)}
-  .etab .pill{font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:99px;background:var(--chipbg);color:var(--muted)}
-  .etab .pill.pl{background:var(--planbg);color:var(--planink)}
-  .etab .pill.wt{background:rgba(217,119,6,.15);color:var(--amber)}
-  .etab .empty{color:var(--muted);text-align:center;padding:18px 0}
-  .mbars{display:flex;align-items:flex-end;gap:7px;height:116px}
-  .mb{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;justify-content:flex-end;min-width:0}
-  .mb .bar{width:100%;background:var(--ring-a);border-radius:5px 5px 2px 2px;min-height:3px}
-  .mb.cur .bar{background:var(--ink)}
-  .mb.zero .bar{background:var(--line)}
-  .mb small{font-size:9px;color:var(--muted);font-weight:700}
-  .mb .v{font-size:9.5px;font-weight:800;color:var(--green);white-space:nowrap}
-
-  @media(min-width:1080px){
-    .app{max-width:1560px;box-shadow:none;padding-bottom:30px}
-    .hdr{border-radius:20px;margin:16px 20px 0;padding:14px 20px}
-    .hdr-top{gap:16px;flex-wrap:nowrap}
-    .hdr-top .mo-nav{order:2;width:auto;margin-top:0;justify-content:flex-start}
-    .hdr-actions{order:3;margin-left:auto}
-    .addb{display:block}
-    .mo-nav .mo{max-width:none;min-width:132px}
-    .daycard{margin:14px 20px 0;border-radius:18px;padding:16px 18px}
-    #monthView{display:grid;grid-template-columns:minmax(0,1.32fr) minmax(0,1fr);gap:14px;
-      align-items:start;padding:14px 20px 0}
-    .colL,.colR{display:flex;flex-direction:column;gap:14px;min-width:0}
-    #kpiRow{grid-column:1/-1;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
-    .colL>*,.colR>*{margin:0}
-    #stripCard{display:none}
-    .daycard .drow{max-width:560px}
-    .daycard .dmsg{font-size:16px}
-    .deskonly{display:block}
-    .day{aspect-ratio:auto;min-height:78px;align-items:flex-start;justify-content:flex-start;padding:7px 8px;gap:1px}
-    .day .dn{font-size:12px}
-    .day .hh{font-size:15px}
-    .day .ee{font-size:11.5px;color:var(--green)}
-    .day .rng{display:block;font-size:9.5px;color:var(--muted);margin-top:auto}
-    .day:active{transform:none}
-    .day:hover{box-shadow:var(--shadow2)}
-    .grid{gap:6px}
-    .dow{font-size:10px;margin-bottom:8px}
-    .cal-card{padding:16px 18px}
-    .ring{width:150px;height:150px}
-    .ring .in{width:116px;height:116px}
-    .ring .in b{font-size:22px}
-    .wchart{height:140px}
-    .fab{display:none}
-    .spacer{height:16px}
-    #yearView{max-width:1000px;margin:0 auto;padding-top:6px}
-    .ovl{align-items:center}
-    .sheet{border-radius:22px;max-width:520px;max-height:84vh}
-  }
-  @media(min-width:1080px) and (max-width:1379px){
-    #kpiRow{grid-template-columns:repeat(3,minmax(0,1fr))}
-  }
-  @media(min-width:1500px){
-    .quickrow{grid-template-columns:1.1fr .85fr .85fr .8fr auto}
-    .quickrow .qsave{grid-column:auto}
-  }
-  @media(min-width:1600px){
-    #kpiRow{gap:12px}
-    .kpi b{font-size:21px}
-  }
-
-  @media (prefers-reduced-motion: reduce){
-    *{animation:none!important;transition:none!important}
-  }
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0ms!important;transition-duration:.01ms!important;transition-delay:0ms!important}
+}
 </style>
 <script defer src="/track.js?v=2"></script>
 </head>
 <body>
-<div class="app">
+<div class="app" id="app">
 
-  <div class="hdr">
-    <div class="hdr-top">
-      <div class="logo">Ura<span style="color:#46BEC5">+</span><small>ure → denar</small></div>
-      <div class="hdr-actions">
-        <button class="timerb" id="timerB" style="display:none" onclick="stopTimer()">⏱ 0:00</button>
-        <div class="streakb" id="streakB" style="display:none"></div>
-        <button class="addb" onclick="openEntry(todayKey())">+ Dodaj ure</button>
-        <button class="acctb" id="acctChip" style="display:none" onclick="openSettings()" title="Račun"></button>
-        <button class="icon-btn" onclick="openSettings()" title="Nastavitve">⚙︎</button>
-      </div>
-      <div class="mo-nav">
-      <button onclick="chMonth(-1)" id="navL">‹</button>
-      <div class="mo" id="moLabel"></div>
-      <button onclick="chMonth(1)" id="navR">›</button>
-      <div class="viewt"><button id="vMes" class="on" onclick="setView('m')">Mesec</button><button id="vLet" onclick="setView('y')">Leto</button></div>
-      </div>
-    </div>
+  <div class="ptr" id="ptr" aria-hidden="true">
+    <svg viewBox="0 0 30 30"><circle class="t" cx="15" cy="15" r="11"/><circle class="p" cx="15" cy="15" r="11"/></svg>
+    <span class="okc"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
   </div>
 
-  <div class="daycard" id="dayCard" style="display:none"></div>
+  <div class="scr" id="scr">
 
-  <div id="monthView">
-
-  <div id="kpiRow" class="deskonly">
-    <div class="kpi"><small>Zasluženo</small><b class="g" id="dEarn">-</b><i id="dEarnSub"></i></div>
-    <div class="kpi"><small>Ure</small><b id="dHours">-</b><i id="dHoursSub"></i></div>
-    <div class="kpi"><small>Še do cilja</small><b id="dLeft">-</b><i id="dLeftSub"></i></div>
-    <div class="kpi"><small>Projekcija</small><b id="dProj">-</b><i id="dProjSub">pri tem tempu</i></div>
-    <div class="kpi"><small>Danes</small><b id="dToday">-</b><i id="dTodaySub"></i></div>
-    <div class="kpi"><small>Ta teden</small><b id="dWeek">-</b><i id="dWeekSub"></i></div>
-  </div>
-
-  <div class="colL">
-    <div class="cal-card" id="calCard">
-      <div class="dow"><span>Pon</span><span>Tor</span><span>Sre</span><span>Čet</span><span>Pet</span><span class="we">Sob</span><span class="we">Ned</span></div>
-      <div class="grid" id="calGrid"></div>
-      <div class="cal-sum">
-        <span>Vnosov: <b id="sumDays">0</b></span>
-        <span>Skupaj: <b id="sumH">0 h</b> · <b id="sumE" style="color:var(--green)">0 €</b></span>
+    <header class="hdr" id="hdr">
+      <div class="top">
+        <div class="logo"><span class="w">Ura<i>+</i></span><small>ure → denar</small></div>
+        <div class="act">
+          <button class="timer" id="timerB" style="display:none" onclick="stopTimer()"><span class="tdot"></span><span id="timerT">0:00</span></button>
+          <button class="av" id="acctChip" style="display:none" onclick="openSettings()" title="Račun"></button>
+          <button class="ico" onclick="openSettings()" title="Nastavitve" aria-label="Nastavitve"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></button>
+        </div>
       </div>
-    </div>
-
-    <div class="cal-card deskonly" id="quickCard">
-      <div class="ctitle">Hitri vnos</div>
-      <div class="quickrow">
-        <div><label for="qDate">Datum</label><input type="date" id="qDate" onchange="qCalc()"></div>
-        <div><label for="qFrom">Začetek</label><input type="time" id="qFrom" value="08:00" oninput="qCalc()"></div>
-        <div><label for="qTo">Konec</label><input type="time" id="qTo" value="16:00" oninput="qCalc()"></div>
-        <div><label for="qBreak">Pavza (min)</label><input type="number" id="qBreak" min="0" max="480" step="5" placeholder="0" oninput="qCalc()"></div>
-        <button class="qsave" id="qSave" onclick="quickSave()">Shrani</button>
+      <div class="nav">
+        <button class="navb" id="navL" onclick="chMonth(-1)" aria-label="Prejšnji mesec"><svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <div class="mo" id="moLabel"></div>
+        <button class="navb" id="navR" onclick="chMonth(1)" aria-label="Naslednji mesec"><svg class="ic" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+        <div class="seg" id="viewSeg" data-on="0"><span class="seg-ind"></span><button id="vMes" class="on" onclick="setView('m')">Mesec</button><button id="vLet" onclick="setView('y')">Leto</button></div>
       </div>
-      <div class="ctitle" style="margin-top:18px">Vnosi meseca</div>
-      <div class="etabwrap">
-        <table class="etab">
-          <thead><tr><th>Dan</th><th>Datum</th><th>Od do</th><th>Pavza</th><th>Ure</th><th>€/h</th><th>Zaslužek</th><th></th></tr></thead>
-          <tbody id="entryRows"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+    </header>
 
-  <div class="colR">
-    <div class="ring-card" id="ringCard">
-      <div class="ring-flex">
-        <div class="ring" id="ring">
-          <div class="in">
-            <b id="rMoney">0 €</b>
-            <small id="rGoal">od 0 € cilja</small>
-            <span class="pct" id="rPct">0%</span>
+    <div class="content" data-pane="m" id="monthView">
+
+      <div id="kpiRow" class="deskonly">
+        <div class="kpi"><small>Zasluženo</small><b class="g" id="dEarn">-</b><i id="dEarnSub"></i></div>
+        <div class="kpi"><small>Ure</small><b id="dHours">-</b><i id="dHoursSub"></i></div>
+        <div class="kpi"><small>Še do cilja</small><b id="dLeft">-</b><i id="dLeftSub"></i></div>
+        <div class="kpi"><small>Projekcija</small><b id="dProj">-</b><i id="dProjSub">pri tem tempu</i></div>
+        <div class="kpi"><small>Danes</small><b id="dToday">-</b><i id="dTodaySub"></i></div>
+        <div class="kpi"><small>Ta teden</small><b id="dWeek">-</b><i id="dWeekSub"></i></div>
+      </div>
+
+      <div class="colL">
+        <section class="sec cal" id="calSec" style="--k:5">
+          <div class="rowhead"><h3>Koledar</h3><span id="calSum"></span></div>
+          <div class="dow"><span>pon</span><span>tor</span><span>sre</span><span>čet</span><span>pet</span><span class="we">sob</span><span class="we">ned</span></div>
+          <div class="grid" id="calGrid"></div>
+          <div class="calfoot"><span>Vnosov: <b id="sumDays">0</b> · <b id="sumH">0 h</b></span><b id="sumE">0 €</b></div>
+          <div class="wklist"><div class="rowhead"><h3>Zaslužek po tednih</h3></div><div id="wchart"></div></div>
+        </section>
+
+        <section class="sec deskonly" id="quickCard">
+          <div class="rowhead"><h3>Hitri vnos</h3><span>brez okna</span></div>
+          <div class="quickrow">
+            <div><label for="qDate">Datum</label><input type="date" id="qDate" onchange="qCalc()"></div>
+            <div><label for="qFrom">Začetek</label><input type="time" id="qFrom" value="08:00" oninput="qCalc()"></div>
+            <div><label for="qTo">Konec</label><input type="time" id="qTo" value="16:00" oninput="qCalc()"></div>
+            <div><label for="qBreak">Pavza (min)</label><input type="number" id="qBreak" min="0" max="480" step="5" placeholder="0" oninput="qCalc()"></div>
+            <button class="qsave" id="qSave" onclick="quickSave()">Shrani</button>
           </div>
-        </div>
-        <div class="ring-side">
-          <div class="ks"><small>Ure ta mesec</small><b id="kHours">0 / 0 h</b></div>
-          <div class="ks"><small>Še do cilja</small><b id="kLeft">—</b></div>
-          <div class="ks" id="kPlanRow" style="display:none"><small>Planirano naprej</small><b id="kPlan">—</b></div>
-          <div class="ks" id="kPaceRow"><small>Pri tem tempu končaš z</small><b class="g" id="kPace">—</b></div>
-          <div class="ks" id="kCmpRow" style="display:none"><small>Prejšnji mesec do danes</small><b id="kCmp">—</b></div>
-        </div>
+          <div class="rowhead" style="margin:18px 0 0"><h3>Vnosi meseca</h3></div>
+          <div class="etabwrap"><table class="etab"><thead><tr><th>Dan</th><th>Datum</th><th>Od do</th><th>Pavza</th><th>Ure</th><th>€/h</th><th>Zaslužek</th><th></th></tr></thead><tbody id="entryRows"></tbody></table></div>
+        </section>
       </div>
-      <div class="neto" id="netoLine" style="display:none"></div>
-      <div class="reward" id="rewardBox">
-        Delam za 🎯 <b id="rewName"></b>
-        <div class="bar"><i id="rewBar"></i></div>
-        <small style="color:var(--muted)" id="rewTxt"></small>
+
+      <div class="colR">
+        <section class="sec chero" id="heroSec" style="--k:0">
+          <div class="clab" id="heroLab">Zasluženo</div>
+          <div class="ringwrap">
+            <svg class="ring" id="ringSvg" viewBox="0 0 240 240" aria-hidden="true">
+              <defs><linearGradient id="gD" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#A6E9EC"/><stop offset="1" stop-color="#46BEC5"/></linearGradient></defs>
+              <circle class="arc r-track" cx="120" cy="120" r="100"/>
+              <path class="r-proj" id="rProj"/><path class="r-proj2" id="rProj2"/><circle class="r-projdot" id="rProjDot" r="3.4"/>
+              <circle class="arc r-plan" id="rPlanArc" cx="120" cy="120" r="100"/>
+              <circle class="arc r-act" id="rActArc" cx="120" cy="120" r="100"/>
+              <g class="r-tipg" id="rTip"><circle class="r-tip" cx="120" cy="20" r="6"/></g>
+            </svg>
+            <div class="ring-in">
+              <div class="big" id="rMoney">0 €</div>
+              <div class="gsub" id="rGoal"></div>
+              <div class="pctp" id="rPct">0 %</div>
+            </div>
+            <canvas class="burst" id="burst" width="336" height="336"></canvas>
+          </div>
+          <div class="neto" id="netoLine" style="display:none"></div>
+          <div class="reward" id="rewardBox">Delam za <b id="rewName"></b><span class="bar"><i id="rewBar"></i></span><small id="rewTxt"></small></div>
+          <div class="goal-hit" id="goalHit">Mesečni cilj dosežen</div>
+          <div class="boost" id="extraCard" style="display:none">
+            <div class="boost-top"><small id="xTitle">Vsaka ura šteje</small><span id="bVal">brez dodatnih ur</span></div>
+            <input type="range" id="boostR" min="0" max="3" step="0.5" value="0" aria-label="Dodatne ure na dan" oninput="boostChange()">
+            <div class="boost-res" id="bRes"></div>
+            <div id="xRows" hidden></div>
+          </div>
+        </section>
+
+        <section class="sec today" id="todaySec" style="--k:1"><div id="dayCard"></div></section>
+
+        <section class="sec" id="statsSec" style="--k:2">
+          <div class="stats">
+            <div class="stat"><small>Ure ta mesec</small><b id="kHours">-</b></div>
+            <div class="stat"><small>Še do cilja</small><b id="kLeft">-</b></div>
+            <div class="stat" id="kPlanRow" style="display:none"><small>Planirano naprej</small><b id="kPlan">-</b></div>
+            <div class="stat" id="kPaceRow"><small>Pri tem tempu končaš z</small><b class="tl" id="kPace">-</b></div>
+            <div class="stat" id="kCmpRow" style="display:none"><small>Prejšnji mesec do danes</small><b id="kCmp">-</b></div>
+          </div>
+          <div class="pace" id="paceChip"></div>
+        </section>
+
+        <section class="sec week" id="weekSec" style="--k:3">
+          <div class="rowhead"><h3>Ta teden</h3><span id="wkTot"></span></div>
+          <div class="wbars" id="wbars"></div>
+          <div class="minis">
+            <div><small>Danes</small><b id="tToday">-</b></div>
+            <div><small>Ta teden</small><b id="tWeek">-</b></div>
+            <div><small>Povpr./dan</small><b id="tAvg">-</b></div>
+          </div>
+        </section>
+
+        <section class="sec deskonly" id="mbarsCard">
+          <div class="rowhead"><h3>Mesec za mesecem</h3><span id="mbYear"></span></div>
+          <div class="mbars" id="mbars"></div>
+        </section>
+
+        <section class="sec deskonly" id="hmCard">
+          <div class="rowhead"><h3>Leto na enem pogledu</h3></div>
+          <div class="hmwrap"><div class="hm" id="hmMonth"></div></div>
+          <div class="hmleg hm">manj <i></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> več</div>
+        </section>
+
+        <section class="sec miles" id="milesSec" style="--k:4">
+          <div class="rowhead"><h3>Dosežki</h3><span id="ateTxt"></span></div>
+          <div class="mnext" id="mnext"></div>
+          <div class="track"><div class="tfill" id="tfill"></div><div id="badges"></div></div>
+          <div class="tlabels" id="tlabels"></div>
+          <div class="best" id="recRow" style="display:none"></div>
+        </section>
+
+        <div class="warn" id="storWarn">Ta brskalnik ne dovoli trajnega shranjevanja, podatki bodo izgubljeni ob zaprtju. Uporabi Chrome ali Safari, ali izvozi kopijo.</div>
       </div>
-      <div class="goal-hit" id="goalHit">🎉 Mesečni cilj dosežen! Bravo!</div>
-      <div class="pacechip" id="paceChip"></div>
     </div>
 
-    <div class="strip" id="stripCard">
-      <div class="tile"><small>Danes</small><b id="tToday">—</b></div>
-      <div class="tile"><small>Ta teden</small><b id="tWeek">—</b></div>
-      <div class="tile"><small>Povpr./dan</small><b id="tAvg">—</b></div>
+    <div class="content" data-pane="y" id="yearView" style="display:none">
+      <section class="sec" style="--k:0">
+        <div class="ynav"><button class="tap" onclick="chYear(-1)" aria-label="Prejšnje leto"><svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><b id="yLabel">2026</b><button class="tap" onclick="chYear(1)" aria-label="Naslednje leto"><svg class="ic" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button></div>
+        <div class="rowhead"><h3>Zaslužek po dneh</h3><span id="yDays"></span></div>
+        <div class="hmwrap"><div class="hm" id="hmGrid"></div></div>
+        <div class="hmleg hm">manj <i></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> več</div>
+      </section>
+      <section class="sec" style="--k:1"><div class="rowhead"><h3>Meseci</h3><span id="yTot"></span></div><div class="mbars" id="yBars"></div></section>
+      <section class="sec" style="--k:2" id="repSec"><div class="rowhead"><h3>Mesečno poročilo</h3><span id="repLab"></span></div><div class="report" id="repBox"></div></section>
+      <section class="sec" style="--k:3">
+        <div class="rowhead"><h3>Arhiv mesecev</h3></div>
+        <div id="archList"></div>
+        <button class="btn soft wide tap" style="margin-top:12px" onclick="exportCsvYear()"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Izvozi CSV leta</span></button>
+      </section>
     </div>
 
-    <div class="ach" id="extraCard" style="display:none">
-      <div class="at" id="xTitle">Vsaka ura šteje</div>
-      <div class="xrow" id="xRows"></div>
-    </div>
-
-    <div class="cal-card deskonly" id="mbarsCard">
-      <div class="ctitle">Mesec za mesecem <span id="mbYear"></span></div>
-      <div class="mbars" id="mbars"></div>
-    </div>
-
-    <div class="cal-card" id="wkCard">
-      <div class="at" style="font-size:10px;letter-spacing:.5px;text-transform:uppercase;font-weight:700;color:var(--muted)">Zaslužek po tednih</div>
-      <div class="wchart" id="wchart"></div>
-    </div>
-
-    <div class="cal-card deskonly" id="hmCard">
-      <div class="ctitle">Leto na enem pogledu</div>
-      <div class="hmwrap"><div class="hmgrid" id="hmMonth"></div></div>
-      <div class="hmleg">manj <i style="background:var(--hm0)"></i><i style="background:var(--hm1)"></i><i style="background:var(--hm2)"></i><i style="background:var(--hm3)"></i><i style="background:var(--hm4)"></i> več</div>
-    </div>
-
-    <div class="ach" id="achCard">
-      <div class="at">Dosežki</div>
-      <div class="bdgs" id="badges"></div>
-      <div class="recrow" id="recRow" style="display:none"></div>
-    </div>
-
-    <div class="warn" id="storWarn">⚠️ Ta brskalnik ne dovoli trajnega shranjevanja — podatki bodo izgubljeni ob zaprtju. Uporabi Chrome/Safari ali izvozi kopijo.</div>
+    <footer class="foot">
+      <span class="sync" id="syncLine"></span>
+      <span class="pw">powered by foqs<b>.</b></span>
+    </footer>
   </div>
 
-  </div><!-- /monthView -->
+  <button class="fab" id="fab" onclick="openEntry(todayKey())" aria-label="Dodaj ure za danes"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Dodaj ure</span></button>
 
-  <div id="yearView">
-    <div class="cal-card" style="margin-top:14px">
-      <div class="ynav"><button onclick="chYear(-1)">‹</button><b id="yLabel">2026</b><button onclick="chYear(1)">›</button></div>
-      <div class="at" style="font-size:10px;letter-spacing:.5px;text-transform:uppercase;font-weight:700;color:var(--muted);margin:6px 0 8px">Zaslužek po dneh</div>
-      <div class="hmwrap"><div class="hmgrid" id="hmGrid"></div></div>
-      <div class="hmleg">manj <i style="background:var(--hm0)"></i><i style="background:var(--hm1)"></i><i style="background:var(--hm2)"></i><i style="background:var(--hm3)"></i><i style="background:var(--hm4)"></i> več</div>
-    </div>
-    <div class="report" id="repBox" style="display:none"></div>
-    <div class="cal-card">
-      <div class="at" style="font-size:10px;letter-spacing:.5px;text-transform:uppercase;font-weight:700;color:var(--muted)">Arhiv mesecev</div>
-      <div class="arch" id="archList"></div>
-      <button class="btn s" onclick="exportCsvYear()">⬇︎ Izvozi CSV leta</button>
-    </div>
-  </div>
-
-  <div class="spacer"></div>
-  <div class="syncline" id="syncLine" style="display:none"></div>
-  <div class="powered">powered by foqs<span>.</span></div>
-  <div style="height:8px"></div>
-  <button class="fab" onclick="openEntry(todayKey())"><span class="plus">+</span> Dodaj ure za danes</button>
-
-  <!-- entry sheet -->
+  <!-- vnos ur -->
   <div class="ovl" id="entryOvl" onclick="if(event.target===this)closeOvl('entryOvl')">
-    <div class="sheet">
-      <h3 id="eTitle">Vnos ur</h3>
-      <p class="sub" id="eSub"></p>
-      <div class="mtabs">
-        <button class="mt sel" id="tabH" onclick="setMode('h')">Št. ur</button>
-        <button class="mt" id="tabT" onclick="setMode('t')">Od – do 🕐</button>
-      </div>
+    <div class="sheet" role="dialog" aria-label="Vnos ur">
+      <div class="grab" aria-hidden="true"></div>
+      <h2 id="eTitle">Vnos ur</h2>
+      <p class="ssub" id="eSub"></p>
+      <div class="tabs" id="eTabs" data-on="0"><span class="seg-ind"></span><button id="tabH" class="on" onclick="setMode('h')">Št. ur</button><button id="tabT" onclick="setMode('t')">Od-do</button></div>
       <div id="modeH">
-        <div class="chips" id="eChips"></div>
-        <label>Ali vpiši po svoje (ure, npr. 7,5)</label>
-        <input type="number" id="eCustom" inputmode="decimal" step="0.25" min="0" max="24" placeholder="0" oninput="entrySel=null;paintChips();liveCalc()">
+        <div class="npd"><span class="v" id="npV">2</span><em>h</em></div>
+        <div class="npe" id="npE"></div>
+        <div class="presets">
+          <button class="tap" onclick="npSet(2)">2 h</button>
+          <button class="tap" onclick="npSet(4)">4 h</button>
+          <button class="tap" onclick="npSet(6)">6 h</button>
+          <button class="tap" onclick="npSet(8)">8 h</button>
+        </div>
+        <div class="keys">
+          <button onclick="npKey('1')">1</button><button onclick="npKey('2')">2</button><button onclick="npKey('3')">3</button>
+          <button onclick="npKey('4')">4</button><button onclick="npKey('5')">5</button><button onclick="npKey('6')">6</button>
+          <button onclick="npKey('7')">7</button><button onclick="npKey('8')">8</button><button onclick="npKey('9')">9</button>
+          <button onclick="npKey(',')">,</button><button onclick="npKey('0')">0</button>
+          <button onclick="npKey('b')" aria-label="Briši"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6h10.5a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-5.5-6z"/><path d="M12.5 10l4 4M16.5 10l-4 4"/></svg></button>
+        </div>
       </div>
       <div id="modeT" style="display:none">
-        <div class="row2">
-          <div><label>Začetek</label><input type="time" id="eFrom" value="08:00" oninput="liveCalc()"></div>
-          <div><label>Konec</label><input type="time" id="eTo" value="16:00" oninput="liveCalc()"></div>
+        <div class="fld2">
+          <label>Začetek<input type="time" id="eFrom" value="08:00" oninput="liveCalc()"></label>
+          <label>Konec<input type="time" id="eTo" value="16:00" oninput="liveCalc()"></label>
         </div>
-        <label>Malica / pavza (minut, se odšteje)</label>
-        <input type="number" id="eBreak" inputmode="numeric" min="0" max="480" step="5" placeholder="0" oninput="liveCalc()">
+        <label>Pavza (minut, se odšteje)<input type="number" id="eBreak" inputmode="numeric" min="0" max="480" step="5" placeholder="0" oninput="liveCalc()"></label>
+        <div class="calc" id="eCalc">0 h = 0 €</div>
       </div>
       <label>Ponovi ta delavnik (do konca meseca)</label>
       <select id="eRepeat">
-        <option value="">Ne ponavljaj — samo ta dan</option>
-        <option value="pp">Vsak pon–pet</option>
-        <option value="ps">Vsak pon–sob</option>
+        <option value="">Ne ponavljaj, samo ta dan</option>
+        <option value="pp">Vsak pon do pet</option>
+        <option value="ps">Vsak pon do sob</option>
         <option value="vd">Vsak dan</option>
         <option value="td">Vsak isti dan v tednu</option>
       </select>
-      <div class="live-calc" id="eCalc">0 h = 0 €</div>
-      <button class="btn p" onclick="saveEntry()">Shrani</button>
-      <button class="btn d" id="eDel" onclick="delEntry()" style="display:none">Izbriši vnos</button>
-      <button class="btn s" onclick="closeOvl('entryOvl')">Prekliči</button>
+      <button class="btn pri wide tap" style="margin-top:16px" onclick="saveEntry()">Shrani</button>
+      <div class="row2">
+        <button class="btn danger tap" id="eDel" onclick="delEntry()" style="display:none">Izbriši</button>
+        <button class="btn soft tap" onclick="closeOvl('entryOvl')">Prekliči</button>
+      </div>
     </div>
   </div>
 
-  <!-- settings sheet -->
+  <!-- nastavitve -->
   <div class="ovl" id="setOvl" onclick="if(event.target===this)closeOvl('setOvl')">
-    <div class="sheet">
-      <h3>Nastavitve</h3>
-      <p class="sub">Vse se preračuna takoj, ko shraniš.</p>
-
-      <div class="acct" id="acctBox"></div>
-      <p style="margin:8px 0 0"><a href="#" onclick="toggleLog(event)" style="color:var(--green);font-size:12.5px">Zadnje spremembe ›</a></p>
-      <div class="loglist" id="logList"></div>
-
-      <div class="set-sec"><h4>Delo in cilj</h4></div>
-      <label style="margin-top:6px">Urna postavka (€/h)</label>
-      <input type="number" id="sRate" inputmode="decimal" step="0.1" min="0" placeholder="npr. 8">
-      <label>Mesečni cilj si postavim …</label>
-      <div class="mtabs" style="margin-top:2px">
-        <button class="mt sel" id="gTabH" onclick="setGoalMode('h')">v urah ⏱</button>
-        <button class="mt" id="gTabE" onclick="setGoalMode('e')">v denarju 💶</button>
-      </div>
-      <div id="gModeH">
-        <label>Mesečni cilj (ur)</label>
-        <input type="number" id="sGoal" inputmode="numeric" step="1" min="0" placeholder="npr. 160">
-      </div>
-      <div id="gModeE" style="display:none">
-        <label>Koliko € hočeš zaslužiti ta mesec?</label>
-        <input type="number" id="sGoalEur" inputmode="decimal" step="10" min="0" placeholder="npr. 1500">
-      </div>
-      <div class="live-calc" id="sCalc"></div>
-      <label>Za kaj delaš ta mesec? 🎯 (neobvezno)</label>
-      <input type="text" id="sReward" placeholder="npr. nov telefon" maxlength="40">
-      <div class="row2" style="margin-top:8px">
-        <div><label style="margin-top:0">Cena nagrade (€)</label>
-        <input type="number" id="sRewPrice" inputmode="decimal" min="0" placeholder="npr. 600"></div>
-      </div>
+    <div class="sheet" role="dialog" aria-label="Nastavitve">
+      <div class="grab" aria-hidden="true"></div>
+      <h2>Nastavitve</h2>
+      <p class="ssub">Vse se preračuna takoj, ko shraniš.</p>
+      <label>Urna postavka (€/h)<input type="number" id="sRate" inputmode="decimal" step="0.1" min="0" placeholder="npr. 20"></label>
+      <label>Mesečni cilj si postavim</label>
+      <div class="tabs" id="gTabs" data-on="0" style="margin-top:6px"><span class="seg-ind"></span><button id="gTabH" onclick="setGoalMode('h')">v urah</button><button id="gTabE" onclick="setGoalMode('e')">v denarju</button></div>
+      <div id="gModeH"><label>Mesečni cilj (ur)<input type="number" id="sGoal" inputmode="numeric" step="1" min="0" placeholder="npr. 160"></label></div>
+      <div id="gModeE" style="display:none"><label>Koliko € hočeš zaslužiti ta mesec<input type="number" id="sGoalEur" inputmode="decimal" step="10" min="0" placeholder="npr. 650"></label></div>
+      <div class="calc" id="sCalc"></div>
+      <label>Za kaj delaš ta mesec (neobvezno)<input type="text" id="sReward" placeholder="npr. nov objektiv" maxlength="40"></label>
+      <label>Cena nagrade (€)<input type="number" id="sRewPrice" inputmode="decimal" min="0" placeholder="npr. 600"></label>
 
       <div class="set-sec">
         <h4>Denar</h4>
-        <div class="row2">
-          <div><label style="margin-top:0">»Na roke« (% bruto, 0 = izklop)</label>
-          <input type="number" id="sNet" inputmode="numeric" min="0" max="100" placeholder="npr. 78"></div>
-          <div><label style="margin-top:0">Vikend faktor (npr. 1,5)</label>
-          <input type="number" id="sWkx" inputmode="decimal" step="0.05" min="1" placeholder="1"></div>
+        <div class="fld2">
+          <label>Na roke (% bruto, 0 = izklop)<input type="number" id="sNet" inputmode="numeric" min="0" max="100" placeholder="npr. 78"></label>
+          <label>Vikend faktor (npr. 1,5)<input type="number" id="sWkx" inputmode="decimal" step="0.05" min="1" placeholder="1"></label>
         </div>
-        <button class="btn s" onclick="exportCsvMonth()">⬇︎ Izvozi CSV meseca na zaslonu</button>
+        <button class="btn soft wide tap" style="margin-top:12px" onclick="exportCsvMonth()"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Izvozi CSV meseca na zaslonu</span></button>
       </div>
 
-      <button class="btn p" onclick="saveSettings()">Shrani nastavitve</button>
+      <button class="btn pri wide tap" style="margin-top:18px" onclick="saveSettings()">Shrani nastavitve</button>
+
+      <div class="set-sec">
+        <h4>Račun in sinhronizacija</h4>
+        <div id="acctBox"></div>
+        <p style="margin-top:10px"><a href="#" onclick="toggleLog(event)" style="color:var(--teal)">Zadnje spremembe</a></p>
+        <div class="loglist" id="logList"></div>
+      </div>
 
       <div class="set-sec">
         <h4>Varnostna kopija</h4>
-        <p>Podatki so na tej napravi (in v oblaku, če si prijavljen). Kopija pride prav ob menjavi naprave.</p>
-        <button class="btn s" style="margin-top:0" onclick="exportData()">⬇︎ Izvozi kopijo (.json)</button>
-        <button class="btn s" onclick="document.getElementById('impFile').click()">⬆︎ Uvozi kopijo</button>
+        <p>Podatki so na tej napravi in v oblaku, če si prijavljen. Kopija pride prav ob menjavi naprave.</p>
+        <button class="btn soft wide tap" onclick="exportData()"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Izvozi kopijo (.json)</span></button>
+        <button class="btn soft wide tap" style="margin-top:8px" onclick="document.getElementById('impFile').click()">Uvozi kopijo</button>
         <input type="file" id="impFile" accept=".json,application/json" style="display:none" onchange="importData(this)">
       </div>
-      <button class="btn s" onclick="closeOvl('setOvl')">Zapri</button>
+
+      <button class="btn soft wide tap" style="margin-top:18px" onclick="closeOvl('setOvl')">Zapri</button>
     </div>
   </div>
 
-  <!-- auth sheet -->
+  <!-- prijava -->
   <div class="ovl" id="authOvl" onclick="if(event.target===this)closeOvl('authOvl')">
-    <div class="sheet">
-      <h3>Račun</h3>
-      <p class="sub">S prijavo se podatki samodejno sinhronizirajo med telefonom in računalnikom.</p>
-      <label>E-pošta</label>
-      <input type="text" id="aEmail" inputmode="email" autocomplete="username" placeholder="ime@primer.si">
-      <label>Geslo (vsaj 6 znakov)</label>
-      <input type="password" id="aPass" autocomplete="current-password" placeholder="••••••••">
-      <div id="aErr" style="display:none;margin-top:10px;background:rgba(220,38,38,.1);color:var(--red);border-radius:10px;padding:9px 12px;font-size:13px"></div>
-      <button class="btn p" id="aLoginBtn" onclick="doLogin()">Prijava</button>
-      <button class="btn s" id="aSignupBtn" onclick="doSignup()">Ustvari nov račun</button>
-      <button class="btn s" onclick="closeOvl('authOvl')">Nazaj</button>
+    <div class="sheet" role="dialog" aria-label="Račun">
+      <div class="grab" aria-hidden="true"></div>
+      <h2>Račun</h2>
+      <p class="ssub">S prijavo se podatki samodejno sinhronizirajo med telefonom in računalnikom.</p>
+      <label>E-pošta<input type="text" id="aEmail" inputmode="email" autocomplete="username" placeholder="ime@primer.si"></label>
+      <label>Geslo (vsaj 6 znakov)<input type="password" id="aPass" autocomplete="current-password" placeholder="••••••••"></label>
+      <div id="aErr" style="display:none;margin-top:12px;background:var(--bad-w);color:var(--bad);border-radius:12px;padding:10px 12px;font-size:13px"></div>
+      <button class="btn pri wide tap" style="margin-top:16px" id="aLoginBtn" onclick="doLogin()">Prijava</button>
+      <div class="row2">
+        <button class="btn soft tap" id="aSignupBtn" onclick="doSignup()">Nov račun</button>
+        <button class="btn soft tap" onclick="closeOvl('authOvl')">Nazaj</button>
+      </div>
     </div>
   </div>
 
   <div class="toast" id="toast"><span id="toastMsg"></span><button id="toastBtn" style="display:none"></button></div>
+
+  <div class="splash" id="splash">
+    <div class="spC-bg"></div>
+    <div class="spC-logo" id="spLogo"><span class="l">U</span><span class="l" style="animation-delay:.07s">r</span><span class="l" style="animation-delay:.14s">a</span><span class="pl">+</span></div>
+    <div class="spC-under">
+      <div class="spC-bar"><i id="spBar"></i></div>
+      <div class="spC-txt"><span class="s1">usklajujem z oblakom</span><span class="s2" id="spDone">usklajeno</span></div>
+    </div>
+  </div>
 </div>
 
 <script>
-'use strict';
+
 /* ================= stanje ================= */
 var KEY='uraplus_v1';
 var memStore=null, storageOK=true;
@@ -689,10 +964,10 @@ function toastU(msg, btnLabel, btnFn, ms){
   var t=document.getElementById('toast');
   document.getElementById('toastMsg').textContent=msg;
   var b=document.getElementById('toastBtn');
-  if(btnLabel){ b.style.display=''; b.textContent=btnLabel; b.onclick=function(){ t.style.display='none'; btnFn(); }; }
+  if(btnLabel){ b.style.display=''; b.textContent=btnLabel; b.onclick=function(){ t.classList.remove('on'); btnFn(); }; }
   else b.style.display='none';
-  t.style.display='block';
-  clearTimeout(toastT); toastT=setTimeout(function(){t.style.display='none';}, ms|| (btnLabel?5000:2200));
+  t.classList.add('on');
+  clearTimeout(toastT); toastT=setTimeout(function(){t.classList.remove('on');}, ms|| (btnLabel?5000:2200));
 }
 function toast(m){ toastU(m); }
 
@@ -802,43 +1077,160 @@ var curView='m';
 function setView(v){
   curView=v;
   document.getElementById('monthView').style.display = v==='m'?'':'none';
-  document.getElementById('yearView').style.display  = v==='y'?'block':'none';
+  document.getElementById('yearView').style.display  = v==='y'?'':'none';
   document.getElementById('vMes').classList.toggle('on',v==='m');
   document.getElementById('vLet').classList.toggle('on',v==='y');
+  document.getElementById('viewSeg').setAttribute('data-on', v==='y'?'1':'0');
   document.getElementById('navL').style.visibility = v==='m'?'':'hidden';
   document.getElementById('navR').style.visibility = v==='m'?'':'hidden';
-  document.getElementById('moLabel').textContent = v==='m'? (MESECI[vm]+' '+vy) : 'Tvoje leto';
-  if(v==='y') renderYear();
+  setMoLabel(v==='m'? null : 'Tvoje leto');
+  document.getElementById('fab').style.display = v==='m'?'':'none';
+  document.getElementById('scr').scrollTop=0;
+  haptic(6);
+  if(v==='y') renderYear(); else render();
 }
-function chMonth(d){ vm+=d; if(vm<0){vm=11;vy--;} if(vm>11){vm=0;vy++;} render(); }
+function setMoLabel(txt){
+  var el=document.getElementById('moLabel');
+  el.innerHTML = txt? '<span style="text-transform:none">'+txt+'</span>' : '<span>'+MESECI[vm]+' <span class="yr">'+vy+'</span></span>';
+}
+function swapMo(){ var el=document.getElementById('moLabel'); el.classList.remove('swap'); void el.offsetWidth; el.classList.add('swap'); }
+function chMonth(d){ vm+=d; if(vm<0){vm=11;vy--;} if(vm>11){vm=0;vy++;} haptic(6); render(); swapMo(); slidePane(d); }
+function slidePane(d){
+  var p=document.getElementById('monthView');
+  p.classList.remove('slide-l','slide-r'); void p.offsetWidth;
+  p.classList.add(d>0?'slide-l':'slide-r');
+}
 function chYear(d){ yView+=d; renderYear(); }
 
-/* animiran prikaz zneska + obroca */
-var animMoney=null, shownMoney=0, shownPct=0;
+/* animiran prikaz zneska, obroca in pikcastega loka napovedi */
+var animMoney=null, shownMoney=0, RINGC=628.3;
+function fmtBig(txt){
+  var i=txt.lastIndexOf(',');
+  if(i<0){ var sp=Math.max(txt.lastIndexOf('\u00A0'), txt.lastIndexOf(' ')); if(sp<0) return txt; return '<span class="i">'+txt.slice(0,sp)+'</span><span class="dec">'+txt.slice(sp)+'</span>'; }
+  return '<span class="i">'+txt.slice(0,i)+'</span><span class="dec">'+txt.slice(i)+'</span>';
+}
 function animateRing(targetE, goalTxt, pctA, pctB, pctTxt, pctSize){
   var rm=document.getElementById('rMoney'), rp=document.getElementById('rPct');
   document.getElementById('rGoal').textContent=goalTxt;
-  rp.textContent=pctTxt; rp.style.fontSize=pctSize;
-  var ring=document.getElementById('ring');
-  var A=cssVar('--ring-a')||'#46BEC5', B=cssVar('--ring-b')||'#B5E6EA', T=cssVar('--ring-t')||'#E7E5E5';
-  function paint(e,a){
-    var txt=eur(e);
-    rm.textContent=txt;
-    rm.style.fontSize = txt.length>9 ? '16.5px' : '20px';
-    var b=a+(pctB-pctA);
-    ring.style.background='conic-gradient('+A+' 0% '+a+'%, '+B+' '+a+'% '+b+'%, '+T+' '+b+'% 100%)';
-  }
-  if(reduceMotion || Math.abs(targetE-shownMoney)<0.01){ paint(targetE,pctA); shownMoney=targetE; shownPct=pctA; return; }
-  var fromE=shownMoney, fromP=shownPct, t0=performance.now();
+  rp.textContent=pctTxt;
+  var a=Math.min(1,pctA/100), b=Math.min(1,pctB/100);
+  var act=document.getElementById('rActArc'), pl=document.getElementById('rPlanArc'), tg=document.getElementById('rTip');
+  act.style.strokeDashoffset=RINGC*(1-a);
+  pl.style.strokeDashoffset=RINGC*(1-b);
+  tg.style.transform='rotate('+(a*360)+'deg)';
+  tg.style.opacity = a>0.004? 1:0;
+  function paint(e){ rm.innerHTML=fmtBig(eur(e)); }
+  if(reduceMotion || Math.abs(targetE-shownMoney)<0.01){ paint(targetE); shownMoney=targetE; return; }
+  var fromE=shownMoney, t0=performance.now();
   cancelAnimationFrame(animMoney);
   (function step(t){
-    var x=Math.min(1,(t-t0)/450); var ease=1-Math.pow(1-x,3);
-    paint(fromE+(targetE-fromE)*ease, fromP+(pctA-fromP)*ease);
-    if(x<1) animMoney=requestAnimationFrame(step);
-    else { shownMoney=targetE; shownPct=pctA; }
+    var x=Math.min(1,(t-t0)/900), e=1-Math.pow(1-x,4);
+    paint(fromE+(targetE-fromE)*e);
+    if(x<1) animMoney=requestAnimationFrame(step); else shownMoney=targetE;
   })(t0);
 }
-
+/* pikcast lok: kje koncas mesec pri tem tempu (drsnik ga premika, cez cilj gre v drugi krog) */
+var GAPF=0.018, boostH=0, projRaf=null;
+function arcPath(cx,cy,r,frac){
+  var f=Math.min(1-GAPF,frac);
+  if(f<=0.004) return 'M'+cx+' '+(cy-r);
+  var a=f*Math.PI*2, x=cx+r*Math.sin(a), y=cy-r*Math.cos(a);
+  return 'M'+cx+' '+(cy-r)+' A'+r+' '+r+' 0 '+(a>Math.PI?1:0)+' 1 '+x.toFixed(2)+' '+y.toFixed(2);
+}
+function arcPt(cx,cy,r,frac){ var a=Math.min(1-GAPF,frac)*Math.PI*2; return [cx+r*Math.sin(a), cy-r*Math.cos(a)]; }
+function projMonth(){
+  var isCur=(vy===now.getFullYear() && vm===now.getMonth());
+  var mh=monthCalc(vy,vm);
+  if(!isCur || mh.aH<=0) return null;
+  var n=dim(vy,vm), base=mh.aH/now.getDate()*n*S.rate;
+  return base + boostH*S.rate*(n-now.getDate()+1);
+}
+function renderProjArc(load){
+  var el=document.getElementById('rProj'), el2=document.getElementById('rProj2'), dot=document.getElementById('rProjDot');
+  var gE=goalE(), proj=projMonth();
+  if(proj==null || gE<=0){ [el,el2,dot].forEach(function(x){ x.style.opacity=0; }); return; }
+  var frac=Math.min(2,proj/gE), over=proj>=gE;
+  [el,el2,dot].forEach(function(x){ x.style.opacity=''; x.classList.toggle('over',over); });
+  function put(f){
+    var l1=Math.min(1,f), l2=Math.max(0,f-1);
+    el.setAttribute('d',arcPath(120,120,114,l1));
+    el2.setAttribute('d',arcPath(120,120,123,l2));
+    el2.style.display= l2>0.004?'':'none';
+    var pt = l2>0.004? arcPt(120,120,123,l2) : arcPt(120,120,114,l1);
+    dot.setAttribute('cx',pt[0].toFixed(2)); dot.setAttribute('cy',pt[1].toFixed(2));
+    dot.style.display= f>0.01?'':'none';
+  }
+  cancelAnimationFrame(projRaf);
+  if(load && !reduceMotion){
+    put(0); var t0=performance.now()+300;
+    (function st(t){ var k=Math.max(0,Math.min(1,(t-t0)/900)); put(frac*(1-Math.pow(1-k,4))); if(k<1) projRaf=requestAnimationFrame(st); })(performance.now());
+  } else put(frac);
+}
+function boostChange(){
+  var v=+document.getElementById('boostR').value||0;
+  if(v!==boostH) haptic(4);
+  boostH=v; renderBoost(); renderProjArc(false);
+}
+function renderBoost(){
+  var box=document.getElementById('extraCard');
+  var isCur=(vy===now.getFullYear() && vm===now.getMonth());
+  if(!isCur || !S.rate){ box.style.display='none'; return; }
+  box.style.display='';
+  var n=dim(vy,vm), dl=n-now.getDate()+1, gE=goalE(), proj=projMonth();
+  document.getElementById('xTitle').textContent='Vsaka ura šteje · še '+dl+' dni';
+  document.getElementById('boostR').style.setProperty('--p',(boostH/3*100)+'%');
+  document.getElementById('bVal').textContent = boostH? '+'+(Math.round(boostH*100)/100).toLocaleString('sl-SI')+' h na dan' : 'brez dodatnih ur';
+  var res=document.getElementById('bRes');
+  if(proj==null){ res.textContent='Ko vpišeš prve ure, tukaj vidiš, s čim končaš mesec.'; box.classList.remove('good'); return; }
+  res.innerHTML=(boostH?'Tako končaš z ':'Pri tem tempu končaš z ')+'<b>~'+eur(Math.round(proj))+'</b>'+(gE>0?' · '+Math.round(proj/gE*100)+' % cilja':'');
+  box.classList.toggle('good', gE>0 && proj>=gE);
+}
+/* mejniki kot tir z vozlisci */
+function renderMiles(){
+  var ate=allTimeEarned(), bd=document.getElementById('badges'), lab=document.getElementById('tlabels');
+  document.getElementById('ateTxt').textContent=eur(Math.round(ate))+' skupaj';
+  var nx=null; for(var i=0;i<MILES.length;i++){ if(ate<MILES[i]){ nx=MILES[i]; break; } }
+  document.getElementById('mnext').innerHTML = nx? 'Do mejnika <b>'+eur(nx)+'</b> še '+eur(Math.round(nx-ate))+'.' : 'Vsi mejniki doseženi.';
+  if(!bd.children.length){
+    bd.innerHTML=MILES.map(function(m){ return '<span class="node" style="left:'+(m/5000*100)+'%"></span>'; }).join('');
+    lab.innerHTML=MILES.map(function(m,i){ return '<span style="left:'+(m/5000*100)+'%">'+MLAB[i]+'</span>'; }).join('');
+  }
+  var w=Math.min(100,ate/5000*100)+'%';
+  var f=document.getElementById('tfill');
+  setTimeout(function(){ f.style.setProperty('--w',w); }, 250);
+  [].forEach.call(bd.children,function(nd,i){ nd.classList.toggle('got',ate>=MILES[i]); nd.classList.toggle('nx',MILES[i]===nx); });
+  [].forEach.call(lab.children,function(sp,i){ sp.classList.toggle('nx',MILES[i]===nx); });
+}
+/* stolpci tega tedna */
+function renderWeekBars(){
+  var el=document.getElementById('wbars'); if(!el) return;
+  var t=new Date(), off=(t.getDay()+6)%7, tk=todayKey(), tot=0, totE=0, html='';
+  var DW=['pon','tor','sre','čet','pet','sob','ned'];
+  for(var i=0;i<7;i++){
+    var d=new Date(t.getFullYear(),t.getMonth(),t.getDate()-off+i);
+    var k=key(d.getFullYear(),d.getMonth(),d.getDate()), v=S.data[k], h=entH(v);
+    if(v!=null && !isPlan(v) && k<=tk){ tot+=h; totE+=entEur(k,v); }
+    var hh=Math.min(100, h/8*100);
+    html+='<div class="wb'+(k===tk?' today':'')+(isPlan(v)?' plan':'')+'">'+
+      '<div class="wv">'+(h? (Math.round(h*100)/100).toLocaleString('sl-SI') : '')+'</div>'+
+      '<div class="wt"><i style="--h:'+hh+'%"></i></div><small>'+DW[i]+'</small></div>';
+  }
+  el.innerHTML=html;
+  document.getElementById('wkTot').textContent = hrs(tot)+' · '+eur(Math.round(totE));
+}
+function addToday(h){
+  var tk=todayKey(), v=S.data[tk], base=(v!=null && !isPlan(v))? entH(v):0;
+  snapDays([tk]);
+  var nh=Math.min(24, Math.round((base+h)*100)/100);
+  S.data[tk]= nh; markDay(tk); save(); haptic(12);
+  floatAmt('+'+eur(h*dayRate(tk)));
+  render();
+}
+function floatAmt(txt){
+  var host=document.querySelector('.ringwrap'); if(!host) return;
+  var sp=document.createElement('span'); sp.className='float'; sp.textContent=txt;
+  host.appendChild(sp); setTimeout(function(){ sp.remove(); },1150);
+}
 /* ================= dnevna kartica (ritual) ================= */
 function fmtDayShort(k){
   var d=kDate(k);
@@ -854,45 +1246,41 @@ function lastActualBefore(k, maxBack){
   }
   return null;
 }
+function ico(name){
+  var P={check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',plus:'<path d="M12 5v14M5 12h14"/>',
+    play:'<path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="none"/>',
+    stop:'<rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor" stroke="none"/>',
+    repeat:'<path d="M4 11a8 8 0 0 1 13.7-5.6L20 7.7M20 3.5v4.2h-4.2M20 13a8 8 0 0 1-13.7 5.6L4 16.3M4 20.5v-4.2h4.2"/>'};
+  return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">'+P[name]+'</svg>';
+}
 function renderDayCard(){
   var el=document.getElementById('dayCard');
-  var tk=todayKey();
-  var pend=pendingKeys();
-  var timer=getTimer();
-  var html='';
+  var tk=todayKey(), pend=pendingKeys(), timer=getTimer(), html='';
   if(pend.length){
     var k0=pend[0], v0=S.data[k0], rng=entRange(v0);
-    html='<div class="dtit">Zaključi dan</div>'+
-      '<div class="dmsg">'+fmtDayShort(k0)+': plan '+hrs(entH(v0))+' · '+eur(entEur(k0,v0))+(rng?' ('+rng+')':'')+
-      '<small>Si delal po planu?'+(pend.length>1?' · čaka še '+(pend.length-1)+' dni':'')+'</small></div>'+
-      '<div class="drow">'+
-        '<button class="dbtn p" onclick="confirmDay(\''+k0+'\')">✓ Potrdi</button>'+
-        '<button class="dbtn s" onclick="openEntry(\''+k0+'\')">Popravi</button>'+
-        (pend.length>1? '<button class="dbtn s" onclick="confirmAll()">Potrdi vse ('+pend.length+')</button>':'')+
-      '</div>';
+    html='<div class="trow"><div class="tmsg"><small>Zaključi dan</small><b>'+fmtDayShort(k0)+' · plan '+hrs(entH(v0))+'</b>'+
+      '<span>'+eur(entEur(k0,v0))+(rng?' · '+rng:'')+(pend.length>1?' · čaka še '+(pend.length-1)+' dni':'')+'</span></div>'+
+      '<button class="plusbtn tap" onclick="confirmDay(\''+k0+'\')" aria-label="Potrdi dan">'+ico('check')+'</button></div>'+
+      '<div class="tchips"><button class="tchip tap" onclick="openEntry(\''+k0+'\')">Popravi</button>'+
+      (pend.length>1?'<button class="tchip tap" onclick="confirmAll()">Potrdi vse ('+pend.length+')</button>':'')+'</div>';
   } else if(timer){
-    html='<div class="dtit">Štoparica teče</div>'+
-      '<div class="dmsg" id="dTimerLive">⏱ …</div>'+
-      '<div class="drow"><button class="dbtn p" onclick="stopTimer()">■ Ustavi in vpiši</button>'+
-      '<button class="dbtn s" onclick="discardTimer()">Prekliči</button></div>';
+    html='<div class="trow"><div class="tmsg"><small>Štoparica teče</small><b id="dTimerLive">0:00</b></div>'+
+      '<button class="plusbtn tap" onclick="stopTimer()" aria-label="Ustavi in vpiši">'+ico('stop')+'</button></div>'+
+      '<div class="tchips"><button class="tchip tap" onclick="discardTimer()">Prekliči štoparico</button></div>';
   } else {
-    var tv=S.data[tk];
-    if(tv==null){
-      var last=lastActualBefore(tk,7);
-      html='<div class="dtit">Danes</div><div class="dmsg">Še brez vnosa.<small>En tap in je.</small></div><div class="drow">';
-      if(last) html+='<button class="dbtn g" onclick="repeatLast()">↻ Ponovi '+(last.k===yestKey()?'včeraj':'zadnje')+' · '+hrs(entH(last.v))+'</button>';
-      html+='<button class="dbtn s" onclick="startTimer()">⏱ Štartaj</button>'+
-            '<button class="dbtn s" onclick="openEntry(todayKey())">Drugače…</button></div>';
-    } else {
-      html='<div class="dtit">Danes</div>'+
-        '<div class="dmsg">'+hrs(entH(tv))+' · '+eur(entEur(tk,tv))+' <span style="color:var(--green)">✓</span>'+
-        '<small>Vpisano. Lahko še dodaš ali popraviš.</small></div>'+
-        '<div class="drow"><button class="dbtn s" onclick="openEntry(todayKey())">Uredi</button>'+
-        '<button class="dbtn s" onclick="startTimer()">⏱ Štartaj</button></div>';
-    }
+    var tv=S.data[tk], last=lastActualBefore(tk,7);
+    var head = (tv==null)
+      ? '<small>Danes · '+fmtDayShort(tk)+'</small><b>Še brez vnosa.</b><span>En tap na + in je.</span>'
+      : '<small>Danes · '+fmtDayShort(tk)+'</small><b>'+hrs(entH(tv))+' · '+eur(entEur(tk,tv))+'</b><span>Vpisano. Tapni + za popravek.</span>';
+    html='<div class="trow"><div class="tmsg">'+head+'</div>'+
+      '<button class="plusbtn tap" onclick="openEntry(todayKey())" aria-label="Vpiši ure za danes">'+ico('plus')+'</button></div>'+
+      '<div class="chips">'+[0.5,1,2,4].map(function(x){
+        return '<button class="chip tap" onclick="addToday('+x+')">+'+(x===0.5?'0,5':x)+' h</button>'; }).join('')+'</div>'+
+      '<div class="tchips">'+
+      (last? '<button class="tchip tap" onclick="repeatLast()">'+ico('repeat')+'Ponovi '+(last.k===yestKey()?'včeraj':'zadnje')+' · '+hrs(entH(last.v))+'</button>':'')+
+      '<button class="tchip tap" onclick="startTimer()">'+ico('play')+'Štartaj</button></div>';
   }
   el.innerHTML=html;
-  el.style.display='block';
   tickTimerUI();
 }
 function yestKey(){ var d=new Date(); d.setDate(d.getDate()-1); return key(d.getFullYear(),d.getMonth(),d.getDate()); }
@@ -942,10 +1330,10 @@ function tickTimerUI(){
     var sec=Math.floor((Date.now()-t2.s)/1000);
     var hh=Math.floor(sec/3600), mm=Math.floor(sec%3600/60);
     var money=sec/3600*dayRate(todayKey());
-    var txt='⏱ '+hh+':'+pad(mm)+' · '+eur(money);
-    chip.textContent=txt;
+    var txt=hh+':'+pad(mm)+' · '+eur(money);
+    document.getElementById('timerT').textContent=txt;
     var live=document.getElementById('dTimerLive');
-    if(live) live.innerHTML=txt+'<small>Merim od '+new Date(t2.s).toTimeString().slice(0,5)+'. Ustavi, ko končaš.</small>';
+    if(live) live.innerHTML=txt+'<small>od '+new Date(t2.s).toTimeString().slice(0,5)+'</small>';
   }
   upd(); timerInt=setInterval(upd,1000);
 }
@@ -953,8 +1341,8 @@ function stopTimer(){
   var t=getTimer(); if(!t) return;
   var mins=Math.round((Date.now()-t.s)/60000/5)*5;
   try{ localStorage.removeItem('uraplus_timer'); }catch(e){}
-  if(mins<5){ render(); toast('Manj kot 5 minut — nič vpisano.'); return; }
-  if(mins>16*60){ render(); toast('Štoparica je tekla predolgo — preklicana.'); return; }
+  if(mins<5){ render(); toast('Manj kot 5 minut - nič vpisano.'); return; }
+  if(mins>16*60){ render(); toast('Štoparica je tekla predolgo - preklicana.'); return; }
   var from=new Date(t.s), to=new Date(t.s+mins*60000);
   openEntry(todayKey());
   setMode('t');
@@ -965,9 +1353,10 @@ function stopTimer(){
 }
 
 /* ================= glavni izris (mesec) ================= */
-function render(){
+function render(opt){
+  var LOAD=!!(opt&&opt.load);
   var isCur = (vy===now.getFullYear() && vm===now.getMonth());
-  if(curView==='m') document.getElementById('moLabel').textContent = MESECI[vm]+' '+vy;
+  if(curView==='m') setMoLabel(null);
 
   renderDayCard();
 
@@ -977,8 +1366,9 @@ function render(){
   var pctA = gE>0 ? Math.min(100, earned/gE*100) : 0;
   var pctB = gE>0 ? Math.min(100, (earned+planEur)/gE*100) : 0;
   var pctTxt=Math.round(pctA)+'%'+(planH>0?' · plan '+Math.round(pctB)+'%':'');
-  var noGoalTxt = (SESS && !firstPullDone) ? 'nalagam iz oblaka ☁' : 'nastavi cilj ⚙︎';
+  var noGoalTxt = (SESS && !firstPullDone) ? 'nalagam iz oblaka' : 'nastavi cilj v nastavitvah';
   animateRing(earned, gE>0?'od '+eur(gE)+' cilja':noGoalTxt, pctA, pctB, pctTxt, planH>0?'9.5px':'12px');
+  renderProjArc(LOAD);
 
   var nl=document.getElementById('netoLine');
   if(S.netPct>0 && earned>0){ nl.style.display=''; nl.textContent='≈ '+eur(netOf(earned))+' na roke ('+S.netPct+'%)'; }
@@ -987,8 +1377,8 @@ function render(){
   document.getElementById('kHours').textContent = hrs(mh.aH)+(gH?' / '+(Math.round(gH*10)/10).toLocaleString('sl-SI')+'\u00A0h':'');
   var leftH = Math.max(0, gH-mh.aH);
   var leftEl=document.getElementById('kLeft');
-  if(!gH){ leftEl.textContent='—'; leftEl.className=''; }
-  else if(leftH<=0){ leftEl.textContent='Cilj dosežen! 🎉'; leftEl.className='g'; }
+  if(!gH){ leftEl.textContent='-'; leftEl.className=''; }
+  else if(leftH<=0){ leftEl.textContent='Cilj dosežen'; leftEl.className='g'; }
   else{
     var txt=hrs(leftH)+' · '+eur(leftH*S.rate);
     if(isCur){
@@ -1035,8 +1425,8 @@ function render(){
     var proj2 = mh.aH/now.getDate()*dim(vy,vm);
     var needPerDay = daysLeft2>0 ? leftH/daysLeft2 : 0;
     var curPerDay = mh.aH/now.getDate();
-    if(proj2>=gH){ pc.classList.add('on','pc-ok'); pc.textContent='✅ Na poti do cilja — ta tempo ti prinese ~'+hrs(Math.round(proj2))+'.'; }
-    else { pc.classList.add('on','pc-warn'); pc.textContent='⚠️ Ta tempo ti da le ~'+hrs(Math.round(proj2))+'. Za cilj od zdaj: '+
+    if(proj2>=gH){ pc.classList.add('on','pc-ok'); pc.textContent='Na poti do cilja - ta tempo ti prinese ~'+hrs(Math.round(proj2))+'.'; }
+    else { pc.classList.add('on','pc-warn'); pc.textContent='Ta tempo ti da le ~'+hrs(Math.round(proj2))+'. Za cilj od zdaj: '+
       (Math.round(needPerDay*10)/10).toLocaleString('sl-SI')+'\u00A0h/dan (zdaj ~'+(Math.round(curPerDay*10)/10).toLocaleString('sl-SI')+' h/dan).'; }
   }
 
@@ -1057,11 +1447,11 @@ function render(){
   var hit = gH>0 && mh.aH>=gH;
   document.getElementById('goalHit').classList.toggle('on',hit);
   var mk=vy+'-'+vm;
-  if(hit && !S.celebrated[mk]){ S.celebrated[mk]=1; save(); confetti(); haptic(30); }
+  if(hit && !S.celebrated[mk]){ S.celebrated[mk]=1; save(); celebrate(); }
 
   /* tiles */
   var tk=todayKey(), tv=S.data[tk];
-  document.getElementById('tToday').textContent = isCur? (tv!=null? hrs(entH(tv))+(isPlan(tv)?' · plan':' · +'+eur(entEur(tk,tv))):'—') : '—';
+  document.getElementById('tToday').textContent = isCur? (tv!=null? hrs(entH(tv))+(isPlan(tv)?' · plan':' · +'+eur(entEur(tk,tv))):'-') : '-';
   var wtot=0, wEur=0;
   if(isCur){
     var t=new Date(); var off=(t.getDay()+6)%7;
@@ -1071,9 +1461,10 @@ function render(){
       var vv2=S.data[kk];
       if(kk<=tk && vv2!=null && !isPlan(vv2)){ wtot+=entH(vv2); wEur+=entEur(kk,vv2); }
     }
-    document.getElementById('tWeek').textContent = wtot? hrs(wtot):'—';
-  } else document.getElementById('tWeek').textContent='—';
-  document.getElementById('tAvg').textContent = mh.aD? hrs(mh.aH/mh.aD) : '—';
+    document.getElementById('tWeek').textContent = wtot? hrs(wtot):'-';
+  } else document.getElementById('tWeek').textContent='-';
+  document.getElementById('tAvg').textContent = mh.aD? hrs(mh.aH/mh.aD) : '-';
+  renderWeekBars();
 
   /* namizna KPI vrstica */
   if(document.getElementById('kpiRow')){
@@ -1082,7 +1473,7 @@ function render(){
       (S.netPct>0 && earned>0 ? ' · ≈ '+eur(netOf(earned))+' neto' : ''));
     setTxt('dHours', hrs(mh.aH)+(gH? ' / '+(Math.round(gH*10)/10).toLocaleString('sl-SI') : ''));
     setTxt('dHoursSub', mh.aD+' delovnih dni'+(mh.aD? ' · povpr. '+hrs(mh.aH/mh.aD) : ''));
-    if(!gH){ setTxt('dLeft','—'); setTxt('dLeftSub','nastavi cilj ⚙︎'); }
+    if(!gH){ setTxt('dLeft','-'); setTxt('dLeftSub','nastavi cilj ⚙︎'); }
     else if(leftH<=0){ setTxt('dLeft','Cilj dosežen 🎉'); setTxt('dLeftSub', hrs(mh.aH-gH)+' čez cilj'); }
     else {
       setTxt('dLeft', hrs(leftH));
@@ -1092,10 +1483,10 @@ function render(){
     if(isCur && mh.aH>0){
       setTxt('dProj', '~'+eur(Math.round(mh.aH/now.getDate()*dim(vy,vm)*S.rate)));
       setTxt('dProjSub','pri tem tempu · še '+(dim(vy,vm)-now.getDate()+1)+' dni');
-    } else { setTxt('dProj','—'); setTxt('dProjSub', isCur? 'ni še vnosov':'pretekli mesec'); }
-    setTxt('dToday', isCur&&tv!=null? hrs(entH(tv)) : '—');
+    } else { setTxt('dProj','-'); setTxt('dProjSub', isCur? 'ni še vnosov':'pretekli mesec'); }
+    setTxt('dToday', isCur&&tv!=null? hrs(entH(tv)) : '-');
     setTxt('dTodaySub', isCur&&tv!=null? (isPlan(tv)? 'planirano' : eur(entEur(tk,tv))) : (isCur?'še nič vpisanega':''));
-    setTxt('dWeek', isCur&&wtot? hrs(wtot) : '—');
+    setTxt('dWeek', isCur&&wtot? hrs(wtot) : '-');
     setTxt('dWeekSub', isCur&&wtot? eur(wEur) : '');
     renderEntries();
     renderMBars();
@@ -1104,70 +1495,64 @@ function render(){
     qCalc();
   }
 
-  /* streak */
-  var st=calcStreak(), sb=document.getElementById('streakB');
-  if(st>=2){ sb.style.display=''; sb.textContent='🔥 '+st+' dni'; } else sb.style.display='none';
+  /* niz dni + povzetek koledarja */
+  var st=calcStreak(), cs=document.getElementById('calSum');
+  if(cs) cs.innerHTML=(st>=2? '<b style="color:var(--teal)">'+st+' dni zapored</b> \u00B7 ':'')+(mh.aD+mh.pD+mh.cD)+' vnosov';
 
-  /* vsaka ura steje */
-  var xc=document.getElementById('extraCard');
-  if(isCur && S.rate>0){
-    var dl=dim(vy,vm)-now.getDate()+1;
-    xc.style.display='';
-    document.getElementById('xTitle').textContent='Vsaka ura šteje — še '+dl+' dni do konca meseca';
-    var xr=document.getElementById('xRows'); xr.innerHTML='';
-    [0.5,1,2].forEach(function(x){
-      var el=document.createElement('div'); el.className='xc';
-      el.innerHTML='<small>+'+(x===0.5?'0,5':x)+' h/dan</small><b>+'+eur(Math.round(x*dl*S.rate))+'</b>';
-      xr.appendChild(el);
-    });
-  } else xc.style.display='none';
+  /* vsaka ura steje: drsnik, ki premika pikcasti lok */
+  renderBoost();
 
   /* dosezki */
-  var ate=allTimeEarned();
-  var bd=document.getElementById('badges'); bd.innerHTML='';
-  var topHit=0;
-  for(var mi=0; mi<MILES.length; mi++){
-    var got = ate>=MILES[mi]; if(got) topHit=MILES[mi];
-    var be=document.createElement('div');
-    be.className='bdg'+(got?'':' lock');
-    be.innerHTML='<span class="bi">'+MICON[mi]+'</span><span class="bl">'+MLAB[mi]+'</span>';
-    bd.appendChild(be);
-  }
-  if(topHit>S.msDone){ S.msDone=topHit; save(); confetti(); haptic(30); toast('🏅 Mejnik dosežen: '+eur(topHit)+'!'); }
+  renderMiles();
+  var ate=allTimeEarned(), topHit=0;
+  for(var mi=0; mi<MILES.length; mi++){ if(ate>=MILES[mi]) topHit=MILES[mi]; }
+  if(topHit>S.msDone){ S.msDone=topHit; save(); burstRing(); haptic(30); toast('Mejnik dosežen: '+eur(topHit)); }
   var bm=bestMonth(), rr=document.getElementById('recRow');
   if(bm && S.rate>0){
     rr.style.display='';
     var bp=bm.mk.split('-');
-    rr.innerHTML='🏆 Najboljši mesec: <b>'+MESECI[+bp[1]-1]+' '+bp[0]+'</b> · <b>'+hrs(bm.h)+'</b> · <b style="color:var(--green)">'+eur(bm.e)+'</b>';
+    rr.innerHTML='Najboljši mesec: <b>'+MESECI[+bp[1]-1]+' '+bp[0]+'</b> \u00B7 <b>'+hrs(bm.h)+'</b> \u00B7 <b style="color:var(--teal)">'+eur(bm.e)+'</b>';
   } else rr.style.display='none';
 
-  /* koledar */
-  var g=document.getElementById('calGrid'); g.innerHTML='';
-  var first=new Date(vy,vm,1); var offset=(first.getDay()+6)%7;
-  var n=dim(vy,vm);
-  for(var b=0;b<offset;b++){var e2=document.createElement('div');e2.className='day blank';g.appendChild(e2);}
+  /* koledar: celica se polni glede na ure tistega dne */
+  var g=document.getElementById('calGrid');
+  var first=new Date(vy,vm,1), offset=(first.getDay()+6)%7, n=dim(vy,vm);
+  var maxH=0;
+  for(var dq=1; dq<=n; dq++){ var vq=S.data[key(vy,vm,dq)]; if(vq!=null && !isPlan(vq)) maxH=Math.max(maxH, entH(vq)); }
+  var ch='', ci=0;
+  for(var b=0;b<offset;b++){ ch+='<div class="day blank" style="--i:'+(ci++)+'"></div>'; }
   for(var d=1;d<=n;d++){
     var k=key(vy,vm,d), v=S.data[k], h=entH(v);
-    var el2=document.createElement('div');
+    var act=(v!=null && !isPlan(v));
+    var r=(act && maxH>0)? h/maxH : 0;
+    var lv=act? (0.4+0.6*r) : 0;
     var cls='day';
-    if(v!=null){
-      if(isPlan(v)) cls+= k<=tk ? ' wait' : ' plan';
-      else cls+=' has';
-    } else if(k>tk) cls+=' future';
+    if(v!=null) cls+= isPlan(v)? (k<=tk? ' wait':' plan') : ' has';
+    else if(k>tk) cls+=' fut';
     if(k===tk) cls+=' today';
-    el2.className=cls;
-    el2.innerHTML='<span class="dn">'+d+'</span>'+
-      (v!=null? '<span class="hh">'+(Math.round(h*100)/100).toLocaleString('sl-SI')+'h</span><span class="ee">'+eur(entEur(k,v))+'</span>':'')+
-      (v!=null? '<span class="rng">'+(entRange(v)||(isPlan(v)?'planirano':'po urah'))+'</span>':'');
-    (function(kk2){ el2.onclick=function(){openEntry(kk2);}; })(k);
-    g.appendChild(el2);
+    var ttl=d+'. '+MESECI[vm]+(v!=null? ', '+hrs(h)+' \u00B7 '+eur(entEur(k,v)):'');
+    ch+='<div class="'+cls+'" style="--i:'+(ci++)+';--lv:0;--r:0" data-lv="'+lv.toFixed(3)+'" data-r="'+r.toFixed(3)+
+      '" data-k="'+k+'" title="'+ttl+'"><i class="fill"></i><span class="dn">'+d+'</span>'+
+      '<span class="dh">'+(v!=null? (Math.round(h*100)/100).toLocaleString('sl-SI')+'h':'')+'</span></div>';
   }
+  g.classList.toggle('anim', LOAD);
+  g.innerHTML=ch;
+  g.onclick=function(ev){
+    var t=ev.target.closest? ev.target.closest('.day[data-k]') : null;
+    if(!t) return; openEntry(t.getAttribute('data-k'));
+  };
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){
+    [].forEach.call(g.querySelectorAll('.day[data-lv]'), function(c){
+      c.style.setProperty('--lv', c.getAttribute('data-lv'));
+      c.style.setProperty('--r', c.getAttribute('data-r'));
+    });
+  }); });
   document.getElementById('sumDays').textContent=mh.aD+mh.pD+mh.cD;
   document.getElementById('sumH').textContent=hrs(mh.aH+planH);
   document.getElementById('sumE').textContent=eur(earned+planEur);
 
-  /* tedenski graf */
-  var wc=document.getElementById('wchart'); wc.innerHTML='';
+  /* zaslužek po tednih kot vrstice */
+  var wc=document.getElementById('wchart');
   var weeks=[];
   for(var dd=1; dd<=n; dd++){
     var wi=Math.floor((dd+offset-1)/7);
@@ -1178,38 +1563,54 @@ function render(){
     if(isPlan(vv)) weeks[wi].p+=ee; else weeks[wi].a+=ee;
   }
   var wmax=0; weeks.forEach(function(w){ wmax=Math.max(wmax,w.a+w.p); });
-  if(wmax<=0){ wc.innerHTML='<div class="wempty" style="width:100%">Ko vneseš ure, se tukaj pokaže graf 📊</div>'; }
-  else weeks.forEach(function(w){
-    var col=document.createElement('div'); col.className='wcol';
-    var tot=w.a+w.p, barH=Math.round(tot/wmax*82);
-    var aH2 = tot>0? Math.round(barH*(w.a/tot)) : 0;
-    col.innerHTML='<div class="wval">'+(tot>0?eur(Math.round(tot)):'')+'</div>'+
-      '<div class="wbar" style="height:'+Math.max(barH,tot>0?4:0)+'px">'+
-      '<div class="wp" style="height:'+(barH-aH2)+'px"></div><div class="wa" style="height:'+aH2+'px"></div></div>'+
-      '<div class="wlab">'+w.from+'.–'+w.to+'.</div>';
-    wc.appendChild(col);
-  });
+  if(wmax<=0){ wc.innerHTML='<div class="wkrow" style="color:var(--mute)"><span></span><span>Ko vpišeš ure, se tukaj pokaže razrez po tednih.</span><b></b></div>'; }
+  else{
+    wc.innerHTML=weeks.map(function(w){
+      var tot=w.a+w.p;
+      return '<div class="wkrow'+(w.p>0&&w.a===0?' pl':'')+'"><span>'+w.from+'.-'+w.to+'.</span>'+
+        '<div class="wkbar"><i style="--w:0%" data-w="'+(tot/wmax*100).toFixed(1)+'"></i></div>'+
+        '<b>'+(tot>0? eur(Math.round(tot)):'')+'</b></div>';
+    }).join('');
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){
+      [].forEach.call(wc.querySelectorAll('.wkbar i'), function(i){ i.style.setProperty('--w', i.getAttribute('data-w')+'%'); });
+    }); });
+  }
 
   if(!storageOK) document.getElementById('storWarn').style.display='block';
   renderSyncLine();
   if(curView==='y') renderYear();
 }
 
-function confetti(){
+function burstRing(){
   if(reduceMotion) return;
-  for(var i=0;i<36;i++){
-    var p=document.createElement('div');
-    p.style.cssText='position:fixed;z-index:99;top:-10px;width:9px;height:9px;border-radius:2px;pointer-events:none;'+
-      'left:'+(Math.random()*100)+'vw;background:'+['#46BEC5','#231F20','#2C9AA1','#B5E6EA','#8BD7DC'][i%5]+';'+
-      'transition:transform 2.4s ease-in,opacity 2.4s;transform:translateY(0) rotate(0)';
-    document.body.appendChild(p);
-    (function(pp){
-      requestAnimationFrame(function(){requestAnimationFrame(function(){
-        pp.style.transform='translateY(110vh) rotate('+(360+Math.random()*720)+'deg)'; pp.style.opacity='0';
-      });});
-      setTimeout(function(){pp.remove();},2600);
-    })(p);
+  var cv=document.getElementById('burst'); if(!cv) return;
+  var rr=cv.getBoundingClientRect(), W=rr.width||260, dpr=window.devicePixelRatio||1;
+  cv.width=W*dpr; cv.height=W*dpr;
+  var ctx=cv.getContext('2d'); if(!ctx) return;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  var c=W/2, R=W*0.30, P=[], COL=['#46BEC5','#A6E9EC','#f4f2f2'];
+  for(var i=0;i<80;i++){
+    var a=Math.random()*Math.PI*2, sp=1.6+Math.random()*4.2;
+    P.push({x:c+Math.cos(a)*R, y:c+Math.sin(a)*R, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp,
+            s:1.2+Math.random()*2.4, col:COL[Math.random()<0.55?0:(Math.random()<0.5?1:2)]});
   }
+  var t0=performance.now();
+  (function st(t){
+    var k=(t-t0)/1500;
+    ctx.clearRect(0,0,W,W);
+    P.forEach(function(p){
+      p.x+=p.vx; p.y+=p.vy; p.vx*=0.955; p.vy=p.vy*0.955+0.05;
+      ctx.globalAlpha=Math.max(0,1-k); ctx.fillStyle=p.col;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.s,0,6.3); ctx.fill();
+    });
+    if(k<1) requestAnimationFrame(st); else ctx.clearRect(0,0,W,W);
+  })(t0);
+}
+function confetti(){ burstRing(); }
+function celebrate(){
+  var h=document.getElementById('heroSec');
+  if(h){ h.classList.add('hero-hit'); setTimeout(function(){ h.classList.remove('hero-hit'); },2600); }
+  burstRing(); haptic(30); toast('Mesečni cilj dosežen');
 }
 
 /* ================= letni pogled ================= */
@@ -1229,27 +1630,31 @@ function yearAgg(y){
 function renderYear(){
   document.getElementById('yLabel').textContent=yView;
   var agg=yearAgg(yView);
-  /* heatmap: stolpci = tedni, vrstice = pon..ned */
-  var g=document.getElementById('hmGrid'); g.innerHTML='';
-  var start=new Date(yView,0,1);
-  var lead=(start.getDay()+6)%7;
-  var tones=['--hm0','--hm1','--hm2','--hm3','--hm4'];
-  for(var i=0;i<lead;i++){ var sp=document.createElement('span'); sp.className='hmc'; sp.style.opacity='0'; g.appendChild(sp); }
-  var d=new Date(yView,0,1);
-  while(d.getFullYear()===yView){
-    var k=key(yView,d.getMonth(),d.getDate());
-    var e=agg.days[k]||0;
-    var lvl=0;
-    if(e>0 && agg.maxDay>0){ lvl=Math.min(4, 1+Math.floor(e/agg.maxDay*3.999)); }
-    var c=document.createElement('span'); c.className='hmc';
-    c.style.background='var('+tones[lvl]+')';
-    if(e>0){
-      (function(kk,ee){ c.onclick=function(){ toast(fmtDayShort(kk)+' · '+hrs(entH(S.data[kk]))+' · '+eur(ee)); }; })(k,e);
-      c.style.cursor='pointer';
+  /* toplotna karta: stolpci = tedni, vrstice = pon..ned */
+  var g=document.getElementById('hmGrid');
+  paintHeat(g, yView, agg);
+  var cntD=0, totE=0;
+  for(var kk in agg.days){ if(agg.days[kk]>0){ cntD++; totE+=agg.days[kk]; } }
+  document.getElementById('yDays').textContent = cntD? cntD+' dni \u00B7 '+eur(Math.round(totE)) : 'ni vnosov';
+
+  /* stolpci mesecev */
+  var yb=document.getElementById('yBars');
+  if(yb){
+    var mx=0, ytH=0, ytE=0, m4;
+    for(m4=0;m4<12;m4++){ var mo4=agg.months[m4]; if(mo4){ if(mo4.e>mx) mx=mo4.e; ytH+=mo4.h; ytE+=mo4.e; } }
+    var bh='';
+    for(m4=0;m4<12;m4++){
+      var mo5=agg.months[m4], e5=mo5? mo5.e:0;
+      var isC=(yView===now.getFullYear() && m4===now.getMonth());
+      bh+='<div class="mb'+(e5>0?' v':'')+(isC?' cur':'')+'" title="'+MESECI[m4]+': '+eur(e5)+'">'+
+        '<em>'+(e5>0? (Math.round(e5/100)/10).toLocaleString('sl-SI')+'k':'')+'</em>'+
+        '<i style="--h:'+(mx>0? Math.max(3,Math.round(e5/mx*86)):3)+'px"></i>'+
+        '<small>'+MESECI[m4].slice(0,3).toLowerCase()+'</small></div>';
     }
-    g.appendChild(c);
-    d.setDate(d.getDate()+1);
+    yb.innerHTML=bh;
+    document.getElementById('yTot').textContent = ytE>0? hrs(ytH)+' \u00B7 '+eur(Math.round(ytE)) : 'ni vnosov';
   }
+
   /* porocilo za zadnji zakljucen mesec */
   var rep=document.getElementById('repBox');
   var lm=now.getMonth()===0? {y:now.getFullYear()-1,m:11} : {y:now.getFullYear(),m:now.getMonth()-1};
@@ -1270,10 +1675,12 @@ function renderYear(){
     }
     for(var w in wk){ if(!bw||wk[w].e>bw.e) bw=wk[w]; }
     rep.style.display='';
-    rep.innerHTML='<b>Mesečno poročilo — '+MESECI[lm.m]+':</b> '+hrs(cur.h)+' · '+eur(cur.e)+
-      (S.netPct>0? ' (≈ '+eur(netOf(cur.e))+' na roke)':'')+'. '+cmp+'.'+
+    document.getElementById('repLab').textContent=MESECI[lm.m]+' '+lm.y;
+    rep.innerHTML='<b>'+hrs(cur.h)+' \u00B7 '+eur(cur.e)+'</b>'+
+      (S.netPct>0? ' (\u2248 '+eur(netOf(cur.e))+' na roke)':'')+'. '+cmp+'.'+
       (bw? ' Najboljši teden: '+bw.from+'.–'+bw.to+'. ('+eur(Math.round(bw.e))+').':'');
-  } else rep.style.display='none';
+    document.getElementById('repSec').style.display='';
+  } else { rep.style.display='none'; document.getElementById('repSec').style.display='none'; }
   /* arhiv */
   var al=document.getElementById('archList'); al.innerHTML='';
   var gE=goalE();
@@ -1282,12 +1689,12 @@ function renderYear(){
     var mo=agg.months[m]; if(!mo) continue;
     any=true;
     var row=document.createElement('div'); row.className='arow';
-    var goalTxt = gE>0 ? (mo.e>=gE? '🎉 cilj dosežen' : Math.round(mo.e/gE*100)+' % cilja') : '';
+    var goalTxt = gE>0 ? (mo.e>=gE? 'cilj dosežen' : Math.round(mo.e/gE*100)+' % cilja') : '';
     row.innerHTML='<div class="an"><b>'+MESECI[m]+'</b><small>'+hrs(mo.h)+' · '+mo.d+' delovnih dni</small></div>'+
-      '<div class="av"><b>'+eur(mo.e)+'</b><small>'+goalTxt+'</small></div>';
+      '<div class="r"><b>'+eur(mo.e)+'</b><small>'+goalTxt+'</small></div>';
     al.appendChild(row);
   }
-  if(!any) al.innerHTML='<div class="wempty">V letu '+yView+' še ni vnosov.</div>';
+  if(!any) al.innerHTML='<div class="arow" style="color:var(--mute)">V letu '+yView+' še ni vnosov.</div>';
 }
 
 /* ================= namizni moduli (vidni samo na siroki sliki) ================= */
@@ -1357,10 +1764,10 @@ function renderMBars(){
   for(m=0;m<12;m++){
     var e=agg.months[m]? agg.months[m].e:0;
     var box=document.createElement('div');
-    box.className='mb'+(m===vm?' cur':'')+(e<=0?' zero':'');
-    box.innerHTML='<div class="v">'+(e>0? (Math.round(e/100)/10).toLocaleString('sl-SI')+'k':'')+'</div>'+
-      '<div class="bar" style="height:'+(max>0? Math.max(3,Math.round(e/max*78)) : 3)+'px"></div>'+
-      '<small>'+MESECI[m].slice(0,3)+'</small>';
+    box.className='mb'+(e>0?' v':'')+(m===vm?' cur':'');
+    box.innerHTML='<em>'+(e>0? (Math.round(e/100)/10).toLocaleString('sl-SI')+'k':'')+'</em>'+
+      '<i style="--h:'+(max>0? Math.max(3,Math.round(e/max*86)) : 3)+'px"></i>'+
+      '<small>'+MESECI[m].slice(0,3).toLowerCase()+'</small>';
     box.title=MESECI[m]+': '+eur(e);
     (function(mm){ box.onclick=function(){ vm=mm; render(); }; })(m);
     box.style.cursor='pointer';
@@ -1368,30 +1775,37 @@ function renderMBars(){
   }
 }
 
-/* heatmap leta (isti izracun kot letni pogled) */
-function buildHeat(el, y){
+/* toplotna karta leta (skupna za letni pogled in namizno kartico) */
+function paintHeat(el, y, agg){
   if(!el) return;
-  el.innerHTML='';
-  var agg=yearAgg(y);
-  var lead=(new Date(y,0,1).getDay()+6)%7;
-  var tones=['--hm0','--hm1','--hm2','--hm3','--hm4'];
-  for(var i=0;i<lead;i++){ var sp=document.createElement('span'); sp.className='hmc'; sp.style.opacity='0'; el.appendChild(sp); }
+  agg=agg||yearAgg(y);
+  var lead=(new Date(y,0,1).getDay()+6)%7, html='', idx=0;
+  for(var i=0;i<lead;i++) html+='<i style="opacity:0"></i>';
   var d=new Date(y,0,1);
   while(d.getFullYear()===y){
     var k=key(y,d.getMonth(),d.getDate());
-    var e=agg.days[k]||0;
-    var lvl=0;
+    var e=agg.days[k]||0, lvl=0;
     if(e>0 && agg.maxDay>0) lvl=Math.min(4, 1+Math.floor(e/agg.maxDay*3.999));
-    var c=document.createElement('span'); c.className='hmc';
-    c.style.background='var('+tones[lvl]+')';
-    if(e>0){
-      c.style.cursor='pointer';
-      (function(kk,ee){ c.onclick=function(){ toast(fmtDayShort(kk)+' · '+hrs(entH(S.data[kk]))+' · '+eur(ee)); }; })(k,e);
-    }
-    el.appendChild(c);
+    html+='<i class="'+(lvl? 'l'+lvl : '')+'" style="--i:'+(idx++)+'" data-k="'+k+'"'+
+      (e>0? ' title="'+fmtDayShort(k)+' \u00B7 '+eur(e)+'"':'')+'></i>';
     d.setDate(d.getDate()+1);
   }
+  el.innerHTML=html;
+  var wrap=el.parentElement;
+  if(wrap && wrap.classList.contains('hmwrap')){
+    var mi=(y===now.getFullYear())? now.getMonth() : 11;
+    requestAnimationFrame(function(){
+      var w=el.scrollWidth-wrap.clientWidth;
+      if(w>0) wrap.scrollLeft=Math.max(0, Math.round(w*(mi/11)));
+    });
+  }
+  el.onclick=function(ev){
+    var t=ev.target; if(!t || t.tagName!=='I') return;
+    var kk=t.getAttribute('data-k'), vv=kk? S.data[kk]:null; if(vv==null) return;
+    toast(fmtDayShort(kk)+' \u00B7 '+hrs(entH(vv))+' \u00B7 '+eur(entEur(kk,vv)));
+  };
 }
+function buildHeat(el, y){ paintHeat(el, y); }
 
 /* ================= CSV ================= */
 function csvNum(n){ return (Math.round(n*100)/100).toLocaleString('sl-SI'); }
@@ -1419,12 +1833,12 @@ function exportCsvMonth(){ dlCsv('ura-plus-'+MESECI[vm]+'-'+vy+'.csv', csvRows(v
 function exportCsvYear(){ dlCsv('ura-plus-'+yView+'.csv', csvRows(yView,0,11)); }
 
 /* ================= vnosni list ================= */
-var entryKey=null, entrySel=null, entryMode='h';
-var CHIPS=[2,4,6,8,10,12];
+var entryKey=null, entryMode='h', npStr='2';
 function setMode(m){
   entryMode=m;
-  document.getElementById('tabH').classList.toggle('sel',m==='h');
-  document.getElementById('tabT').classList.toggle('sel',m==='t');
+  document.getElementById('tabH').classList.toggle('on',m==='h');
+  document.getElementById('tabT').classList.toggle('on',m==='t');
+  document.getElementById('eTabs').setAttribute('data-on', m==='t'?'1':'0');
   document.getElementById('modeH').style.display = m==='h'?'':'none';
   document.getElementById('modeT').style.display = m==='t'?'':'none';
   liveCalc();
@@ -1440,53 +1854,64 @@ function calcRange(){
   return Math.max(0, Math.round(mins/60*100)/100);
 }
 function openEntry(k){
-  entryKey=k; entrySel=null;
-  var dt=kDate(k);
-  var tk=todayKey();
-  var isFut = k>tk;
-  document.getElementById('eTitle').textContent = (k===tk?'Danes':DNI[dt.getDay()])+', '+dt.getDate()+'. '+MESECI[dt.getMonth()]+' '+dt.getFullYear();
+  entryKey=k;
+  var dt=kDate(k), tk=todayKey(), isFut=(k>tk);
   var v=S.data[k], h=entH(v), rng=entRange(v);
+  document.getElementById('eTitle').textContent = v!=null? 'Uredi vnos' : 'Vnos ur';
   document.getElementById('eSub').textContent =
-    v!=null ? ((isPlan(v)?'Planirano: ':'Vpisano: ')+hrs(h)+(rng?' ('+rng+')':'')+(dayRate(k)!==S.rate?' · vikend postavka '+eur(dayRate(k))+'/h':''))
-            : (isFut?'To bo planiran vnos — potrdil ga boš, ko dan mine.':'Koliko ur si delal ta dan?');
-  document.getElementById('eCustom').value='';
+    (k===tk? 'Danes' : DNI[dt.getDay()])+', '+dt.getDate()+'. '+MESECI[dt.getMonth()]+' '+dt.getFullYear()+
+    (isFut? ' \u00B7 plan' : '')+
+    (v!=null&&rng? ' \u00B7 '+rng : '')+
+    (dayRate(k)!==S.rate? ' \u00B7 vikend '+eur(dayRate(k))+'/h' : '');
   document.getElementById('eBreak').value='';
   document.getElementById('eRepeat').value='';
   if(v!=null && typeof v==='object' && v.f){
-    setMode('t');
     document.getElementById('eFrom').value=v.f;
     document.getElementById('eTo').value=v.t;
     document.getElementById('eBreak').value=v.b||'';
+    npPut(h||2); setMode('t');
   } else {
-    setMode('h');
-    if(h && CHIPS.indexOf(h)>=0) entrySel=h;
-    else if(h) document.getElementById('eCustom').value=h;
+    npPut(h||2); setMode('h');
+    renderNp(true,true);
   }
-  document.getElementById('eDel').style.display = v!=null? 'block':'none';
-  paintChips(); liveCalc();
+  document.getElementById('eDel').style.display = v!=null? '' : 'none';
   document.getElementById('entryOvl').classList.add('on');
+  haptic(6);
 }
-function paintChips(){
-  var c=document.getElementById('eChips'); c.innerHTML='';
-  var r=dayRate(entryKey||todayKey());
-  CHIPS.forEach(function(h){
-    var b=document.createElement('button');
-    b.className='chip'+(entrySel===h?' sel':'');
-    b.innerHTML=h+' h<small>'+eur(h*r)+'</small>';
-    b.onclick=function(){ entrySel=h; document.getElementById('eCustom').value=''; paintChips(); liveCalc(); };
-    c.appendChild(b);
-  });
+function npFmt(h){ return (Math.round(h*100)/100).toLocaleString('sl-SI'); }
+function npPut(h){ npStr=npFmt(h); renderNp(false,false); }
+function npSet(h){ npStr=npFmt(h); renderNp(true,true); haptic(5); }
+function npKey(k){
+  var t=npStr;
+  if(k==='b'){ t = t.length>1? t.slice(0,-1) : '0'; }
+  else if(k===','){ if(t.indexOf(',')>=0) return npShake(); t+=','; }
+  else { var dec=t.split(',')[1]; if(dec!==undefined && dec.length>=2) return npShake(); t = (t==='0')? k : t+k; }
+  if((parseFloat(t.replace(',','.'))||0)>24) return npShake();
+  npStr=t; renderNp(k!=='b',false); haptic(4);
+}
+function renderNp(anim, all){
+  var el=document.getElementById('npV'); if(!el) return;
+  var a=npStr.split('');
+  el.innerHTML=a.map(function(c,i){
+    return '<span'+((anim&&(all||i===a.length-1))? ' class="in"':'')+
+           (all? ' style="animation-delay:'+(i*35)+'ms"':'')+'>'+c+'</span>';
+  }).join('');
+  liveCalc();
+}
+function npShake(){
+  var el=document.getElementById('npV'); if(!el) return;
+  el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+  try{ if(navigator.vibrate) navigator.vibrate([8,40,8]); }catch(e){}
 }
 function entryVal(){
   if(entryMode==='t') return calcRange();
-  if(entrySel!=null) return entrySel;
-  var v=parseFloat(String(document.getElementById('eCustom').value).replace(',','.'));
-  return isNaN(v)?0:v;
+  return Math.round((parseFloat(npStr.replace(',','.'))||0)*100)/100;
 }
 function liveCalc(){
-  var v=entryVal();
-  var r=dayRate(entryKey||todayKey());
-  var pre = entryMode==='t' ? (document.getElementById('eFrom').value+'–'+document.getElementById('eTo').value+' → ') : '';
+  var v=entryVal(), r=dayRate(entryKey||todayKey());
+  var ne=document.getElementById('npE');
+  if(ne) ne.textContent='= '+eur(v*r);
+  var pre = entryMode==='t' ? (document.getElementById('eFrom').value+' do '+document.getElementById('eTo').value+' \u2192 ') : '';
   document.getElementById('eCalc').textContent = pre+hrs(v)+' = '+eur(v*r);
 }
 function buildValue(){
@@ -1551,8 +1976,9 @@ function delEntry(){
 var goalMode='h';
 function setGoalMode(m){
   goalMode=m;
-  document.getElementById('gTabH').classList.toggle('sel',m==='h');
-  document.getElementById('gTabE').classList.toggle('sel',m==='e');
+  document.getElementById('gTabH').classList.toggle('on',m==='h');
+  document.getElementById('gTabE').classList.toggle('on',m==='e');
+  document.getElementById('gTabs').setAttribute('data-on', m==='e'?'1':'0');
   document.getElementById('gModeH').style.display = m==='h'?'':'none';
   document.getElementById('gModeE').style.display = m==='e'?'':'none';
   setCalc();
@@ -1594,7 +2020,7 @@ function saveSettings(){
   /* varovalka: naprava, ki se se ni nikoli uskladila z oblakom, ne sme z (praznimi)
      nastavitvami povoziti tistih v oblaku - najprej pocakamo prvo sinhronizacijo */
   if(SESS && !firstPullDone && !lsGet('uraplus_lastsync')){
-    toast('Trenutek, nalagam tvoje nastavitve iz oblaka ☁');
+    toast('Trenutek, nalagam tvoje nastavitve iz oblaka');
     closeOvl('setOvl'); syncStart(); return;
   }
   var before=setSnap();
@@ -1613,7 +2039,7 @@ function saveSettings(){
   /* vsako polje ima svoj cas spremembe: posodobi se samo tisto, kar si res spremenil,
      zato shranjevanje ene nastavitve nikoli ne povozi ostalih v oblaku */
   var prev=JSON.parse(before), after=JSON.parse(setSnap()), nowTs=Date.now(), changedSet=false;
-  if(!S.meta.setTs) S.meta.setTs={};
+  if(!S.meta.setTs || typeof S.meta.setTs!=='object') S.meta.setTs={};
   SET_FIELDS.forEach(function(f){
     if(!(f in S.meta.setTs)) S.meta.setTs[f]=S.meta.settingsTs||0;
     if(JSON.stringify(after[f])!==JSON.stringify(prev[f])){ S.meta.setTs[f]=nowTs; changedSet=true; }
@@ -1664,6 +2090,15 @@ function importData(inp){
   rd.readAsText(f); inp.value='';
 }
 function closeOvl(id){ document.getElementById(id).classList.remove('on'); }
+document.addEventListener('keydown', function(e){
+  var ov=document.getElementById('entryOvl');
+  if(!ov || !ov.classList.contains('on') || entryMode!=='h') return;
+  if(e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+  if(/^[0-9]$/.test(e.key)) npKey(e.key);
+  else if(e.key===','||e.key==='.') npKey(',');
+  else if(e.key==='Backspace'){ e.preventDefault(); npKey('b'); }
+  else if(e.key==='Enter') saveEntry();
+});
 
 /* ================= racun & sinhronizacija (Supabase, zdruzevanje po dnevih) ================= */
 var SB_URL='https://cgnihdlprjqpawvpznsw.supabase.co';
@@ -1676,7 +2111,7 @@ var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI
 var SB_REF='cgnihdlprjqpawvpznsw';
 var SHARED_KEY='sb-'+SB_REF+'-auth-token';
 var SESS_KEY='uraplus_sess';
-var OWNER_KEY='uraplus_owner';  /* cigavi so podatki v tem brskalniku (id racuna) */   /* stari kljuc — le se za migracijo */
+var OWNER_KEY='uraplus_owner';  /* cigavi so podatki v tem brskalniku (id racuna) */   /* stari kljuc - le se za migracijo */
 var memSess=null;
 
 function parseSess(raw){
@@ -1719,7 +2154,7 @@ function storeSess(s){
 }
 var SESS=findAnySession();
 if(SESS) storeSess(SESS);   /* poenoti kljuce, da nas vidijo tudi druge aplikacije */
-var syncState='—', syncTimer=null, lastPull=0;
+var syncState='-', syncTimer=null, lastPull=0;
 var firstPullDone=false, welcomeShown=false;
 /* "Dobrodošel, nastavi postavko" samo, ce res ni nastavitev - pri prijavljenem
    uporabniku sele PO prvem nalaganju iz oblaka (prej je lokalno stanje lahko prazno) */
@@ -1728,17 +2163,20 @@ function maybeWelcome(){
   if(S.rate || S.goalHours || S.goalMoney) return;
   if(SESS && !firstPullDone) return;
   welcomeShown=true;
-  setTimeout(function(){
-    if(S.rate || S.goalHours || S.goalMoney) return;
-    openSettings(); toast('Dobrodošel! Najprej nastavi postavko in cilj 👇');
-  },400);
+  (function waitBoot(){
+    if(typeof bootPhase!=='undefined' && bootPhase<2) return setTimeout(waitBoot,300);
+    setTimeout(function(){
+      if(S.rate || S.goalHours || S.goalMoney) return;
+      openSettings(); toast('Dobrodošel! Najprej nastavi postavko in cilj');
+    },400);
+  })();
 }
 function setSyncState(t){ syncState=t; renderAcct(); renderSyncLine(); }
 function renderSyncLine(){
   var el=document.getElementById('syncLine'); if(!el) return;
   var ls=lsGet('uraplus_lastsync');
-  if(SESS && ls){ el.style.display=''; var d=new Date(+ls); el.textContent='☁ usklajeno ob '+pad(d.getHours())+':'+pad(d.getMinutes()); }
-  else if(SESS){ el.style.display=''; el.textContent='☁ '+syncState; }
+  if(SESS && ls){ el.style.display=''; var d=new Date(+ls); el.textContent='usklajeno ob '+pad(d.getHours())+':'+pad(d.getMinutes()); }
+  else if(SESS){ el.style.display=''; el.textContent=syncState; }
   else el.style.display='none';
 }
 function sbHeaders(auth){
@@ -1767,7 +2205,7 @@ function ensureToken(){
   }).then(function(r){ if(!r.ok) throw 0; return r.json(); })
     .then(function(d){ storeSess(normSess(d)); return true; })
     .catch(function(){
-      /* morda je sejo ravnokar osvezila druga foqs aplikacija — preveri skupni kljuc */
+      /* morda je sejo ravnokar osvezila druga foqs aplikacija - preveri skupni kljuc */
       var s=findAnySession();
       if(s && s.refresh_token!==used && Math.floor(Date.now()/1000) < (s.expires_at||0)-10){ SESS=s; return true; }
       storeSess(null); setSyncState('odjavljen'); return false;
@@ -1848,7 +2286,7 @@ function syncPush(){
       if(r.ok){ lsSet('uraplus_lastsync', String(Date.now())); setSyncState('usklajeno ✓'); }
       else setSyncState('napaka pri usklajevanju');
     });
-  }).catch(function(){ setSyncState('offline — uskladim kasneje'); });
+  }).catch(function(){ setSyncState('offline, uskladim kasneje'); });
 }
 function syncStart(){
   if(!SESS) return;
@@ -1873,10 +2311,11 @@ function syncStart(){
           else { lsSet('uraplus_lastsync', String(Date.now())); setSyncState('usklajeno ✓'); }
         } else if(anyLocalData()){ lsSet(OWNER_KEY, me); firstPullDone=true; persist(); syncPush(); }
         else { lsSet(OWNER_KEY, me); firstPullDone=true; persist(); lsSet('uraplus_lastsync', String(Date.now())); setSyncState('usklajeno ✓'); }
-        if(changed || reset || wasFirst){ applyTheme(); render(); }
+        if(changed || reset || wasFirst){ applyTheme(); render({load:bootPhase<2}); }
+        if(wasFirst) bootSynced();
         maybeWelcome();
       });
-  }).catch(function(){ setSyncState('offline — uskladim kasneje'); });
+  }).catch(function(){ setSyncState('offline, uskladim kasneje'); bootSynced(); });
 }
 function queueSync(){
   if(!SESS) return;
@@ -1890,16 +2329,16 @@ function aErr(msg){
 function slErr(m){
   m=String(m||'');
   if(m.indexOf('Invalid login credentials')>=0) return 'Napačna e-pošta ali geslo.';
-  if(m.indexOf('already registered')>=0 || m.indexOf('already been registered')>=0) return 'Ta e-pošta že ima račun — uporabi Prijavo.';
+  if(m.indexOf('already registered')>=0 || m.indexOf('already been registered')>=0) return 'Ta e-pošta že ima račun - uporabi Prijavo.';
   if(m.indexOf('at least 6')>=0 || m.indexOf('Password should')>=0) return 'Geslo mora imeti vsaj 6 znakov.';
   if(m.indexOf('valid email')>=0 || m.indexOf('invalid format')>=0) return 'Vpiši veljavno e-pošto.';
-  if(m.indexOf('rate limit')>=0 || m.indexOf('Too many')>=0) return 'Preveč poskusov — poskusi čez minuto.';
+  if(m.indexOf('rate limit')>=0 || m.indexOf('Too many')>=0) return 'Preveč poskusov - poskusi čez minuto.';
   return 'Ni šlo: '+m;
 }
 function authDone(d){
   storeSess(normSess(d));
   closeOvl('authOvl');
-  toast('Prijavljen ✓ — velja za vse foqs aplikacije');
+  toast('Prijavljen ✓ - velja za vse foqs aplikacije');
   renderAcct(); renderSyncLine(); syncStart();
 }
 function doLogin(){
@@ -1910,7 +2349,7 @@ function doLogin(){
     method:'POST',headers:sbHeaders(false),body:JSON.stringify({email:em,password:pw})
   }).then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d}; }); })
     .then(function(x){ if(x.ok && x.d.access_token) authDone(x.d); else aErr(slErr(x.d.error_description||x.d.msg||x.d.message)); })
-    .catch(function(){ aErr('Ni povezave — poskusi z internetom.'); });
+    .catch(function(){ aErr('Ni povezave - poskusi z internetom.'); });
 }
 function doSignup(){
   aErr(null);
@@ -1922,15 +2361,15 @@ function doSignup(){
   }).then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d}; }); })
     .then(function(x){
       if(x.ok && x.d.access_token) authDone(x.d);
-      else if(x.ok && (x.d.id || (x.d.user&&!x.d.access_token))) aErr('Račun ustvarjen — preveri e-pošto in potrdi, nato se prijavi.');
+      else if(x.ok && (x.d.id || (x.d.user&&!x.d.access_token))) aErr('Račun ustvarjen - preveri e-pošto in potrdi, nato se prijavi.');
       else aErr(slErr(x.d.error_description||x.d.msg||x.d.message));
-    }).catch(function(){ aErr('Ni povezave — poskusi z internetom.'); });
+    }).catch(function(){ aErr('Ni povezave - poskusi z internetom.'); });
 }
 function logout(){
   var tok=SESS && SESS.access_token;
   storeSess(null);
   renderAcct(); renderSyncLine();
-  toast('Odjavljen iz vseh foqs aplikacij — podatki ostanejo na napravi');
+  toast('Odjavljen iz vseh foqs aplikacij - podatki ostanejo na napravi');
   if(tok){ try{ fetch(SB_URL+'/auth/v1/logout',{method:'POST',
     headers:{'apikey':SB_KEY,'Content-Type':'application/json','Authorization':'Bearer '+tok}}).catch(function(){}); }catch(e){} }
 }
@@ -1944,20 +2383,20 @@ function renderAcct(){
   var box=document.getElementById('acctBox');
   var em=sessUser(SESS).email||'';
   if(chip){
-    if(SESS){ chip.style.display=''; chip.innerHTML='<span class="av">'+(em.charAt(0)||'?').toUpperCase()+'</span>'; }
+    if(SESS){ chip.style.display=''; chip.textContent=(em.charAt(0)||'?').toUpperCase(); }
     else chip.style.display='none';
   }
   if(!box) return;
   if(SESS){
     box.innerHTML='<div class="who"><div class="av">'+(em.charAt(0)||'?').toUpperCase()+'</div>'+
       '<div style="min-width:0"><b>'+em+'</b><small>foqs račun · '+syncState+'</small></div></div>'+
-      '<div class="sso">✓ Ista prijava velja za vse foqs aplikacije na tej napravi.</div>'+
-      '<button class="btn s" onclick="logout()">Odjava</button>';
+      '<div class="sso">Ista prijava velja za vse foqs aplikacije na tej napravi.</div>'+
+      '<button class="btn soft wide tap" onclick="logout()">Odjava</button>';
   } else {
-    box.innerHTML='<div class="who"><div class="av" style="background:var(--chipbg);color:var(--muted)">?</div>'+
+    box.innerHTML='<div class="who"><div class="av" style="background:var(--c2);color:var(--mute)">?</div>'+
       '<div><b>Nisi prijavljen</b><small>Podatki so samo na tej napravi.</small></div></div>'+
-      '<div class="sso">Prijavi se enkrat — velja tudi za habit in ostale foqs aplikacije.</div>'+
-      '<button class="btn p" onclick="closeOvl(\'setOvl\');openAuth()">Prijava / nov račun</button>';
+      '<div class="sso">Prijavi se enkrat - velja tudi za habit in ostale foqs aplikacije.</div>'+
+      '<button class="btn pri wide tap" onclick="closeOvl(\'setOvl\');openAuth()">Prijava / nov račun</button>';
   }
 }
 /* prevzemi sejo, ce se je prijava zgodila v drugi foqs aplikaciji (ali odjava) */
@@ -2007,12 +2446,181 @@ if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){
   });
 }
 
+/* ================= zagon: crke, uskladitev, logo odleti v glavo ================= */
+var bootPhase=0, bootT=[];
+function bootLater(fn,ms){ bootT.push(setTimeout(fn,ms)); }
+function bootSynced(){
+  if(bootPhase>=1) return;
+  bootPhase=1;
+  var sp=document.getElementById('splash'); if(!sp) return;
+  sp.classList.add('synced');
+  var dn=document.getElementById('spDone');
+  if(dn) dn.textContent = SESS? 'usklajeno' : 'pripravljeno';
+  haptic(6);
+}
+function bootFly(){
+  if(bootPhase>=2) return;
+  bootPhase=2;
+  var app=document.getElementById('app'), sp=document.getElementById('splash');
+  if(!sp){ app.classList.remove('booting'); app.classList.add('logo-in'); render({load:true}); return; }
+  var logo=document.getElementById('spLogo');
+  var hl=document.querySelector('.hdr .logo .w');
+  var pr=app.getBoundingClientRect();
+  if(logo && hl){
+    var hr=hl.getBoundingClientRect(), l2=logo.getBoundingClientRect();
+    var lx=parseFloat(logo.style.left)||0, ly=parseFloat(logo.style.top)||0;
+    if(hr.width && l2.width){
+      var sc=hr.width/l2.width, dx=(hr.left-pr.left)-lx, dy=(hr.top-pr.top)-ly;
+      logo.style.transition='transform .62s cubic-bezier(.65,0,.2,1)';
+      logo.style.transform='translate('+dx+'px,'+dy+'px) scale('+sc+')';
+    }
+  }
+  sp.classList.add('fly');
+  app.classList.remove('booting');
+  render({load:true});
+  bootLater(function(){
+    app.classList.add('logo-in');
+    if(sp.parentNode) sp.parentNode.removeChild(sp);
+  },660);
+}
+function bootStart(){
+  var app=document.getElementById('app'), sp=document.getElementById('splash');
+  if(reduceMotion || !sp){
+    if(sp && sp.parentNode) sp.parentNode.removeChild(sp);
+    app.classList.remove('booting'); app.classList.add('logo-in');
+    bootPhase=2; render({load:false});
+    return;
+  }
+  app.classList.add('booting');
+  if(!SESS){
+    var s1=document.querySelector('.spC-txt .s1');
+    if(s1) s1.textContent='pripravljam';
+  }
+  var logo=document.getElementById('spLogo');
+  var pr=app.getBoundingClientRect(), lr=logo.getBoundingClientRect();
+  var lx=(pr.width-lr.width)/2, ly=pr.height/2-lr.height/2-14;
+  logo.style.left=lx+'px'; logo.style.top=ly+'px';
+  bootLater(function(){ var b=document.getElementById('spBar'); if(b) b.style.width='100%'; },420);
+  if(!SESS) bootLater(bootSynced,1050);
+  bootLater(bootSynced,2000);          /* oblak se ne odzove: gremo naprej */
+  bootLater(bootFly,2600);
+}
+
+/* ---------- poteg navzdol za uskladitev ---------- */
+var ptrBusy=false, noClickTs=0;
+function initPTR(){
+  var scr=document.getElementById('scr'), ind=document.getElementById('ptr');
+  if(!scr || !ind) return;
+  var pc=ind.querySelector('.p'), y0=null, pull=0, act=false;
+  function set(v,snap){
+    pull=v;
+    scr.style.transition = snap? 'transform .55s cubic-bezier(.2,1.25,.3,1)' : 'none';
+    scr.style.transform = v? 'translateY('+v+'px)' : '';
+    ind.style.opacity=Math.min(1, v/40);
+    if(!ptrBusy && pc) pc.style.strokeDashoffset=(69.1*(1-Math.min(1,v/64))).toFixed(1);
+  }
+  function Y(e){ return (e.touches? e.touches[0] : e).clientY; }
+  function start(e){
+    if(ptrBusy || scr.scrollTop>0) return;
+    if(e.target.closest && e.target.closest('input,select,button,.keys,.ovl,.day,canvas')) return;
+    y0=Y(e); act=false;
+  }
+  function move(e){
+    if(y0==null) return;
+    var dy=Y(e)-y0;
+    if(dy<=0){ if(act) set(0); return; }
+    if(!act && dy<8) return;
+    if(!act && pull===0 && dy>=8) haptic(3);
+    act=true;
+    var was=pull>=64;
+    set(Math.min(120, dy*0.5));
+    if(!was && pull>=64) haptic(6);
+    if(e.cancelable) e.preventDefault();
+  }
+  function end(){
+    if(y0==null) return;
+    y0=null; if(!act) return;
+    act=false; noClickTs=Date.now()+350;
+    if(pull>=64) ptrRun(set); else set(0,true);
+  }
+  scr.addEventListener('touchstart',start,{passive:true});
+  scr.addEventListener('touchmove',move,{passive:false});
+  scr.addEventListener('touchend',end);
+  scr.addEventListener('touchcancel',end);
+  document.getElementById('app').addEventListener('click',function(e){
+    if(Date.now()<noClickTs){ e.stopPropagation(); e.preventDefault(); }
+  },true);
+}
+function ptrRun(set){
+  ptrBusy=true;
+  var ind=document.getElementById('ptr');
+  set(64,true); ind.classList.add('spin');
+  if(SESS) syncStart(); else render();
+  setTimeout(function(){
+    ind.classList.remove('spin'); ind.classList.add('done'); haptic(8);
+    renderSyncLine();
+    toast(SESS? (lsGet('uraplus_lastsync')? 'Usklajeno' : syncState) : 'Osveženo');
+  },900);
+  setTimeout(function(){ set(0,true); },1450);
+  setTimeout(function(){ ind.classList.remove('done'); ptrBusy=false; },2000);
+}
+
+/* ---------- podrsaj za mesec ---------- */
+function initSwipe(){
+  var pane=document.getElementById('monthView'); if(!pane) return;
+  var x0=null,y0=null,t0=0;
+  pane.addEventListener('touchstart',function(e){
+    if(e.target.closest && e.target.closest('input,select,.keys,canvas,.hmwrap')){ x0=null; return; }
+    var t=e.touches[0]; x0=t.clientX; y0=t.clientY; t0=Date.now();
+  },{passive:true});
+  pane.addEventListener('touchend',function(e){
+    if(x0==null) return;
+    var t=e.changedTouches[0], dx=t.clientX-x0, dy=t.clientY-y0; x0=null;
+    if(Math.abs(dx)>70 && Math.abs(dy)<50 && Date.now()-t0<650){
+      noClickTs=Date.now()+350; chMonth(dx<0?1:-1);
+    }
+  },{passive:true});
+}
+
+/* ---------- gumb za vnos se pokaze ob drsenju, listi se dajo povleci navzdol ---------- */
+function initFab(){
+  var scr=document.getElementById('scr'), fab=document.getElementById('fab');
+  if(!scr||!fab) return;
+  scr.addEventListener('scroll',function(){
+    fab.classList.toggle('show', scr.scrollTop>230 && curView==='m');
+  },{passive:true});
+}
+function initSheetDrag(){
+  [].forEach.call(document.querySelectorAll('.ovl .sheet'),function(sh){
+    var g=sh.querySelector('.grab'); if(!g) return;
+    var y0=null, dy=0;
+    g.addEventListener('pointerdown',function(e){
+      y0=e.clientY; dy=0; sh.classList.add('drag');
+      try{ g.setPointerCapture(e.pointerId); }catch(x){}
+    });
+    g.addEventListener('pointermove',function(e){
+      if(y0==null) return;
+      dy=Math.max(0, e.clientY-y0);
+      sh.style.transform='translateY('+dy+'px)';
+    });
+    function end(){
+      if(y0==null) return;
+      y0=null; sh.classList.remove('drag'); sh.style.transform='';
+      if(dy>90){ var ov=sh.parentElement; if(ov) ov.classList.remove('on'); }
+    }
+    g.addEventListener('pointerup',end);
+    g.addEventListener('pointercancel',end);
+  });
+}
+
 /* zagon */
 applyTheme();
 persist(); /* shrani morebitno migracijo */
 render();
 renderAcct();
 if(SESS) syncStart();   /* takoj ob odprtju */
+initPTR(); initSwipe(); initFab(); initSheetDrag();
+bootStart();
 maybeWelcome();
 setInterval(function(){
   var t=new Date();
