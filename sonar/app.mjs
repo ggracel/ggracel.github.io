@@ -1350,6 +1350,8 @@ setInterval(claimLeader, 20000);
 // Nova različica: zavihek na 2 min preveri version.json in se ob novejši sam osveži (prej osveži še index.html v
 // predpomnilniku, sicer bi GitHub Pages do 10 min vračal staro stran). Največ enkrat na različico na zavihek.
 const APP_VERSION = CLIENT_VERSION;
+// Različica je vidna v glavi (DEMO · v49), da se na prvi pogled vidi, ali zavihek teče na zadnji kodi.
+if ($("#appVer")) $("#appVer").textContent = " · v" + APP_VERSION;
 async function checkVersion() {
   try {
     const r = await fetch("./version.json?t=" + Date.now(), { cache: "no-store" });
