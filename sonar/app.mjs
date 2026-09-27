@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 49;
+const CLIENT_VERSION = 50;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -2015,11 +2015,31 @@ function dashboard() {
     "aria-label",
     (o.net > 0 ? "Dobiček " : o.net < 0 ? "Izguba " : "Nevtralno ") + signed(o.net) + " SOL po stroških",
   );
+  // PnL v % (27. 9. 2026): neto deljen z vsoto vložkov zaključenih poslov v izbranem obdobju.
+  const invested = o.closed.reduce((s, t) => s + (tradeSize(t) || 0), 0);
+  const pnlPct = invested > 0 ? (o.net / invested) * 100 : null;
+  const pnlShown = pnlPct === null ? null : Math.abs(pnlPct) < 0.005 ? 0 : pnlPct;
+  const investedText = invested.toLocaleString("sl-SI", { maximumFractionDigits: 2 }) + " SOL";
+  const pill = $("#dashPnl");
+  if (pill) {
+    pill.hidden = pnlShown === null;
+    if (pnlShown !== null) {
+      pill.textContent = (pnlShown > 0 ? "+" : "") + pnlShown.toLocaleString("sl-SI", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace("\u2212", "-") + " %";
+      pill.className = "pnlPill " + tone(pnlShown);
+      pill.title = "Donos na vložen znesek v izbranem obdobju: " + investedText;
+    }
+  }
   $("#winFill").style.width = (o.success === null ? 0 : o.success * 100) + "%";
   const usd = (x) =>
     (x > 0 ? "+" : "") + new Intl.NumberFormat("sl-SI", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(x);
   $("#dashUsd").textContent =
     "≈ " + usd(o.usd) + " · 1 SOL = " + usd(rate).replace("+", "") + (solUsd ? " (sproti, Jupiter)" : " (fiksen tečaj 22. 9.)");
+  if (pnlShown !== null) {
+    const basis = document.createElement("span");
+    basis.className = "nw";
+    basis.textContent = "% na vloženih " + investedText;
+    $("#dashUsd").append(" · ", basis);
+  }
   $("#dashSuccess").textContent =
     o.success === null ? "Še ni podatkov" : (o.success * 100).toLocaleString("sl-SI", { maximumFractionDigits: 1 }) + " %";
   $("#dashDenominator").textContent = o.closed.length
