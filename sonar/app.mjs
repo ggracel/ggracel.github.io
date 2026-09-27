@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 50;
+const CLIENT_VERSION = 51;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -404,7 +404,7 @@ function mergeTrades(local, remote) {
     const prev = bySignal.get(k);
     if (!prev) bySignal.set(k, t);
     else {
-      const [keep, drop] = t.jup && !prev.jup ? [t, prev] : [prev, t];
+      const [keep, drop] = (t.server && !prev.server) || (!prev.server && t.jup && !prev.jup) ? [t, prev] : [prev, t];
       drop.deletedAt = Date.now();
       drop.deleteReason = "Podvojen vstop: na isti signal sta vstopili dve kopiji bota.";
       bySignal.set(k, keep);
@@ -481,6 +481,91 @@ function scheduleRemote() {
   syncTimer = setTimeout(pushRemote, 600);
 }
 await loadRemote();
+// ---------- Bot na strežniku 24/7 (27. 9. 2026) ----------
+// Od v51 samodejne vstope in vse izstope vodi strežnik (bot.ts v funkciji collect, tabela memecoin_bot_trades),
+// tudi ko je stran zaprta. Brskalnik jih tu bere (samo spremenjene vrstice) in jih prikaže kot običajne posle
+// (ključ "srv-<id>", oznaka server). Ročni vstop vstavi vrstico, ročni izstop gre prek memecoin_bot_close.
+// Odprte vrstice se na strežniku spreminjajo vsakih 30 s; v profil (memecoin_state) jih shranimo samo ob novem
+// poslu ali spremembi stanja, sicer bi vsak tik pisal cel dnevnik (egress).
+const SRV = "srv-";
+const isoMs = (v) => (v ? new Date(v).getTime() : undefined);
+function fromServer(r) {
+  return {
+    key: SRV + r.id,
+    srvId: r.id,
+    server: true,
+    srvUpdated: isoMs(r.updated_at),
+    id: r.pair,
+    token: r.token,
+    symbol: r.symbol || "?",
+    practice: false,
+    opened: isoMs(r.opened_at),
+    lastObserved: isoMs(r.last_observed) || isoMs(r.opened_at),
+    entry: r.entry_price,
+    entryMcap: Number.isFinite(r.entry_mcap) ? r.entry_mcap : null,
+    ...(r.jup ? { jup: true, jupT: isoMs(r.jup_t) } : {}),
+    profile: r.profile,
+    plan: r.plan,
+    stop: r.stop,
+    target: r.target,
+    cap: r.cap,
+    peak: r.peak,
+    halfSold: !!r.half_sold,
+    ...(r.half_sold ? { halfPrice: r.half_price } : {}),
+    ruleVersion: r.plan?.cap ? "1.3" : "1.2",
+    reason: r.manual ? "Lastna odločitev" + (r.reason ? " · " + r.reason : "") : r.reason,
+    automatic: !r.manual,
+    signalAt: isoMs(r.signal_at) || isoMs(r.opened_at),
+    sizeSOL: r.size_sol,
+    slippagePerSide: 0.001,
+    feePerSide: 0.0025,
+    networkSOL: 0.0002,
+    ...(r.status === "closed" ? { closed: isoMs(r.closed_at), exitObserved: isoMs(r.closed_at), exit: r.exit_price, pnl: r.pnl_sol, outcome: r.outcome } : {}),
+    ...(r.status === "interrupted"
+      ? { interrupted: true, gaps: [{ detectedAt: isoMs(r.updated_at), lastObserved: isoMs(r.last_observed) || null, reason: r.outcome || "Strežnik za ta par ni imel podatkov" }] }
+      : {}),
+  };
+}
+function applyServerRows(rows) {
+  let persist = false,
+    changed = false;
+  for (const r of rows || []) {
+    const nt = fromServer(r);
+    const i = trades.findIndex((t) => t.key === nt.key);
+    if (i < 0) {
+      trades.push(nt);
+      persist = changed = true;
+      continue;
+    }
+    const old = trades[i];
+    if ((old.srvUpdated || 0) >= (nt.srvUpdated || 0)) continue;
+    for (const k of ["deletedAt", "deleteReason", "restoredAt"]) if (old[k] !== undefined) nt[k] = old[k];
+    if (!!old.closed !== !!nt.closed || !!old.interrupted !== !!nt.interrupted || old.halfSold !== nt.halfSold) persist = true;
+    trades[i] = nt;
+    changed = true;
+  }
+  if (persist) save();
+  return changed;
+}
+let srvBusy = false;
+async function syncServerTrades() {
+  if (!db || !remoteUser || srvBusy) return;
+  srvBusy = true;
+  try {
+    const since = Math.max(0, ...trades.filter((t) => t.server).map((t) => t.srvUpdated || 0));
+    const openSrv = trades.filter((t) => t.server && !t.closed && !t.interrupted && !t.deletedAt);
+    // odprte strežniške posle vedno osvežimo (njihov zadnji žig v spominu je lahko novejši od shranjenega)
+    const from = openSrv.length ? Math.min(since, ...openSrv.map((t) => t.srvUpdated || 0)) : since;
+    const { data, error } = await db.from("memecoin_bot_trades").select("*").eq("user_id", remoteUser.id).gt("updated_at", new Date(from).toISOString()).order("updated_at", { ascending: true }).limit(1000);
+    if (error) throw error;
+    if (applyServerRows(data)) draw();
+  } catch {
+    // naslednji krog
+  } finally {
+    srvBusy = false;
+  }
+}
+
 function current() {
   return coins.get(selected);
 }
@@ -510,7 +595,7 @@ function signal(c) {
 function draw() {
   let interruptedNow = false;
   for (const t of trades) {
-    if (!t.practice && !t.deletedAt && !t.closed && !t.interrupted && primed && lastSnapshotT - t.lastObserved > 75000) {
+    if (!t.practice && !t.server && !t.deletedAt && !t.closed && !t.interrupted && primed && lastSnapshotT - t.lastObserved > 75000) {
       interruptTrade(t, "Strežnik za ta par ni imel podatkov več kot 75 sekund");
       interruptedNow = true;
     }
@@ -930,6 +1015,8 @@ const unreliable = (pair, tm) => (suspectLog.get(pair) || []).filter((x) => tm -
 // v vseh virih (senca -7 %, dvojček -11 % na posel): po padcu cena malo odskoči in vzorec to vidi kot odboj.
 // Velja samo za samodejne vstope; ročni vstop je vedno dovoljen. Pavza teče od izstopa, ne glede na razlog.
 const PAUSE_MS = 5 * 60000;
+// 27. 9. 2026: samodejne vstope vodi strežnik (bot.ts). Brskalnik samo prikazuje signale in opozorila.
+const BROWSER_AUTO = false;
 function pausedPair(id, tm) {
   const t = trades.find((t) => t.id === id && !t.deletedAt && !t.practice && t.closed && tm - (t.exitObserved || t.closed) < PAUSE_MS);
   return t ? Math.min(5, Math.max(1, Math.ceil((PAUSE_MS - (tm - (t.exitObserved || t.closed))) / 60000))) : 0;
@@ -940,7 +1027,7 @@ function pausedPair(id, tm) {
 function applyTradeLogic(c, tm) {
   const id = c.id,
     price = c.price;
-  for (const t of trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && t.id === id)) {
+  for (const t of trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && !t.server && t.id === id)) {
     if (tm - t.lastObserved > 75000) interruptTrade(t, "Strežnik za ta par ni imel podatkov več kot 75 sekund");
     t.lastObserved = tm;
     if (!t.interrupted) {
@@ -966,7 +1053,7 @@ function applyTradeLogic(c, tm) {
     !blocked &&
     freshTick &&
     $("#auto").checked &&
-    isLeader &&
+    BROWSER_AUTO &&
     !trades.some((t) => !t.deletedAt && !t.interrupted && !t.closed && t.id === id) &&
     trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && !t.practice).length < 5
   ) {
@@ -980,7 +1067,7 @@ function applyTradeLogic(c, tm) {
 // Odprti posli ob vrnitvi na stran: strežnik je cene videl tudi, ko brskalnik ni bil odprt, zato jih preigramo.
 async function reconcileOpenTrades() {
   let changed = false;
-  for (const t of trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && !t.practice)) {
+  for (const t of trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && !t.practice && !t.server)) {
     try {
       const from = t.lastObserved || t.opened;
       const data = await pagedRows(() =>
@@ -1346,7 +1433,7 @@ async function claimLeader() {
 window.addEventListener("pagehide", () => {
   if (isLeader && db && remoteUser) db.rpc("memecoin_release_leader", { p_instance: INSTANCE }).then(() => {}, () => {});
 });
-setInterval(claimLeader, 20000);
+// (od v51 samodejno trguje strežnik, najem vodje se ne uporablja več)
 // Nova različica: zavihek na 2 min preveri version.json in se ob novejši sam osveži (prej osveži še index.html v
 // predpomnilniku, sicer bi GitHub Pages do 10 min vračal staro stran). Največ enkrat na različico na zavihek.
 const APP_VERSION = CLIENT_VERSION;
@@ -1365,10 +1452,14 @@ async function checkVersion() {
   } catch {}
 }
 setInterval(checkVersion, 120000);
-await claimLeader();
 renderBotPill();
 poll();
 setInterval(poll, 30000);
+syncServerTrades();
+setInterval(syncServerTrades, 15000);
+// Strežnik samodejno trguje šele, ko profil nosi client_version >= 51 (da ne trgujeta hkrati star zavihek in strežnik),
+// zato ob odprtju nove različice profil enkrat zapišemo.
+pushRemote(true);
 // Na 6 s: Jupitrove cene za odprte pozicije. Prikaz (memecoin_prices_now) in od 26. 9. 2026 tudi izstopi:
 // posli z vstopom po Jupitru (t.jup) gredo skozi vsako Jupitrovo ceno od zadnje obdelane (memecoin_prices),
 // tako da tudi zamujen ali upočasnjen interval (skrit zavihek) ne preskoči nobene cene.
@@ -1394,7 +1485,7 @@ async function fetchLive() {
   if (!open.length) return;
   liveBusy = true;
   try {
-    const jupOpen = open.filter((t) => t.jup);
+    const jupOpen = open.filter((t) => t.jup && !t.server);
     if (jupOpen.length) {
       const from = Math.min(...jupOpen.map((t) => t.jupT || t.opened));
       const rows = await pagedRows(
@@ -1425,7 +1516,10 @@ setInterval(() => {
   if (view === "comparison" && !document.hidden) loadShadow();
 }, 60000);
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) poll();
+  if (!document.hidden) {
+    poll();
+    syncServerTrades();
+  }
 });
 setInterval(() => {
   status();
@@ -1454,15 +1548,10 @@ function renderBotPill() {
   const on = !!$("#auto").checked;
   const p = PROFILES[profile] || PROFILES[DEFAULT_PROFILE];
   const st = stake.toLocaleString("sl-SI", { maximumSignificantDigits: 21, useGrouping: false });
-  const elsewhere = on && !isLeader;
-  txt.textContent = "BOT · " + (on ? (elsewhere ? "SAMODEJNO DRUGJE" : "SAMODEJNO") : "ROČNO") + " · " + st + " SOL · " + p.name.toUpperCase();
+  txt.textContent = "BOT · " + (on ? "SAMODEJNO 24/7" : "ROČNO") + " · " + st + " SOL · " + p.name.toUpperCase();
   pill.classList.toggle("off", !on);
   pill.title =
-    (on
-      ? elsewhere
-        ? "Bot samodejno vstopa v drugi odprti kopiji Sonarja (" + (leaderInfo || "drug zavihek") + "). Ta zavihek prikazuje, zapira posle in dovoli ročne vstope."
-        : "Bot sam odpira demo posle v tem zavihku."
-      : "Bot ne odpira sam, vstopaš ročno.") + " Klik odpre nastavitve.";
+    (on ? "Bot sam odpira in zapira demo posle na strežniku, 24/7, tudi ko je stran zaprta." : "Bot ne odpira sam, vstopaš ročno. Izstope odprtih poslov strežnik vodi naprej.") + " Klik odpre nastavitve.";
 }
 // Odpiranje in zapiranje panela z nastavitvami. hidden ne da animirati (display:none),
 // zato hidden samo odstranimo, razred .open pa sproži prehod; ob zapiranju hidden vrnemo po prehodu.
@@ -1526,7 +1615,7 @@ function watching() {
   const expanded = new Set([...document.querySelectorAll("#watchCards details[open], #waitCards details[open]")].map((d) => d.dataset.id));
   host.replaceChildren();
   $("#watchStatus").textContent =
-    "Osveženo " + time(Date.now()) + " · zadnji posnetek " + (last ? time(last) : "še čakamo") + " · bot " + ($("#auto").checked ? (isLeader ? "vstopa sam v tem zavihku" : "vstopa sam v drugi kopiji (" + (leaderInfo || "drug zavihek") + ")") : "ne vstopa sam");
+    "Osveženo " + time(Date.now()) + " · zadnji posnetek " + (last ? time(last) : "še čakamo") + " · bot " + ($("#auto").checked ? "vstopa sam na strežniku (24/7)" : "ne vstopa sam");
   const collectRow = $("#collectRow"),
     waitCards = $("#waitCards"),
     waitEmpty = $("#waitEmpty");
@@ -2361,14 +2450,58 @@ function manualBlock(c) {
     return "Dosežena je meja petih odprtih poslov.";
   return "";
 }
-function manualEntry(c, feedback) {
+// Ročni vstop gre od v51 na strežnik (vrstica manual v memecoin_bot_trades), da izstope vodi bot tudi ob zaprti strani.
+async function enterServer(c, s) {
+  const jp = c.jupPrice > 0 && c.price > 0 && Math.abs(c.price / c.jupPrice - 1) <= 0.5 ? c.jupPrice : null;
+  const px = jp || c.price;
+  const plan = exitPlan(profile, px);
+  const nowIso = new Date().toISOString();
+  const row = {
+    user_id: remoteUser.id,
+    pair: c.id,
+    token: c.token,
+    symbol: c.symbol,
+    profile: plan.profile,
+    plan: plan.plan,
+    opened_at: nowIso,
+    signal_at: new Date(c.time || Date.now()).toISOString(),
+    entry_price: px,
+    entry_jup: c.jupPrice || null,
+    entry_mcap: Number.isFinite(c.mcap) ? (c.mcap * px) / c.price : null,
+    size_sol: stake,
+    stop: plan.stop,
+    target: plan.target,
+    cap: plan.cap,
+    peak: px,
+    half_sold: false,
+    last_observed: nowIso,
+    reason: s?.name || "",
+    status: "open",
+    jup: !!jp,
+    jup_t: jp ? nowIso : null,
+    manual: true,
+  };
+  const { data, error } = await db.from("memecoin_bot_trades").insert(row).select().single();
+  if (error) throw error;
+  applyServerRows([data]);
+  registerWatch(c);
+  return true;
+}
+async function manualEntry(c, feedback) {
   const blocked = manualBlock(c);
   if (blocked) {
     $(feedback).textContent = blocked;
     draw();
     return false;
   }
-  if (!enter(c, signal(c), false)) return false;
+  if (!c.practice && db && remoteUser) {
+    try {
+      await enterServer(c, signal(c));
+    } catch (e) {
+      $(feedback).textContent = "Vstopa ni bilo mogoče zapisati na strežnik: " + (e?.message || e);
+      return false;
+    }
+  } else if (!enter(c, signal(c), false)) return false;
   const just = trades.at(-1);
   $(feedback).textContent = "Ročni demo zabeležen za " + c.symbol + " · " + stake.toLocaleString("sl-SI") + " SOL. Vstop " + mcText(c, c.price) + " · " + tradeLevels(just, c).summary;
   draw();
@@ -2901,7 +3034,27 @@ function manualClose(t, feedbackEl) {
     return;
   }
   const stale = !fresh(c);
-  closeAt(t, c.price, c.time, stale ? "Ročni izstop (po zadnji znani ceni)" : "Ročni izstop");
+  const why = stale ? "Ročni izstop (po zadnji znani ceni)" : "Ročni izstop";
+  if (t.server) {
+    const jl = livePrices.get(t.token);
+    const px = jl && jl.price > 0 && Date.now() - jl.t < 20000 && Math.abs(c.price / jl.price - 1) <= 0.5 ? jl.price : c.price;
+    const pnl = markToMarket(t, px);
+    const outcome = why + (t.halfSold && Number.isFinite(t.halfPrice) ? " · pol prodano pri " + pct1((t.halfPrice / t.entry - 1) * 100) : "");
+    db.rpc("memecoin_bot_close", { p_id: t.srvId, p_price: px, p_pnl: pnl, p_outcome: outcome }).then(
+      ({ data, error }) => {
+        if (error || !data) feedbackEl.textContent = error ? "Izstop ni uspel: " + error.message : "Bot je ta posel že zaprl.";
+        syncServerTrades();
+      },
+      () => (feedbackEl.textContent = "Izstop ni uspel, poskusi znova."),
+    );
+    closeAt(t, px, Date.now(), why);
+    t.outcome = outcome;
+    confirmClose = null;
+    $("#feedback").textContent = "Ročni izstop poslan za " + t.symbol + " · neto " + signed(t.pnl) + " SOL.";
+    draw();
+    return;
+  }
+  closeAt(t, c.price, c.time, why);
   confirmClose = null;
   $("#feedback").textContent = "Ročni izstop zabeležen za " + t.symbol + " po " + mcText(c, c.price) + " · neto " + signed(t.pnl) + " SOL.";
   draw();
@@ -3115,6 +3268,16 @@ function renderOpenTrades() {
 // Po tem ostane vnos samo se v dnevniku sprememb v zavihku Kako deluje.
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
+  {
+    id: 13,
+    at: "2026-09-27T18:30:00Z",
+    date: "27. 9. 2026",
+    title: "Bot teče na strežniku 24/7",
+    short: "<b>Bot zdaj trguje na strežniku, 24 ur na dan</b>, tudi ko je stran zaprta. Dvojčka ni več.",
+    body:
+      "Do zdaj je bot trgoval samo, ko je bil Sonar odprt v brskalniku, na strežniku pa je vzporedno tekel dvojček za primerjavo. Od danes je dvojček bot sam: samodejne vstope in vse izstope (polovica, cilj, sledilna in trda meja, po Jupitru na 6 s, 5 min pavze po izstopu) vodi strežnik vsakih 30 s, tudi ponoči in ko je računalnik ugasnjen. Stran posle samo prikazuje. Ročni vstop in gumb Zapri zdaj delujeta kot prej, posel pa potem prav tako vodi strežnik. Nastavitve (samodejni vstopi, vložek, profil) veljajo takoj, ko jih spremeniš. Ker trguje samo en bot, podvojenih poslov iz več zavihkov ne more biti več. Rezultati dvojčka so izbrisani. Posli, ki so bili ob posodobitvi odprti v brskalniku, se zaključijo po starem. Ni finančni nasvet, gre za demo.",
+    tags: [["Strežnik 24/7", "ok"], ["Dvojček ukinjen", ""]],
+  },
   {
     id: 12,
     at: "2026-09-26T09:30:00Z",
@@ -3423,149 +3586,4 @@ for (const b of document.querySelectorAll("#profileButtons button"))
   };
 renderProfile();
 
-// ---------- Dvojček na strežniku (25. 9. 2026) ----------
-// Isti samodejni bot kot v brskalniku, a teče na strežniku 24/7 (twin.ts v funkciji collect) in piše v
-// memecoin_twin_trades. Na tvoj dnevnik, bilanco in pozicije nima vpliva. Tu ga samo prikažemo za primerjavo.
-let twinOpen = [],
-  twinClosed = [],
-  twinErr = "",
-  twinBusy = false;
-async function loadTwin() {
-  if (!db || !remoteUser || twinBusy) return;
-  twinBusy = true;
-  try {
-    const d0 = new Date();
-    d0.setHours(0, 0, 0, 0);
-    const [o, c] = await Promise.all([
-      db.from("memecoin_twin_trades").select("*").eq("user_id", remoteUser.id).eq("status", "open").order("opened_at", { ascending: false }),
-      db.from("memecoin_twin_trades").select("*").eq("user_id", remoteUser.id).neq("status", "open").gte("opened_at", new Date(d0.getTime() - 6 * 3600000).toISOString()).order("opened_at", { ascending: false }).limit(1000),
-    ]);
-    if (o.error || c.error) throw o.error || c.error;
-    twinOpen = o.data || [];
-    twinClosed = (c.data || []).filter((t) => t.status === "closed" && Date.parse(t.closed_at) >= d0.getTime());
-    twinErr = "";
-  } catch (e) {
-    twinErr = "Dvojčka ni bilo mogoče naložiti: " + (e?.message || e);
-  } finally {
-    twinBusy = false;
-  }
-  renderTwin();
-}
-function renderTwin() {
-  const anchor = $("#miniKpis");
-  if (!anchor) return;
-  let box = $("#twinBox");
-  if (!box) {
-    box = document.createElement("article");
-    box.id = "twinBox";
-    box.style.cssText = "border:1px solid rgba(70,190,197,.55);border-radius:12px;margin:12px 0;padding:10px 16px";
-    anchor.parentNode.insertBefore(box, anchor.nextSibling);
-    const css = document.createElement("style");
-    css.textContent = "#twinBox > details > summary::-webkit-details-marker{display:none}";
-    document.head.append(css);
-  }
-  // 26. 9. 2026: privzeto strnjen v eno vrstico (G: zavzame preveč prostora). Stanje odprto/zaprto si zapomni.
-  let wasOpen = false;
-  try {
-    wasOpen = localStorage.getItem("sonar-twin-open") === "1";
-  } catch {}
-  const innerOpen = new Set([...box.querySelectorAll("details.twinList[open]")].map((d) => d.dataset.k));
-  const mk = (tag, cls, txt) => {
-    const e = document.createElement(tag);
-    if (cls) e.className = cls;
-    if (txt !== undefined) e.textContent = txt;
-    return e;
-  };
-  box.replaceChildren();
-  const net = twinClosed.reduce((s, t) => s + (t.pnl_sol || 0), 0),
-    wins = twinClosed.filter((t) => t.pnl_sol > 0).length;
-  const wrap = mk("details");
-  wrap.open = wasOpen;
-  wrap.addEventListener("toggle", () => {
-    try {
-      localStorage.setItem("sonar-twin-open", wrap.open ? "1" : "0");
-    } catch {}
-  });
-  const sum = mk("summary");
-  sum.style.cssText = "cursor:pointer;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;list-style:none";
-  const h = mk("strong", "", "▸ Dvojček na strežniku");
-  h.style.color = "#46bec5";
-  const ns = mk("span", tone(net), sol4(net));
-  ns.style.fontWeight = "700";
-  const sub = mk("span", "muted", "danes · " + twinClosed.length + " zaključenih" + (twinClosed.length ? " · " + Math.round((wins / twinClosed.length) * 100) + " % dobitnih" : "") + " · odprto " + twinOpen.length);
-  const badge = mk("span", "badge", "TEST · NE VPLIVA NA RAČUN");
-  badge.style.marginLeft = "auto";
-  sum.append(h, ns, sub, badge);
-  wrap.append(sum);
-  const setArrow = () => (h.textContent = (wrap.open ? "▾" : "▸") + " Dvojček na strežniku");
-  setArrow();
-  wrap.addEventListener("toggle", setArrow);
-  box.append(wrap);
-  const body = mk("div");
-  body.style.marginTop = "10px";
-  wrap.append(body);
-  body.append(mk("p", "muted", "Isti bot kot tvoj (isti vzorci, filter, profil in vložek, od 26. 9. izstopi po Jupitru na 6 s in 5 min pavze po izstopu), a teče na strežniku, tudi ko je stran zaprta. Primerjaj ga s svojim: ko je stran odprta, morata vstopati in izstopati skoraj enako, razlika so posli, ki jih ujame ponoči."));
-  if (twinErr) body.append(mk("p", "muted", twinErr));
-  let me = null;
-  try {
-    me = overview(trades, { period: "today", quality: "all" });
-  } catch {}
-  const grid = mk("div", "kpis");
-  const k = (label, big, bigTone, sub) => {
-    const a = mk("article", "kpi");
-    a.append(mk("small", "", label), mk("strong", bigTone, big), mk("p", "", sub));
-    return a;
-  };
-  grid.append(
-    k("DVOJČEK DANES", sol4(net), tone(net), twinClosed.length + " zaključenih · " + (twinClosed.length ? Math.round((wins / twinClosed.length) * 100) + " % dobitnih" : "še ni zaključkov")),
-    k("TI DANES (BRSKALNIK)", me ? sol4(me.net) : "-", me ? tone(me.net) : "", me ? me.closed.length + " zaključenih · " + (me.closed.length ? Math.round((me.wins / me.closed.length) * 100) + " % dobitnih" : "še ni zaključkov") : ""),
-    k("ODPRTO PRI DVOJČKU", String(twinOpen.length), "", "od največ 5"),
-  );
-  body.append(grid);
-  const list = (title, rows, key) => {
-    const d = mk("details", "twinList");
-    d.dataset.k = key;
-    d.open = innerOpen.has(key);
-    d.append(mk("summary", "", title));
-    const tb = mk("table");
-    const tbody = mk("tbody");
-    for (const r of rows) {
-      const tr = mk("tr");
-      for (const [i, c] of r.entries()) {
-        const td = mk("td", "", c.text);
-        if (c.tone) td.className = c.tone;
-        if (i > 0) td.style.whiteSpace = "nowrap";
-        tr.append(td);
-      }
-      tbody.append(tr);
-    }
-    if (!rows.length) tbody.append(Object.assign(mk("tr"), { innerHTML: '<td class="muted">Nič.</td>' }));
-    tb.append(tbody);
-    const sc = mk("div", "scroll");
-    sc.append(tb);
-    d.append(sc);
-    return d;
-  };
-  const hm = (x) => new Date(x).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit" });
-  body.append(
-    list(
-      "Odprti posli dvojčka (" + twinOpen.length + ")",
-      twinOpen.map((t) => {
-        const c = coins.get(t.pair);
-        const now = c && c.price > 0 ? (c.price / t.entry_price - 1) * 100 : null;
-        return [{ text: t.symbol || "?" }, { text: "vstop " + hm(t.opened_at) }, { text: now === null ? "-" : pct1(now), tone: now === null ? "" : tone(now) }, { text: (t.half_sold ? "pol prodano · " : "") + (t.reason || "") }];
-      }),
-      "open",
-    ),
-    list(
-      "Današnji zaključki dvojčka (" + twinClosed.length + ")",
-      twinClosed.map((t) => {
-        const p = t.size_sol > 0 ? (100 * t.pnl_sol) / t.size_sol : null;
-        return [{ text: t.symbol || "?" }, { text: hm(t.opened_at) + " → " + hm(t.closed_at) }, { text: p === null ? "-" : pct1(p), tone: p === null ? "" : tone(p) }, { text: t.outcome || "" }];
-      }),
-      "closed",
-    ),
-  );
-}
-setTimeout(loadTwin, 2500);
-setInterval(loadTwin, 30000);
+// (Dvojček na strežniku, 25. do 27. 9. 2026, je od v51 ukinjen: bot sam teče na strežniku, glej syncServerTrades.)
