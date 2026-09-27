@@ -1,6 +1,10 @@
 // foqs.si/sonar: posnetke zbira strežnik (Supabase cron vsakih 30 s -> tabela memecoin_snapshots), tudi ko je stran zaprta.
 // Brskalnik ob odprtju naloži zadnjo uro posnetkov, potem bere samo nove. Pravila v1.0 tečejo v brskalniku.
 const HISTORY_MIN = 60;
+// Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
+// zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
+const CLIENT_VERSION = 49;
+const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
   SOL_USD_FIXED = 117.4;
@@ -462,7 +466,7 @@ async function pushRemote(force = false) {
   const fingerprint = JSON.stringify(row);
   try {
     const stamp = new Date().toISOString();
-    const { error } = await db.from("memecoin_state").upsert({ ...row, updated_at: stamp });
+    const { error } = await db.from("memecoin_state").upsert({ ...row, updated_at: stamp, client_version: CLIENT_VERSION, write_nonce: newNonce() });
     if (error) throw error;
     remoteStamp = stampMs(stamp);
     lastPushed = fingerprint;
@@ -954,9 +958,13 @@ function applyTradeLogic(c, tm) {
         ? "pavza po izstopu iz tega kovanca, še " + pauseLeft + " min"
         : entryFilter(c)
     : null;
+  // 27. 9. 2026: vstop samo na svežem posnetku. Ko se zavihek zbudi (računalnik je spal), preigra zamujene posnetke;
+  // izstope odprtih poslov še vedno preigramo, novih vstopov za nazaj pa ne odpiramo.
+  const freshTick = Date.now() - tm < 90000;
   if (
     s.signal &&
     !blocked &&
+    freshTick &&
     $("#auto").checked &&
     isLeader &&
     !trades.some((t) => !t.deletedAt && !t.interrupted && !t.closed && t.id === id) &&
@@ -1341,7 +1349,7 @@ window.addEventListener("pagehide", () => {
 setInterval(claimLeader, 20000);
 // Nova različica: zavihek na 2 min preveri version.json in se ob novejši sam osveži (prej osveži še index.html v
 // predpomnilniku, sicer bi GitHub Pages do 10 min vračal staro stran). Največ enkrat na različico na zavihek.
-const APP_VERSION = 48;
+const APP_VERSION = CLIENT_VERSION;
 async function checkVersion() {
   try {
     const r = await fetch("./version.json?t=" + Date.now(), { cache: "no-store" });
