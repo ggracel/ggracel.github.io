@@ -316,6 +316,18 @@ body.reveal[data-view="login"] .view[data-view="hub"]{transform:none;filter:none
 .lg-btn[disabled]{opacity:.65;pointer-events:none}
 main{transition:opacity .22s ease}
 body[data-state="boot"] main{opacity:0;pointer-events:none}
+/* guest: the hub is open to look around, every app asks for an account first */
+.d-in{display:none;border-color:rgba(70,190,197,.5);color:var(--teal)}
+body.guest .d-user,body.guest #signOut{display:none}
+body.guest .d-in{display:inline-block}
+.lg-close{display:none;position:absolute;top:14px;right:14px;width:34px;height:34px;align-items:center;justify-content:center;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--mute);transition:color .2s,border-color .2s,background .2s}
+.lg-close:hover{color:var(--teal);border-color:var(--teal);background:rgba(70,190,197,.08)}
+body.guest .lg-close{display:flex}
+.lg-card[data-mode="recover"] .lg-close{display:none}
+/* hub to login: the login to hub move played backwards */
+.view.arriving .lg-card{animation:cardIn .42s cubic-bezier(.2,.8,.2,1) .1s both}
+@media(max-width:900px){.view.arriving .lg-peek{animation:cardIn .42s cubic-bezier(.2,.8,.2,1) .16s both}}
+@media(prefers-reduced-motion:reduce){.view.arriving .lg-card,.view.arriving .lg-peek{animation:none}}
 /* sonar brez dostopa: osivljena, neklikljiva kartica */
 .d-mod.locked{filter:grayscale(1);opacity:.42;pointer-events:none;cursor:default}
 .d-mod.locked .b-led i{background:var(--mute)}
@@ -341,6 +353,7 @@ body[data-state="boot"] main{opacity:0;pointer-events:none}
           <span id="d-clock">09:41</span>
           <span class="d-user"><span class="d-av" id="hubInitial">·</span><span id="hubName"></span></span>
           <button class="d-out" id="signOut" type="button">Sign out</button>
+          <button class="d-out d-in" id="guestIn" type="button">Sign in</button>
         </div>
       </div>
       <div class="d-intro">
@@ -425,9 +438,10 @@ body[data-state="boot"] main{opacity:0;pointer-events:none}
     <div class="tease-veil" aria-hidden="true"></div>
     <div class="lg-inner"><div class="lg-wrap">
     <div class="lg-card" data-mode="register">
+      <button class="lg-close" id="lgClose" type="button" aria-label="Back to the hub"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       <img class="wm" src="/foqs-logo.png" alt="foqs." width="700" height="247">
       <small>HUB</small>
-      <p class="note reg-only">Create your foqs. account and you are straight in. One account opens habit, Ura+ and sonar.</p>
+      <p class="note reg-only">Create your foqs. account and you are straight in. One login for all foqs. apps.</p>
       <p class="note in-only">Welcome back. Sign in to open your apps.</p>
       <p class="note rec-only">Choose a new password for your foqs. account.</p>
 
@@ -484,11 +498,11 @@ const mainBtn = document.getElementById('mainBtn');
 const reduce  = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let view = 'login';
 
-function paint(){
+function paint(keepScroll){
   document.body.dataset.view = view;
   hubView.hidden = false;
   logView.hidden = (view !== 'login');
-  if (view === 'hub') window.scrollTo(0, 0);
+  if (view === 'hub' && !keepScroll) window.scrollTo(0, 0);
 }
 function say(text, cls){ msgEl.textContent = text || ''; msgEl.className = 'authmsg ' + (cls || ''); }
 function setMode(m){
@@ -501,6 +515,7 @@ function showUser(u){
   const name = (u.user_metadata && u.user_metadata.name) || u.email || '';
   document.getElementById('hubName').textContent = name;
   document.getElementById('hubInitial').textContent = (name.trim()[0] || '\u00b7').toUpperCase();
+  document.body.classList.remove('guest');
   checkSonar();
 }
 /* sonar is invite only: grey the card out for accounts that are not on the list */
@@ -637,6 +652,49 @@ mods.forEach(function(el){
   el.addEventListener('focusout', function(){ if (!canHover) return; setOn(el, false, false); });
 });
 
+/* guests look around the hub freely. Opening an app plays the login to hub
+   move backwards: the hub eases away to the right and the card comes in. */
+const fineMouse = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+function focusFirst(){
+  if (!fineMouse) return;
+  const el = document.getElementById(card.dataset.mode === 'register' ? 'fName' : 'fEmail');
+  if (el) el.focus({ preventScroll: true });
+}
+function openAuth(mode){
+  if (view === 'login') return;
+  setMode(mode || 'register');
+  if (reduce){ view = 'login'; paint(true); focusFirst(); return; }
+  document.body.classList.add('reveal');
+  logView.classList.add('arriving');
+  view = 'login'; paint(true);
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){
+    document.body.classList.remove('reveal');
+  }); });
+  setTimeout(function(){ logView.classList.remove('arriving'); focusFirst(); }, 560);
+}
+function closeAuth(){
+  if (view !== 'login' || !document.body.classList.contains('guest')) return;
+  if (card.dataset.mode === 'recover') return;
+  if (reduce){ view = 'hub'; paint(true); return; }
+  document.body.classList.add('reveal');
+  logView.classList.add('leaving');
+  setTimeout(function(){
+    logView.classList.remove('leaving');
+    document.body.classList.remove('reveal');
+    view = 'hub'; paint(true);
+  }, 480);
+}
+document.querySelector('.d-grid').addEventListener('click', function(e){
+  if (!document.body.classList.contains('guest')) return;
+  const a = e.target.closest('.d-mod');
+  if (!a) return;
+  e.preventDefault();
+  openAuth('register');
+}, true);
+document.getElementById('guestIn').onclick = function(){ openAuth('signin'); };
+document.getElementById('lgClose').onclick = closeAuth;
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeAuth(); });
+
 /* clock */
 function tick(){
   const d = new Date(), e = document.getElementById('d-clock');
@@ -691,6 +749,7 @@ sb.auth.onAuthStateChange(function(event){
   const hash = location.hash || '';
   if (/error=|error_description=/.test(hash)){
     const p = new URLSearchParams(hash.slice(1));
+    document.body.classList.add('guest');
     setMode('signin');
     say('That link is not valid any more: ' + decodeURIComponent(p.get('error_description') || p.get('error') || ''), 'err');
   } else if (/type=recovery/.test(hash)){
@@ -700,6 +759,9 @@ sb.auth.onAuthStateChange(function(event){
     if (data.session){
       const { data: u } = await sb.auth.getUser();
       showUser(u.user);
+      view = 'hub';
+    } else {
+      document.body.classList.add('guest');
       view = 'hub';
     }
   }
