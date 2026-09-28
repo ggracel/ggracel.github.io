@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 53;
+const CLIENT_VERSION = 54;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -16,11 +16,11 @@ import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, ent
 // Konstante senčnega testa so tu zgoraj, ker jih berejo funkcije, ki se kličejo že ob nalaganju modula (TDZ).
 // Primerjava: senčni posli, ki jih strežnik (edge funkcija collect, datoteka shadow.ts) piše v tabelo memecoin_shadow_trades.
 // Brskalnik jih samo bere in sešteje. Pravila so v strežniku zamrznjena; tu se nič ne odloča.
-const SHADOW_STRATEGIES = ["bankr-filter", "bankr-vsi", "v1.2-cilj50-jup-p5", "v1.2-cilj50-jup-p10", "v1.2-cilj50-p5", "v1.2-cilj30-jup", "v1.2-cilj50-jup", "v1.0", "v1.0-cisto", "v1.0-jup", "v1.2-filter", "v1.2-cilj10", "v1.2-cilj50", "v1.2-cilj70", "v1.2-cilj100", "v1.2-sled7", "v1.2-srednje", "v2.2-dip", "v3-mirno", "v3-kontrola", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj", "v2.2-dip-siroko"];
+const SHADOW_STRATEGIES = ["bankr-filter", "bankr-filter-sled30", "bankr-vsi", "v1.2-cilj50-jup-p5", "v1.2-cilj50-jup-p10", "v1.2-cilj50-p5", "v1.2-cilj30-jup", "v1.2-cilj50-jup", "v1.0", "v1.0-cisto", "v1.0-jup", "v1.2-filter", "v1.2-cilj10", "v1.2-cilj50", "v1.2-cilj70", "v1.2-cilj100", "v1.2-sled7", "v1.2-srednje", "v2.2-dip", "v3-mirno", "v3-kontrola", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj", "v2.2-dip-siroko"];
 // Ustavljene: ne odpirajo novih poslov, zgodovina in odprti posli ostanejo (glej shadow.ts PAUSED). Ta seznam mora ustrezati shadow.ts.
 const SHADOW_PAUSED = { "v2.0": "20. 9.", "v2.0-brez-holderjev": "19. 9.", "v2.1-preboj": "20. 9.", "v2.2-dip-siroko": "20. 9.", "v1.2-srednje": "20. 9.", "v1.0-cisto": "25. 9." };
-const SHADOW_LABEL = { "bankr-filter": "★ BANKR · Base launchi + filter deployerja", "bankr-vsi": "★ BANKR · vsi Base launchi (kontrola)", "v1.2-cilj50-jup-p5": "★ NOVO · tvoj bot od 26. 9. (Jupiter + pavza 5 min)", "v1.2-cilj50-jup-p10": "★ NOVO · Jupiter + pavza 10 min", "v1.2-cilj50-p5": "★ NOVO · DEX 30 s + pavza 5 min", "v1.2-cilj30-jup": "v1.2 Jupiter, cilj +30", "v1.2-cilj50-jup": "v1.2 Jupiter, cilj +50 (kontrola za +30)", "v1.0": "v1.0 +10/-5", "v1.0-cisto": "v1.0 čisto (brez sumljivih posnetkov)", "v1.0-jup": "v1.0 Jupiter (cene na 6 s)", "v1.2-filter": "v1.2 staro Srednje (pol +25, sled 20)", "v1.2-cilj10": "v1.2 cilj +10 / meja -5", "v1.2-cilj50": "v1.2 Srednje + cilj +50 (profil Srednje)", "v1.2-cilj70": "v1.2 Srednje + cilj +70", "v1.2-cilj100": "v1.2 Srednje + cilj +100", "v1.2-sled7": "v1.2 Srednje, sled 7 %", "v1.2-srednje": "v1.2 Srednje brez cilja (pol +20, sled 15)", "v2.2-dip": "v2.2 dip s kupci", "v3-mirno": "v3 mirno", "v3-kontrola": "v3 kontrola (naključni vstop)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj", "v2.2-dip-siroko": "v2.2 dip s kupci, široko" };
-const SHADOW_COLOR = { "bankr-filter": "#ff9f43", "bankr-vsi": "#c47a2c", "v1.2-cilj50-jup-p5": "#46bec5", "v1.2-cilj50-jup-p10": "#ffd43b", "v1.2-cilj50-p5": "#ff8787", "v1.2-cilj30-jup": "#00e5ff", "v1.2-cilj50-jup": "#8ea2ff", "v1.0": "#9fb0c8", "v1.0-cisto": "#dbe6f5", "v1.0-jup": "#a8ff60", "v1.2-filter": "#f0a6ff", "v1.2-cilj10": "#ffb3c7", "v1.2-cilj50": "#ffd166", "v1.2-cilj70": "#ffa94d", "v1.2-cilj100": "#ff6b6b", "v1.2-sled7": "#b197fc", "v1.2-srednje": "#c98cff", "v2.2-dip": "#46bec5", "v3-mirno": "#74c0fc", "v3-kontrola": "#adb5bd", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff", "v2.2-dip-siroko": "#ff9f7a" };
+const SHADOW_LABEL = { "bankr-filter": "★ BANKR · Base launchi + filter deployerja", "bankr-filter-sled30": "★ BANKR · filter + sled 30 (pol +100, brez cilja)", "bankr-vsi": "★ BANKR · vsi Base launchi (kontrola)", "v1.2-cilj50-jup-p5": "★ NOVO · tvoj bot od 26. 9. (Jupiter + pavza 5 min)", "v1.2-cilj50-jup-p10": "★ NOVO · Jupiter + pavza 10 min", "v1.2-cilj50-p5": "★ NOVO · DEX 30 s + pavza 5 min", "v1.2-cilj30-jup": "v1.2 Jupiter, cilj +30", "v1.2-cilj50-jup": "v1.2 Jupiter, cilj +50 (kontrola za +30)", "v1.0": "v1.0 +10/-5", "v1.0-cisto": "v1.0 čisto (brez sumljivih posnetkov)", "v1.0-jup": "v1.0 Jupiter (cene na 6 s)", "v1.2-filter": "v1.2 staro Srednje (pol +25, sled 20)", "v1.2-cilj10": "v1.2 cilj +10 / meja -5", "v1.2-cilj50": "v1.2 Srednje + cilj +50 (profil Srednje)", "v1.2-cilj70": "v1.2 Srednje + cilj +70", "v1.2-cilj100": "v1.2 Srednje + cilj +100", "v1.2-sled7": "v1.2 Srednje, sled 7 %", "v1.2-srednje": "v1.2 Srednje brez cilja (pol +20, sled 15)", "v2.2-dip": "v2.2 dip s kupci", "v3-mirno": "v3 mirno", "v3-kontrola": "v3 kontrola (naključni vstop)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj", "v2.2-dip-siroko": "v2.2 dip s kupci, široko" };
+const SHADOW_COLOR = { "bankr-filter": "#ff9f43", "bankr-filter-sled30": "#ffd166", "bankr-vsi": "#c47a2c", "v1.2-cilj50-jup-p5": "#46bec5", "v1.2-cilj50-jup-p10": "#ffd43b", "v1.2-cilj50-p5": "#ff8787", "v1.2-cilj30-jup": "#00e5ff", "v1.2-cilj50-jup": "#8ea2ff", "v1.0": "#9fb0c8", "v1.0-cisto": "#dbe6f5", "v1.0-jup": "#a8ff60", "v1.2-filter": "#f0a6ff", "v1.2-cilj10": "#ffb3c7", "v1.2-cilj50": "#ffd166", "v1.2-cilj70": "#ffa94d", "v1.2-cilj100": "#ff6b6b", "v1.2-sled7": "#b197fc", "v1.2-srednje": "#c98cff", "v2.2-dip": "#46bec5", "v3-mirno": "#74c0fc", "v3-kontrola": "#adb5bd", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff", "v2.2-dip-siroko": "#ff9f7a" };
 // Kaj vsak set pravil gleda za vstop in kako izstopi. Besedilo mora ustrezati shadow.ts; ob spremembi pravil popravi oboje.
 const SHADOW_RULES = {
   "v1.0": {
@@ -177,6 +177,16 @@ SHADOW_RULES["bankr-filter"] = {
     "Samo senca. Na tvoje posle in na bota nima vpliva. Ozadje: bankr-pristop.md.",
   ],
 };
+// 28. 9. 2026: tretje pravilo. Isti vstop in filter, drug izstop: na Bankr launchih vstopamo ob rojstvu (10K MC), zato je dobiček v repu,
+// ki ga cilj +50 % odreže. Polovica pri +100 %, ostanek brez cilja s sledilno mejo 30 % pod vrhom. Razlaga: sledilna-meja-razlaga.html.
+SHADOW_RULES["bankr-filter-sled30"] = {
+  vstop: SHADOW_RULES["bankr-filter"].vstop,
+  izstop: [
+    "Pol pri +100 %, brez cilja: ostanek proda sledilna meja 30 % pod najvišjo ceno od vstopa. Trda meja -12 % pred delno prodajo, na posnetkih DEX Screenerja na 30 s.",
+    "Proti pravilu s ciljem +50 % meri samo eno stvar: ali se na Bankr launchih splača pustiti raketo teči.",
+    ...SHADOW_RULES["bankr-filter"].izstop.slice(1),
+  ],
+};
 SHADOW_RULES["bankr-vsi"] = {
   vstop: [SHADOW_RULES["bankr-filter"].vstop[0], "Brez filtra deployerja: vsak Base launch, ki dobi likvidnost vsaj 5.000 $. Kontrola, ki pove, koliko prinese sam filter.", ...SHADOW_RULES["bankr-filter"].vstop.slice(2)],
   izstop: SHADOW_RULES["bankr-filter"].izstop,
@@ -213,6 +223,7 @@ async function loadSpot() {
 // Pod drobnogledom 2 (28. 9. 2026): Bankr radar, izpostavljen na G-jevo željo.
 const BANKR_A = "bankr-filter",
   BANKR_B = "bankr-vsi",
+  BANKR_C = "bankr-filter-sled30",
   BANKR_START = "2026-09-28T07:30:00Z";
 let bankrStats = new Map(),
   bankrAt = 0,
@@ -221,7 +232,7 @@ async function loadBankr() {
   if (!db || Date.now() - bankrAt < 55000) return;
   bankrAt = Date.now();
   const [lab, ln] = await Promise.all([
-    db.rpc("memecoin_lab", { p_since: BANKR_START, p_strategies: [BANKR_A, BANKR_B], p_filter: "none" }),
+    db.rpc("memecoin_lab", { p_since: BANKR_START, p_strategies: [BANKR_A, BANKR_B, BANKR_C], p_filter: "none" }),
     db.from("memecoin_bankr_launches").select("filter_ok,dead,first_price_at,last_liq").eq("chain", "base").gte("launched_at", new Date(Date.now() - 24 * 3600000).toISOString()),
   ]);
   if (!lab.error && lab.data) bankrStats = new Map((lab.data.stats || []).map((x) => [x.s, labToStats(x)]));
@@ -236,7 +247,8 @@ function renderBankr(anchor) {
     anchor.parentNode.insertBefore(box, anchor);
   }
   const a = bankrStats.get(BANKR_A) || labToStats({}),
-    b = bankrStats.get(BANKR_B) || labToStats({});
+    b = bankrStats.get(BANKR_B) || labToStats({}),
+    c = bankrStats.get(BANKR_C) || labToStats({});
   const mk = (tag, cls, txt) => {
     const e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -249,7 +261,7 @@ function renderBankr(anchor) {
   h.style.color = "#ff9f43";
   head.append(h, mk("span", "badge", "NOV PRISTOP · SAMO SENCA · OD 28. 9."));
   box.append(head);
-  box.append(mk("p", "muted", "Prijateljev pristop, preveden v senco: ne gleda cene in vzorcev, ampak kdo je kovanec lansiral. Vir so launchi prek Bankr na verigi Base, filter je ugled deployerja (X račun, brez mrtvih prejšnjih launchev, ni serijski). Isti izstop kot profil Srednje, stroški 1,75 % na stran (Bankr pool). Kontrola brez filtra pove, koliko prinese sam filter. Na tvoje posle in na bota nima vpliva."));
+  box.append(mk("p", "muted", "Prijateljev pristop, preveden v senco: ne gleda cene in vzorcev, ampak kdo je kovanec lansiral. Vir so launchi prek Bankr na verigi Base, filter je ugled deployerja (X račun, brez mrtvih prejšnjih launchev, ni serijski). Izstop kot profil Srednje, stroški 1,75 % na stran (Bankr pool). Kontrola brez filtra pove, koliko prinese sam filter. Tretje pravilo (sled 30) ima isti vstop, a brez cilja +50 %: pol pri +100 %, ostanek vodi sledilna meja 30 % pod vrhom, ker na Bankr launchih vstopamo ob rojstvu in je dobiček v repu. Na tvoje posle in na bota nima vpliva."));
   const L = bankrLaunches || [];
   const withPrice = L.filter((x) => x.first_price_at).length,
     okN = L.filter((x) => x.filter_ok).length,
@@ -275,7 +287,7 @@ function renderBankr(anchor) {
   dk.append(track);
   const lk = mk("article", "kpi");
   lk.append(mk("small", "", "LAUNCHI ZADNJIH 24 H"), mk("strong", "", String(L.length)), mk("p", "", withPrice + " jih je dobilo ceno na DEX Screenerju · " + okN + " skozi filter"), mk("p", "", deadN + " že mrtvih (MC pod 10 % vrha ali likvidnost pod 1.000 $)"));
-  grid.append(col("S FILTROM DEPLOYERJA", a, "#ff9f43"), col("BREZ FILTRA · KONTROLA", b, "#c47a2c"), dk, lk);
+  grid.append(col("S FILTROM DEPLOYERJA", a, "#ff9f43"), col("FILTER + SLED 30 · BREZ CILJA", c, "#ffd166"), col("BREZ FILTRA · KONTROLA", b, "#c47a2c"), dk, lk);
   box.append(grid);
   box.append(mk("p", "muted", "Merilo je isto kot pri vseh pravilih: vsaj 100 zaključenih poslov, pozitivno pričakovanje po stroških in v obeh polovicah obdobja. Šele potem Telegram alarm in ločena denarnica, ne prej."));
 }
@@ -3373,6 +3385,16 @@ function renderOpenTrades() {
 // Po tem ostane vnos samo se v dnevniku sprememb v zavihku Kako deluje.
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
+  {
+    id: 15,
+    at: "2026-09-28T08:15:00Z",
+    date: "28. 9. 2026",
+    title: "Bankr radar: tretje pravilo brez cilja (sled 30)",
+    short: "<b>Bankr radar ima tretje pravilo:</b> pol pri +100 %, brez cilja +50 %, ostanek vodi sledilna meja 30 % pod vrhom. Samo senca.",
+    body:
+      "Cilj +50 % je bil vzet iz profila Srednje, ki je narejen za Solano, kjer bot vstopa pri 20K do 300K MC. Na Bankr launchih vstopamo ob rojstvu (okrog 10.000 $ MC), zato je pričakovani dobiček v repu: redki kovanci, ki zrastejo 5x ali 10x, in cilj +50 % jih odreže. Tretje pravilo ima isti vstop in isti filter deployerja, drug izstop: polovica pri +100 %, brez cilja, ostanek proda sledilna meja 30 % pod najvišjo ceno od vstopa, trda meja -12 % in 24 h ostaneta. Proti pravilu s ciljem +50 % meri samo eno stvar: ali se na Bankr launchih splača pustiti raketo teči. V oranžnem okvirju Laboratorija je zdaj tretji stolpec. Razlaga sledilne meje: sledilna-meja-razlaga.html.",
+    tags: [["Samo Laboratorij", ""], ["Base, Bankr", "ok"]],
+  },
   {
     id: 14,
     at: "2026-09-28T08:00:00Z",
