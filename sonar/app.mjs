@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 54;
+const CLIENT_VERSION = 55;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -1114,12 +1114,16 @@ const unreliable = (pair, tm) => (suspectLog.get(pair) || []).filter((x) => tm -
 // 26. 9. 2026: pavza po izstopu. Ponovni vstop v isti kovanec v 1 do 3 min po izstopu je 25. in 26. 9. izgubljal
 // v vseh virih (senca -7 %, dvojček -11 % na posel): po padcu cena malo odskoči in vzorec to vidi kot odboj.
 // Velja samo za samodejne vstope; ročni vstop je vedno dovoljen. Pavza teče od izstopa, ne glede na razlog.
-const PAUSE_MS = 5 * 60000;
+// 28. 9. 2026: strežnik vstopa v par največ enkrat na 24 h (ponovni vstopi so bili na slabih dneh -1,50 SOL, prvi -0,77)
+// in ne vstopa med 00:00 in 06:00 (28. 9.: 74 nočnih poslov, -0,68 SOL). Brskalnik to samo prikaže pri signalu.
+const PAUSE_MS = 24 * 3600000;
+const NIGHT_FROM = 0, NIGHT_TO = 6;
+const nightNow = (tm) => { const h = new Date(tm).getHours(); return h >= NIGHT_FROM && h < NIGHT_TO; };
 // 27. 9. 2026: samodejne vstope vodi strežnik (bot.ts). Brskalnik samo prikazuje signale in opozorila.
 const BROWSER_AUTO = false;
 function pausedPair(id, tm) {
-  const t = trades.find((t) => t.id === id && !t.deletedAt && !t.practice && t.closed && tm - (t.exitObserved || t.closed) < PAUSE_MS);
-  return t ? Math.min(5, Math.max(1, Math.ceil((PAUSE_MS - (tm - (t.exitObserved || t.closed))) / 60000))) : 0;
+  const t = trades.find((t) => t.id === id && !t.deletedAt && !t.practice && tm - (t.opened || 0) < PAUSE_MS);
+  return t ? Math.max(1, Math.ceil((PAUSE_MS - (tm - t.opened)) / 60000)) : 0;
 }
 // Pravila za en nov posnetek kovanca c ob času tm: zapiranje odprtih poslov, samodejni vstop, opozorila.
 // 26. 9. 2026: posli z vstopom po Jupitru (t.jup) izstopajo po Jupitrovih cenah na 6 s (applyJupPath). Posnetek
@@ -1141,9 +1145,11 @@ function applyTradeLogic(c, tm) {
   const blocked = s.signal
     ? unreliable(id, tm)
       ? "nezanesljivi podatki: DEX Screener in Jupiter se razhajata"
-      : pauseLeft
-        ? "pavza po izstopu iz tega kovanca, še " + pauseLeft + " min"
-        : entryFilter(c)
+      : nightNow(tm)
+        ? "med 00:00 in 06:00 bot ne vstopa (nočni posli so izgubljali)"
+        : pauseLeft
+          ? "v ta kovanec je bot danes že vstopil, naslednji vstop čez " + (pauseLeft >= 60 ? Math.ceil(pauseLeft / 60) + " h" : pauseLeft + " min")
+          : entryFilter(c)
     : null;
   // 27. 9. 2026: vstop samo na svežem posnetku. Ko se zavihek zbudi (računalnik je spal), preigra zamujene posnetke;
   // izstope odprtih poslov še vedno preigramo, novih vstopov za nazaj pa ne odpiramo.
@@ -3386,6 +3392,16 @@ function renderOpenTrades() {
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
   {
+    id: 16,
+    at: "2026-09-28T16:30:00Z",
+    date: "28. 9. 2026",
+    title: "Bot: en vstop na kovanec na dan, ponoči ne vstopa",
+    short: "<b>Bot vstopa v vsak kovanec največ enkrat na 24 h in med 00:00 in 06:00 ne vstopa.</b> Izstopi tečejo naprej kot prej.",
+    body:
+      "Pregled tedna: 22. do 25. 9. plus (+0,6 do +4,1 % na dan), od 26. 9. minus. Krivec ni bil preklop na Jupiter: senca s starimi pravili je bila v istih dneh še slabša (27. 9. -9,0 %). Obrnil se je trg (delež poslov, ki pridejo do +50 %, je padel z 20 na 6 do 11 %), dve najini spremembi pa sta škodo povečali. Prvič: pavza 5 min je ponovne vstope v isti kovanec samo prestavila v predal 5 do 10 min. Prvi vstopi v kovanec so bili čez teden +1,50 SOL, vsi ponovni vstopi skupaj -1,24 SOL; na dobrih dneh so bili ponovni vstopi približno nič, na slabih glavna luknja. Zato od zdaj en samodejni vstop na kovanec na 24 h. Drugič: 24/7 je dodal noč, blok 00 do 06 je 28. 9. dal 74 poslov in -0,68 SOL, več kot pol dnevne izgube. Zato bot med 00:00 in 06:00 ne vstopa, odprte posle pa vodi naprej. Ročni vstop je še vedno vedno dovoljen. Senca v Laboratoriju (Jupiter + pavza 5 min) teče naprej po starem, da se vidi, koliko sprememba prinese. Ni finančni nasvet, gre za demo.",
+    tags: [["Bot", "ok"], ["Vstopi", ""]],
+  },
+  {
     id: 15,
     at: "2026-09-28T08:15:00Z",
     date: "28. 9. 2026",
@@ -3646,7 +3662,7 @@ function renderProfile() {
     b.setAttribute("aria-checked", on ? "true" : "false");
   }
   $("#rulesSummary").textContent =
-    "Največ 5 odprtih poslov, en na kovanec. Vstop: vzorci v1.0 (Odboj, Višje dno, Preboj/retest) + filter v1.2 (starost 30 do 90 min, v zadnji uri ni v minusu, MC 20K do 300K). Izstop za nove posle: profil " +
+    "Največ 5 odprtih poslov, en vstop na kovanec na 24 h, brez vstopov med 00:00 in 06:00. Vstop: vzorci v1.0 (Odboj, Višje dno, Preboj/retest) + filter v1.2 (starost 30 do 90 min, v zadnji uri ni v minusu, MC 20K do 300K). Izstop za nove posle: profil " +
     p.name +
     ". Odprti posli obdržijo profil, s katerim so bili odprti.";
   const box = $("#profileInfo");
