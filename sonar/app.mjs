@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 51;
+const CLIENT_VERSION = 52;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -1129,7 +1129,9 @@ async function poll() {
   $("#refresh").disabled = true;
   try {
     if (!db) throw Error("brez povezave s profilom");
-    const since = primed ? lastSnapshotT : Date.now() - HISTORY_MIN * 60000;
+    // 28. 9. 2026: po spanju računalnika (ali dolgo skritem zavihku) ne dohitevamo več ur posnetkov po 1000 vrstic,
+    // ampak naložimo samo zadnjo uro, kot ob odprtju. Posle od v51 vodi strežnik, zato vmesni posnetki niso potrebni.
+    const since = primed ? Math.max(lastSnapshotT, Date.now() - HISTORY_MIN * 60000) : Date.now() - HISTORY_MIN * 60000;
     const rows = await fetchRows(since);
     noData = !primed && !rows.length;
     const groups = new Map();
@@ -1193,7 +1195,9 @@ function status() {
   const active = SHADOW_STRATEGIES.filter((k) => !SHADOW_PAUSED[k]).length;
   $("#status").textContent = freshNow
     ? "● ZBIRALEC AKTIVEN · posnetek " + time(last) + " · " + coins.size + " kovancev · senca " + active + " pravil · dan " + day + " od " + SHADOW_MIN_DAYS
-    : "● PREMOR · zadnji posnetek " + (last ? time(last) : "neznan") + " · vstopi in opozorila čakajo na nov posnetek";
+    : busy && last && Date.now() - last > 120000
+      ? "● NALAGAM · zavihek je bil v premoru (zadnji posnetek " + time(last) + "), nalagam sveže posnetke · bot na strežniku je ves čas tekel"
+      : "● PREMOR · zadnji posnetek " + (last ? time(last) : "neznan") + " · čakam na nov posnetek · bot na strežniku teče naprej";
 }
 function navigate(v, m = mode) {
   if (m !== mode) $("#feedback").textContent = "";
@@ -1438,7 +1442,9 @@ window.addEventListener("pagehide", () => {
 // predpomnilniku, sicer bi GitHub Pages do 10 min vračal staro stran). Največ enkrat na različico na zavihek.
 const APP_VERSION = CLIENT_VERSION;
 // Različica je vidna v glavi (DEMO · v49), da se na prvi pogled vidi, ali zavihek teče na zadnji kodi.
-if ($("#appVer")) $("#appVer").textContent = " · v" + APP_VERSION;
+// Prikaz različice kot 5.1, 5.2 ... (interno ostane celo število, 51 = 5.1)
+const verLabel = (v) => (v / 10).toFixed(1);
+if ($("#appVer")) $("#appVer").textContent = " · v" + verLabel(APP_VERSION);
 async function checkVersion() {
   try {
     const r = await fetch("./version.json?t=" + Date.now(), { cache: "no-store" });
@@ -1521,7 +1527,15 @@ document.addEventListener("visibilitychange", () => {
     syncServerTrades();
   }
 });
+// Zbujanje po spanju računalnika: intervali med spanjem ne tečejo, zato ob prvem tiku po premoru takoj poberemo nove podatke.
+let lastBeat = Date.now();
 setInterval(() => {
+  const gap = Date.now() - lastBeat;
+  lastBeat = Date.now();
+  if (gap > 20000) {
+    poll();
+    syncServerTrades();
+  }
   status();
   if (mode === "live") draw();
 }, 5000);
