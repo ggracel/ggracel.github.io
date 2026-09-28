@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>foqs. - Advertising &amp; Performance Consulting</title>
-<meta name="description" content="foqs. - Google Ads, TikTok Ads and websites. Sign in to the foqs. hub for habit, Ura+ and sonar.">
+<meta name="description" content="foqs. - Google Ads, TikTok Ads and websites. Sign in to the foqs. hub for habit, Ura+, sonar and romi.">
 <meta name="theme-color" content="#141112">
 <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png">
@@ -129,6 +129,7 @@ body.reveal[data-view="login"] .view[data-view="hub"]{transform:none;filter:none
 .view.entering .d-mod:nth-child(1){animation-delay:.10s}
 .view.entering .d-mod:nth-child(2){animation-delay:.16s}
 .view.entering .d-mod:nth-child(3){animation-delay:.22s}
+.view.entering .d-mod:nth-child(4){animation-delay:.28s}
 .view.entering .foot{animation:riseIn .34s .3s both}
 .lg-btn.busy{pointer-events:none;opacity:.85}
 
@@ -198,6 +199,28 @@ body.reveal[data-view="login"] .view[data-view="hub"]{transform:none;filter:none
 .sn-foot span{font-family:var(--mono);font-size:10px;border-radius:999px;padding:3px 9px;border:1px solid var(--line2);color:var(--dim)}
 .sn-foot span.up{color:var(--pos);border-color:rgba(90,216,174,.3);background:rgba(90,216,174,.1)}
 
+/* romi: a hand of cards that fans out, the joker lifts */
+.rm-hand{display:flex;justify-content:center;align-items:flex-end;height:82px}
+.rm-c{position:relative;width:42px;height:60px;margin:0 -4px;border-radius:7px;background:linear-gradient(180deg,#2c2627,#211d1e);border:1px solid var(--line2);
+  color:var(--fg);font-family:var(--poppins);font-weight:700;font-size:14px;line-height:1;padding:6px 0 0 7px;text-align:left;
+  box-shadow:0 8px 16px rgba(0,0,0,.45);transform-origin:50% 130%;transition:transform .45s cubic-bezier(.2,.8,.2,1),box-shadow .3s,border-color .3s}
+.rm-c i{display:block;font-style:normal;font-size:12px;margin-top:3px;color:var(--dim)}
+.rm-c.rd,.rm-c.rd i{color:#ef8290}
+.rm-c.rm-j{border-color:rgba(70,190,197,.7)}
+.rm-c:nth-child(1){transform:rotate(-12deg)}
+.rm-c:nth-child(2){transform:rotate(-6deg)}
+.rm-c:nth-child(4){transform:rotate(6deg)}
+.rm-c:nth-child(5){transform:rotate(12deg)}
+.is-live .rm-c:nth-child(1){transform:rotate(-18deg) translateX(-6px)}
+.is-live .rm-c:nth-child(2){transform:rotate(-9deg) translateX(-3px)}
+.is-live .rm-c:nth-child(3){transform:translateY(-12px)}
+.is-live .rm-c:nth-child(4){transform:rotate(9deg) translateX(3px)}
+.is-live .rm-c:nth-child(5){transform:rotate(18deg) translateX(6px)}
+.is-live .rm-c.rm-j{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-dim),0 12px 22px rgba(0,0,0,.5)}
+.rm-foot{display:flex;gap:7px;margin-top:13px;padding-top:12px;border-top:1px solid var(--line);flex-wrap:wrap}
+.rm-foot span{font-family:var(--mono);font-size:10px;border-radius:999px;padding:3px 9px;border:1px solid var(--line2);color:var(--dim)}
+.rm-foot span.up{color:var(--teal);border-color:rgba(70,190,197,.35);background:rgba(70,190,197,.08)}
+
 /* installable badge (habit only) */
 .inst{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;margin-left:10px;
   font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:500;
@@ -243,7 +266,10 @@ body.reveal[data-view="login"] .view[data-view="hub"]{transform:none;filter:none
 .d-eyebrow i{width:6px;height:6px;border-radius:50%;background:var(--pos);animation:blip 2.4s ease-in-out infinite}
 .d-intro h1{font-size:clamp(33px,5.2vw,56px);font-weight:800;margin:18px 0 14px}
 .d-intro p{color:var(--dim);font-size:16.5px;max-width:48ch;margin-inline:auto}
-.d-grid{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:18px;padding-bottom:54px}
+.d-grid{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:18px;padding-bottom:54px}
+/* four modules sit in one row on a wide screen, two by two below that */
+.stage.d .pad{max-width:1320px}
+@media(max-width:1240px){.d-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:900px){.d-grid{grid-template-columns:1fr}}
 .d-mod{position:relative;display:flex;flex-direction:column;background:rgba(26,22,23,.78);border:1px solid var(--line);border-radius:14px;overflow:hidden;backdrop-filter:blur(8px);
   transition:transform .3s cubic-bezier(.2,.8,.2,1),border-color .3s,box-shadow .3s,opacity .3s}
@@ -358,7 +384,7 @@ body.guest .lg-close{display:flex}
       </div>
       <div class="d-intro">
         <span class="d-eyebrow"><i></i>Hub · all apps online</span>
-        <h1>Three apps. One login.</h1>
+        <h1>Four apps. One login.</h1>
         <p>Small tools built for my own work, now all in one place.</p>
       </div>
       <div class="d-grid">
@@ -429,6 +455,32 @@ body.guest .lg-close{display:flex}
             <div class="d-go"><span>Open sonar</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></div>
           </div>
         </a>
+        <a class="d-mod" href="/romi">
+          <span class="b-cor tl"></span><span class="b-cor tr"></span><span class="b-cor bl"></span><span class="b-cor br"></span>
+          <span class="b-scan"></span>
+          <div class="d-head"><span>MOD <b>RMI-04</b></span><span class="b-led"><i></i>rooms open</span></div>
+          <div class="d-body">
+            <h2>foqs.<b>romi</b><i>.</i></h2>
+            <p>Rummy with friends, by our house rules. Open a room, fill the table and play until someone hits 500.</p>
+            <div class="prev">
+              <div class="prev-top"><small>Your hand</small><span class="prev-dot"></span></div>
+              <div class="rm-hand" aria-hidden="true">
+                <span class="rm-c">7<i>&#9824;</i></span>
+                <span class="rm-c">8<i>&#9824;</i></span>
+                <span class="rm-c rd rm-j">2<i>&#9829;</i></span>
+                <span class="rm-c">10<i>&#9824;</i></span>
+                <span class="rm-c rd">K<i>&#9830;</i></span>
+              </div>
+              <div class="rm-foot"><span class="up">2s are jokers</span><span>First to 500</span></div>
+            </div>
+            <div class="b-read">
+              <div><span>Players</span><span>2 to 4 per room</span></div>
+              <div><span>Turn</span><span>60, 120 or 180 s</span></div>
+              <div><span>Plays on</span><span>Desktop browser</span></div>
+            </div>
+            <div class="d-go"><span>Open romi</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></div>
+          </div>
+        </a>
       </div>
       <div class="foot"><span>foqs. <b>Advertising &amp; Performance Consulting</b></span><span>One account for every foqs. app</span></div>
     </div>
@@ -473,13 +525,14 @@ body.guest .lg-close{display:flex}
         <span class="in-only">No account yet? <button type="button" class="linkish" data-mode="register">Create account</button> · <button type="button" class="linkish" id="forgotBtn">Forgot password</button></span>
         <span class="rec-only">Remembered it? <button type="button" class="linkish" data-mode="signin">Sign in</button></span>
       </p>
-      <p class="lg-hint">3 Apps, One Login.</p>
+      <p class="lg-hint">4 Apps, One Login.</p>
     </div>
       <div class="lg-peek" aria-hidden="true">
         <span class="lg-peek-lab">Inside</span>
         <span class="lg-peek-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><b>foqs.habit</b><i>Win the day</i></span>
         <span class="lg-peek-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><b>Ura+</b><i>Hours into money</i></span>
         <span class="lg-peek-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><b>foqs.sonar</b><i>Reads the market</i></span>
+        <span class="lg-peek-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><b>foqs.romi</b><i>Rummy with friends</i></span>
       </div></div></div>
   </div>
 </section>
