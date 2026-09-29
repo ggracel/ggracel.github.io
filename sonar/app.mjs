@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 55;
+const CLIENT_VERSION = 56;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -611,7 +611,7 @@ function fromServer(r) {
     cap: r.cap,
     peak: r.peak,
     halfSold: !!r.half_sold,
-    ...(r.half_sold ? { halfPrice: r.half_price } : {}),
+    ...(r.half_sold ? { halfPrice: r.half_price, halfAt: isoMs(r.half_at) } : {}),
     ruleVersion: r.plan?.cap ? "1.3" : "1.2",
     reason: r.manual ? "Lastna odločitev" + (r.reason ? " · " + r.reason : "") : r.reason,
     automatic: !r.manual,
@@ -897,6 +897,195 @@ function tradeLines(t, c) {
   if (t.plan.cap && Number.isFinite(t.cap)) lines.push({ key: "cap", tag: "CILJ", value: t.cap, color: "#ffd166", dash: "6 3", label: "Cilj +" + Math.round(t.plan.cap * 100) + " % " + mcText(c, t.cap) });
   lines.push({ key: "stop", tag: L.trailing ? "SLED" : "MEJA", value: t.stop, color: L.trailing ? "#ecbf69" : "#ff858e", dash: "2 4", label: (L.trailing ? "Sledilna meja " : "Trda meja ") + mcText(c, t.stop) });
   return lines;
+}
+// 29. 9. 2026: graf odprte pozicije po isti poti, po kateri bot odloča (Jupitrove cene na 6 s), ne po 30 s posnetkih
+// DEX Screenerja, ki lahko od Jupitra odstopajo za 5 do 10 % (GFB: DEX 132K nad ciljem, Jupiter 125K pod njim).
+// Časovna os je prava (čas, ne zaporedna številka posnetka), zato se obe črti poravnata. Sledilna meja je narisana
+// kot stopnice, kot se je res premikala. Označeni so vstop, polovična prodaja, vrh in zadnja cena (utrip).
+const jupHist = new Map(); // token -> [{ t, p }] Jupitrove cene za odprte posle, od 5 min pred vstopom
+async function loadJupHist(open) {
+  const need = open.filter((t) => t.token && !t.closed && !t.interrupted);
+  if (!need.length) return;
+  const tokens = [...new Set(need.map((t) => t.token))];
+  const fromOf = (tok) => {
+    const h = jupHist.get(tok);
+    return h?.length ? h.at(-1).t : Math.min(...need.filter((t) => t.token === tok).map((t) => t.opened)) - 5 * 60000;
+  };
+  const from = Math.min(...tokens.map(fromOf));
+  const rows = await pagedRows(
+    () =>
+      db
+        .from("memecoin_prices")
+        .select("token,t,price")
+        .in("token", tokens)
+        .gt("t", new Date(from).toISOString())
+        .order("t", { ascending: true })
+        .order("token", { ascending: true }),
+    3,
+  );
+  for (const r of rows) {
+    if (!(r.price > 0)) continue;
+    const tm = new Date(r.t).getTime();
+    let h = jupHist.get(r.token);
+    if (!h) jupHist.set(r.token, (h = []));
+    if (!h.length || tm > h.at(-1).t) h.push({ t: tm, p: r.price });
+    if (h.length > 6000) h.splice(0, h.length - 6000);
+  }
+}
+function openChart(t, c, svg, legend) {
+  svg.replaceChildren();
+  if (legend) legend.replaceChildren();
+  const add = (tag, attrs, text, parent = svg) => {
+    const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    if (text !== undefined) el.textContent = text;
+    parent.append(el);
+    return el;
+  };
+  const X0 = 110, X1 = 680, Y0 = 22, Y1 = 186;
+  const tStart = t.opened - 5 * 60000;
+  const jup = (jupHist.get(t.token) || []).filter((v) => v.t >= tStart);
+  const dex = (c?.history || []).filter((v) => v.t >= tStart && Number.isFinite(v.p) && v.p > 0);
+  const nowPrice = c && c.price > 0 ? c.price : null;
+  const nowT = c?.time || Date.now();
+  const useJup = jup.length >= 2;
+  const main = useJup ? jup : dex;
+  if (main.length < 2 && !nowPrice) {
+    add("text", { x: 25, y: 110, fill: "#a7b7ca" }, "Čakam na prve cene po vstopu …");
+    return;
+  }
+  // zadnja točka = ista številka kot ploščica "MC zdaj"
+  const path = main.slice();
+  if (nowPrice && (!path.length || nowT > path.at(-1).t)) path.push({ t: nowT, p: nowPrice });
+  const tEnd = Math.max(nowT, path.at(-1).t, t.opened + 60000);
+  const x = (tm) => X0 + ((Math.min(Math.max(tm, tStart), tEnd) - tStart) / (tEnd - tStart)) * (X1 - X0);
+  const mcOf = (p) => (c && mcAt(c, p) !== null ? mcAt(c, p) : Number.isFinite(t.entryMcap) && t.entry > 0 ? (t.entryMcap / t.entry) * p : null);
+  const lab = (p) => (mcOf(p) !== null ? compact(mcOf(p)) : money(p));
+  // sledilna meja kot stopnice: preigramo pot od vstopa z istimi pravili kot bot
+  const plan = t.plan;
+  const steps = [];
+  let peak = t.entry, half = t.halfSold && !plan?.halfAt ? true : false, stop = plan ? t.entry * (1 - plan.hardStop) : t.stop;
+  if (plan) {
+    for (const v of path) {
+      if (v.t < t.opened) continue;
+      peak = Math.max(peak, v.p);
+      if (plan.halfAt && !half && v.p >= t.entry * (1 + plan.halfAt) - 1e-9) { half = true; stop = Math.max(stop, t.entry); }
+      if ((!plan.halfAt || half) && plan.trail) stop = Math.max(stop, peak * (1 - plan.trail));
+      steps.push({ t: v.t, s: stop, trailing: (!plan.halfAt || half) && !!plan.trail });
+    }
+  }
+  const stopNow = Number.isFinite(t.stop) ? t.stop : stop;
+  const trailingNow = plan ? (!plan.halfAt || t.halfSold) && !!plan.trail : false;
+  // obseg Y
+  const refs = [t.entry, stopNow, plan?.cap && Number.isFinite(t.cap) ? t.cap : null, plan?.halfAt && !t.halfSold ? t.target : null, t.halfSold ? t.halfPrice : null, !plan ? t.target : null].filter((v) => Number.isFinite(v));
+  const vals = [...path.map((v) => v.p), ...dex.map((v) => v.p), ...steps.map((v) => v.s), ...refs];
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const pad = (max - min || max * 0.01) * 0.12, lo = min - pad, hi = max + pad;
+  const y = (v) => Y1 - ((v - lo) / (hi - lo)) * (Y1 - Y0);
+  // mreža in os Y
+  for (let i = 0; i < 4; i++) {
+    const value = lo + ((hi - lo) * i) / 3, yy = y(value);
+    add("line", { x1: X0, x2: X1, y1: yy, y2: yy, stroke: "#2b3547" });
+    add("text", { x: 3, y: yy + 4, fill: "#a7b7ca", "font-size": 11 }, lab(value));
+  }
+  // časovna os: lep korak, da je 4 do 7 oznak
+  const span = tEnd - tStart;
+  const stepMin = [1, 2, 5, 10, 15, 30, 60, 120, 240].find((m) => span / (m * 60000) <= 7) || 480;
+  const first = Math.ceil(tStart / (stepMin * 60000)) * stepMin * 60000;
+  for (let tm = first; tm <= tEnd; tm += stepMin * 60000) {
+    add("line", { x1: x(tm), x2: x(tm), y1: Y0, y2: Y1, stroke: "#2b3547" });
+    add("text", { x: x(tm), y: 220, fill: "#a7b7ca", "font-size": 11, "text-anchor": "middle" }, new Date(tm).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit" }));
+  }
+  // vodoravne ravni (vstop, cilj, pol), oznake desno brez prekrivanja
+  const levels = [{ v: t.entry, color: "#e2e8f0", dash: "", tag: "VSTOP " + lab(t.entry) }];
+  if (!plan) {
+    levels.push({ v: t.target, color: "#62e4b3", dash: "2 4", tag: "CILJ " + lab(t.target) });
+  } else {
+    if (plan.cap && Number.isFinite(t.cap)) levels.push({ v: t.cap, color: "#ffd166", dash: "6 3", tag: "CILJ +" + Math.round(plan.cap * 100) + " % " + lab(t.cap) });
+    if (plan.halfAt && !t.halfSold) levels.push({ v: t.target, color: "#62e4b3", dash: "2 4", tag: "POL +" + Math.round(plan.halfAt * 100) + " % " + lab(t.target) });
+  }
+  if (!steps.length) levels.push({ v: stopNow, color: trailingNow ? "#ecbf69" : "#ff858e", dash: "2 4", tag: (trailingNow ? "SLED " : "MEJA ") + lab(stopNow) });
+  for (const l of levels) add("line", { x1: X0, x2: X1, y1: y(l.v), y2: y(l.v), stroke: l.color, "stroke-width": l.v === t.entry ? 1.6 : 1.2, "stroke-dasharray": l.dash, opacity: 0.9 });
+  // DEX posnetki v ozadju (tanko, sivo), samo če glavna črta ni že DEX
+  if (useJup && dex.length >= 2) add("polyline", { points: dex.map((v) => `${x(v.t)},${y(v.p)}`).join(" "), fill: "none", stroke: "#7f96b5", "stroke-width": 1.2, opacity: 0.55 });
+  // stopnice sledilne meje
+  if (steps.length) {
+    const pts = [];
+    let prev = null;
+    for (const s of steps) {
+      if (prev !== null && s.s !== prev) pts.push(`${x(s.t)},${y(prev)}`);
+      pts.push(`${x(s.t)},${y(s.s)}`);
+      prev = s.s;
+    }
+    pts.push(`${x(tEnd)},${y(prev)}`);
+    const hard = steps.filter((s) => !s.trailing), tr = steps.filter((s) => s.trailing);
+    if (hard.length) add("polyline", { points: [...hard.map((s) => `${x(s.t)},${y(s.s)}`), `${x(tr.length ? tr[0].t : tEnd)},${y(hard.at(-1).s)}`].join(" "), fill: "none", stroke: "#ff858e", "stroke-width": 1.6, "stroke-dasharray": "3 4" });
+    if (tr.length) {
+      const tp = [];
+      let pv = null;
+      for (const s of tr) {
+        if (pv !== null && s.s !== pv) tp.push(`${x(s.t)},${y(pv)}`);
+        tp.push(`${x(s.t)},${y(s.s)}`);
+        pv = s.s;
+      }
+      tp.push(`${x(tEnd)},${y(pv)}`);
+      add("polyline", { points: tp.join(" "), fill: "none", stroke: "#ecbf69", "stroke-width": 1.8 });
+    }
+    levels.push({ v: steps.at(-1).s, color: steps.at(-1).trailing ? "#ecbf69" : "#ff858e", tag: (steps.at(-1).trailing ? "SLED " : "MEJA ") + lab(steps.at(-1).s) });
+  }
+  // glavna črta (Jupiter), strnjena po stolpcih zaslona
+  const cols = new Map();
+  for (const v of path) { const k = Math.round(x(v.t)); cols.set(k, v); }
+  const drawn = [...cols.values()];
+  add("polyline", { points: drawn.map((v) => `${x(v.t)},${y(v.p)}`).join(" "), fill: "none", stroke: "#9bedcf", "stroke-width": 2.6, "stroke-linejoin": "round" });
+  // dogodki
+  const marks = [];
+  marks.push({ x: x(t.opened), y: y(t.entry), color: "#e2e8f0", text: "VSTOPIL" });
+  if (t.halfSold && Number.isFinite(t.halfPrice)) marks.push({ x: x(t.halfAt || t.opened), y: y(t.halfPrice), color: "#62e4b3", text: "POL ✓ " + lab(t.halfPrice) });
+  const after = path.filter((v) => v.t >= t.opened);
+  if (after.length) {
+    const top = after.reduce((a, b) => (b.p > a.p ? b : a));
+    if (top.p > t.entry * 1.02 && !(nowPrice && top.t === nowT)) marks.push({ x: x(top.t), y: y(top.p), color: "#ffd166", text: "VRH " + pct1((top.p / t.entry - 1) * 100) });
+  }
+  for (const m of marks) {
+    add("circle", { cx: m.x, cy: m.y, r: 4.5, fill: m.color, stroke: "#0b1220", "stroke-width": 1.5 });
+    const anchor = m.x > X0 + (X1 - X0) * 0.8 ? "end" : "start";
+    add("text", { x: m.x + (anchor === "end" ? -8 : 8), y: m.y < Y0 + 16 ? m.y + 16 : m.y - 8, fill: m.color, "font-size": 10, "font-weight": 700, "text-anchor": anchor }, m.text);
+  }
+  // zadnja cena: utrip + ista številka kot ploščica
+  const last = path.at(-1);
+  const pulse = add("circle", { cx: x(last.t), cy: y(last.p), r: 5, fill: "#9bedcf", opacity: 0.5 });
+  add("animate", { attributeName: "r", values: "5;11;5", dur: "1.8s", repeatCount: "indefinite" }, undefined, pulse);
+  add("animate", { attributeName: "opacity", values: "0.5;0;0.5", dur: "1.8s", repeatCount: "indefinite" }, undefined, pulse);
+  add("circle", { cx: x(last.t), cy: y(last.p), r: 4, fill: "#9bedcf", stroke: "#0b1220", "stroke-width": 1.5 });
+  levels.push({ v: last.p, color: "#9bedcf", tag: "ZDAJ " + lab(last.p), bold: true });
+  // oznake ravni desno, razmaknjene, da se ne prekrivajo
+  const tags = levels.map((l) => ({ ...l, ty: y(l.v) + 4 })).sort((a, b) => a.ty - b.ty);
+  for (let i = 1; i < tags.length; i++) if (tags[i].ty - tags[i - 1].ty < 12) tags[i].ty = tags[i - 1].ty + 12;
+  for (let i = tags.length - 2; i >= 0; i--) if (tags[i + 1].ty - tags[i].ty < 12) tags[i].ty = tags[i + 1].ty - 12;
+  for (const g of tags) {
+    const w = g.tag.length * 5.6 + 8;
+    add("rect", { x: X1 + 2, y: g.ty - 9, width: w, height: 12, rx: 3, fill: "#0b1220", opacity: 0.85 });
+    add("text", { x: X1 + 6, y: g.ty, fill: g.color, "font-size": 9.5, "font-weight": 700 }, g.tag);
+  }
+  svg.setAttribute("viewBox", "0 0 " + (X1 + 100) + " 230");
+  if (legend) {
+    const items = [
+      { color: "#9bedcf", dash: "", label: useJup ? "Cena po Jupitru (6 s), po njej bot odloča" : "Cena iz posnetkov DEX Screenerja (Jupiter brez cene)" },
+      ...(useJup && dex.length >= 2 ? [{ color: "#7f96b5", dash: "", label: "Posnetki DEX Screenerja (30 s), samo za primerjavo" }] : []),
+      { color: "#e2e8f0", dash: "", label: "Vstop " + lab(t.entry) },
+      ...(steps.length ? [{ color: "#ff858e", dash: "3 4", label: "Trda meja" }, ...(plan?.trail ? [{ color: "#ecbf69", dash: "", label: "Sledilna meja (stopnice sledijo vrhu)" }] : [])] : []),
+      ...levels.filter((l) => l.tag.startsWith("CILJ") || l.tag.startsWith("POL")).map((l) => ({ color: l.color, dash: l.dash, label: l.tag })),
+    ];
+    for (const it of items) {
+      const span = document.createElement("span");
+      const sw = document.createElement("i");
+      sw.style.borderTopColor = it.color;
+      sw.style.borderTopStyle = it.dash ? "dashed" : "solid";
+      span.append(sw, document.createTextNode(it.label));
+      legend.append(span);
+    }
+  }
 }
 // "Kaj bot čaka": ena jasna poved za laika, nad grafom.
 function renderEntry(c, target) {
@@ -1613,6 +1802,7 @@ async function fetchLive() {
       );
       if (applyJupPath(jupOpen, rows)) save();
     }
+    try { await loadJupHist(open); } catch { /* graf brez Jupitrove poti pokaže posnetke */ }
     const tokens = [...new Set(open.map((t) => t.token))];
     const { data, error } = await db.from("memecoin_prices_now").select("token,price,t").in("token", tokens);
     if (!error && data) for (const r of data) if (r.price > 0) livePrices.set(r.token, { price: r.price, t: new Date(r.t).getTime() });
@@ -3333,7 +3523,7 @@ function renderOpenTrades() {
     card.append(svg);
     const legend = el("div", "legend");
     card.append(legend);
-    if (c) chart(c, svg, legend, { from: t.opened, simple: true });
+    if (c || (jupHist.get(t.token) || []).length >= 2) openChart(t, c, svg, legend);
     else {
       const ns = document.createElementNS("http://www.w3.org/2000/svg", "text");
       ns.setAttribute("x", 25);
@@ -3391,6 +3581,16 @@ function renderOpenTrades() {
 // Po tem ostane vnos samo se v dnevniku sprememb v zavihku Kako deluje.
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
+  {
+    id: 17,
+    at: "2026-09-29T08:30:00Z",
+    date: "29. 9. 2026",
+    title: "Nov graf odprte pozicije",
+    short: "<b>Graf odprte pozicije zdaj riše Jupitrove cene na 6 s</b>, po katerih bot res odloča, in sledilno mejo kot stopnice.",
+    body:
+      "Do zdaj je graf risal 30 s posnetke DEX Screenerja, bot pa izstopa po Jupitrovih cenah na 6 s. Ta dva vira se lahko razideta za 5 do 10 % (GFB 29. 9.: DEX 132K nad ciljem, Jupiter 125K pod njim), zato je graf včasih kazal ceno na cilju, bot pa ni prodal. Nov graf: glavna črta so Jupitrove cene (posnetki DEX ostanejo kot tanka siva črta za primerjavo), prava časovna os z oznakami, sledilna meja kot stopnice, kot se je res premikala, označeni vstop, polovična prodaja in vrh, zadnja cena utripa in je ista številka kot ploščica MC zdaj, napisi desno se ne prekrivajo več. Ni finančni nasvet, gre za demo.",
+    tags: [["Pozicije", "ok"]],
+  },
   {
     id: 16,
     at: "2026-09-28T16:30:00Z",
