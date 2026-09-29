@@ -101,9 +101,9 @@ main>section:not([hidden]){animation:secIn .25s ease both}
   #status{font-size:11.5px;padding:9px 12px;margin:10px 0 12px;line-height:1.35}
   .newsBar{padding:10px 12px;font-size:12.5px;gap:8px}.newsBar .nbActions{flex-basis:100%;display:flex;gap:8px}
   .pageheading{gap:8px}.pageheading h2{font-size:20px}h2{font-size:19px}
-  .miniKpis{grid-template-columns:1.3fr 1fr 1fr;gap:8px;margin:0 0 14px}.mk.mkResult{grid-column:auto}
+  .miniKpis{grid-template-columns:1fr 1fr;gap:8px;margin:0 0 14px}.mk.mkResult{grid-column:1/-1;display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px}.mk.mkResult>small{flex-basis:100%}.mk.mkResult>strong{font-size:26px}.mk.mkResult p{margin:0}
   #watching>article>h2+p.muted,#dashboard .row>p.muted,#watchEmpty,#watchStatus{display:none}#watching>article>h2{font-size:18px;margin-bottom:8px}
-  .mk>strong{font-size:17px}.mk>small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mk p{font-size:10px;line-height:1.3}
+  .mk>strong{font-size:20px}.mk>small{white-space:normal;line-height:1.25}.mk p{font-size:11px;line-height:1.3}
   #boardFilter{font-size:13px;padding:8px 10px}#watching label{font-size:13px}
   .kpi>strong{font-size:26px;white-space:nowrap}.kpi p{font-size:12px}.dashUsd{font-size:12px}.mk{padding:10px 11px 11px;border-radius:12px}.mk>small{font-size:9.5px;letter-spacing:.06em}.mk>strong{font-size:19px;letter-spacing:-.3px;white-space:nowrap}.mk p{font-size:10.5px;margin:2px 0 0}
   .miniHead small{font-size:10px}.miniLink{font-size:12px;padding:6px 8px}
@@ -126,7 +126,12 @@ main>section:not([hidden]){animation:secIn .25s ease both}
   article{padding:14px;border-radius:12px}
   table{min-width:560px;font-size:12.5px}td,th{padding:9px 6px}
   .cmpTable td,.cmpTable th{padding:9px 5px;font-size:12.5px}
-  #cmpBankr .kpis,#cmpSpot .kpis{grid-template-columns:1fr 1fr}
+  #cmpBankr .kpis,#cmpSpot .kpis{grid-template-columns:1fr}#cmpBankr .kpi,#cmpSpot .kpi{padding:12px 14px}#cmpBankr .kpi>strong,#cmpSpot .kpi>strong{font-size:22px}
+  #comparison>p.muted{display:none}#comparison .pageheading label{width:100%;display:flex;align-items:center;gap:8px}#comparison .pageheading select{flex:1}
+  #comparison .badge,#dashboard .badge{font-size:11px;padding:5px 8px}
+  #journal .row{flex-wrap:wrap}#journal p{font-size:13px}
+  #market .metrics strong{font-size:16px}#market .tools{flex-wrap:wrap}
+  .kpi{padding:14px 16px}.kpi>strong{font-size:24px}.netRow{flex-wrap:wrap;gap:6px}.pnlPill{font-size:12px}
   footer{font-size:11.5px;padding-bottom:8px}
   .botPop{bottom:calc(76px + env(safe-area-inset-bottom))}
   .mtabs{display:flex!important;position:fixed!important;top:auto!important;margin:0!important;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));height:64px;background:rgba(15,23,37,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid #2a3d58;border-radius:22px;z-index:50;justify-content:space-around;align-items:center;padding:0 4px;box-shadow:0 14px 34px #0009}
@@ -156,7 +161,7 @@ let allowed=false;
 try{const {data,error}=await sb.rpc('has_app_access',{p_app:'sonar'});if(error)throw error;allowed=!!data;}
 catch(e){started=false;gate.hidden=false;say('Preverjanje dostopa ni uspelo. Poskusi znova cez trenutek.','err');return;}
 if(!allowed){await window.memecoinsDenied();return;}
-gate.hidden=true;document.getElementById('logout').hidden=false;const {data:{user}}=await sb.auth.getUser();showUser(user);await import('./app.mjs?v=58');}
+gate.hidden=true;document.getElementById('logout').hidden=false;const {data:{user}}=await sb.auth.getUser();showUser(user);await import('./app.mjs?v=59');}
 let mode='login';
 function setMode(m){mode=m;document.getElementById('nameField').hidden=m!=='signup';document.getElementById('loginBtn').textContent=m==='signup'?'Ustvari račun':'Prijava';document.getElementById('signupBtn').textContent=m==='signup'?'Že imaš račun? Prijava':'Nimaš računa? Registracija';document.getElementById('loginPass').autocomplete=m==='signup'?'new-password':'current-password';say(m==='signup'?'Vpiši email, geslo (vsaj 6 znakov) in ime, potem klikni Ustvari račun.':'');if(m==='signup')document.getElementById('signupName').focus();}
 const pop=document.getElementById('namePop');

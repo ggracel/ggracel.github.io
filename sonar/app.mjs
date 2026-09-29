@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 58;
+const CLIENT_VERSION = 59;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
