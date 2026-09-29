@@ -102,7 +102,10 @@ main>section:not([hidden]){animation:secIn .25s ease both}
   .newsBar{padding:10px 12px;font-size:12.5px;gap:8px}.newsBar .nbActions{flex-basis:100%;display:flex;gap:8px}
   .pageheading{gap:8px}.pageheading h2{font-size:20px}h2{font-size:19px}
   .miniKpis{grid-template-columns:1.3fr 1fr 1fr;gap:8px;margin:0 0 14px}.mk.mkResult{grid-column:auto}
-  #watching>article>h2+p.muted,#dashboard .row>p.muted{display:none}#watching>article>h2{font-size:18px;margin-bottom:8px}.mk{padding:10px 11px 11px;border-radius:12px}.mk>small{font-size:9.5px;letter-spacing:.06em}.mk>strong{font-size:19px;letter-spacing:-.3px;white-space:nowrap}.mk p{font-size:10.5px;margin:2px 0 0}
+  #watching>article>h2+p.muted,#dashboard .row>p.muted,#watchEmpty,#watchStatus{display:none}#watching>article>h2{font-size:18px;margin-bottom:8px}
+  .mk>strong{font-size:17px}.mk>small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mk p{font-size:10px;line-height:1.3}
+  #boardFilter{font-size:13px;padding:8px 10px}#watching label{font-size:13px}
+  .kpi>strong{font-size:26px;white-space:nowrap}.kpi p{font-size:12px}.dashUsd{font-size:12px}.mk{padding:10px 11px 11px;border-radius:12px}.mk>small{font-size:9.5px;letter-spacing:.06em}.mk>strong{font-size:19px;letter-spacing:-.3px;white-space:nowrap}.mk p{font-size:10.5px;margin:2px 0 0}
   .miniHead small{font-size:10px}.miniLink{font-size:12px;padding:6px 8px}
   .ocRowHead{margin:14px 0 2px;gap:10px}.ocRowHead h3{font-size:18px}.ocRowNote{display:none}.countBadge{min-width:28px;height:28px;font-size:14px}.eyebrow{font-size:10px}
   .openGrid{gap:12px;margin:10px 0 18px}
@@ -153,7 +156,7 @@ let allowed=false;
 try{const {data,error}=await sb.rpc('has_app_access',{p_app:'sonar'});if(error)throw error;allowed=!!data;}
 catch(e){started=false;gate.hidden=false;say('Preverjanje dostopa ni uspelo. Poskusi znova cez trenutek.','err');return;}
 if(!allowed){await window.memecoinsDenied();return;}
-gate.hidden=true;document.getElementById('logout').hidden=false;const {data:{user}}=await sb.auth.getUser();showUser(user);await import('./app.mjs?v=57');}
+gate.hidden=true;document.getElementById('logout').hidden=false;const {data:{user}}=await sb.auth.getUser();showUser(user);await import('./app.mjs?v=58');}
 let mode='login';
 function setMode(m){mode=m;document.getElementById('nameField').hidden=m!=='signup';document.getElementById('loginBtn').textContent=m==='signup'?'Ustvari račun':'Prijava';document.getElementById('signupBtn').textContent=m==='signup'?'Že imaš račun? Prijava':'Nimaš računa? Registracija';document.getElementById('loginPass').autocomplete=m==='signup'?'new-password':'current-password';say(m==='signup'?'Vpiši email, geslo (vsaj 6 znakov) in ime, potem klikni Ustvari račun.':'');if(m==='signup')document.getElementById('signupName').focus();}
 const pop=document.getElementById('namePop');

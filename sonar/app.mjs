@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 57;
+const CLIENT_VERSION = 58;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -2443,9 +2443,10 @@ function miniDash() {
   const o = overview(trades, { period: "today", quality: "all", rate, prices });
   const usd = (x) =>
     (x > 0 ? "+" : "") + new Intl.NumberFormat("sl-SI", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(x);
-  $("#mkNet").textContent = signed(o.net) + " SOL";
+  const mob = window.innerWidth < 700;
+  $("#mkNet").textContent = (mob ? sol4(o.net).replace(" SOL", "") : signed(o.net)) + " SOL";
   $("#mkNet").className = tone(o.net);
-  $("#mkUsd").textContent = "≈ " + usd(o.usd) + " · 1 SOL = " + usd(rate).replace("+", "");
+  $("#mkUsd").textContent = "≈ " + usd(o.usd) + (mob ? "" : " · 1 SOL = " + usd(rate).replace("+", ""));
   $("#mkWin").textContent = o.success === null ? "-" : (o.success * 100).toLocaleString("sl-SI", { maximumFractionDigits: 1 }) + " %";
   $("#mkWinNote").textContent = o.closed.length ? o.wins + " od " + o.closed.length : "še ni zaključkov";
   $("#mkWinFill").style.width = (o.success === null ? 0 : o.success * 100) + "%";
@@ -2467,7 +2468,7 @@ function dashboard() {
     ? "Nobenega dogodka izgube podatkov. Vsi posli imajo znan izid."
     : plural(o.excluded, "dogodek izgube podatkov je ločen", "dogodka izgube podatkov sta ločena", "dogodki izgube podatkov so ločeni", "dogodkov izgube podatkov je ločenih") +
       " od poslov in rezultatov, ker izida ne poznamo. Običajne izgube ostajajo vključene.";
-  $("#dashNet").textContent = signed(o.net) + " SOL";
+  $("#dashNet").textContent = (window.innerWidth < 700 ? sol4(o.net).replace(" SOL", "") : signed(o.net)) + " SOL";
   $("#dashNet").className = tone(o.net);
   $("#dashNet").setAttribute(
     "aria-label",
