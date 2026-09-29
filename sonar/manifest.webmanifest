@@ -1,0 +1,17 @@
+{
+  "name": "foqs.sonar",
+  "short_name": "Sonar",
+  "description": "Demo bot za Solana memecoine. Pozicije, bilanca, dnevnik in laboratorij na telefonu.",
+  "start_url": "/sonar/",
+  "scope": "/sonar/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0c121b",
+  "theme_color": "#0c121b",
+  "lang": "sl",
+  "icons": [
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/favicon.png", "sizes": "192x192", "type": "image/png" }
+  ]
+}

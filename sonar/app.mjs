@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 56;
+const CLIENT_VERSION = 57;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -942,6 +942,8 @@ function openChart(t, c, svg, legend) {
     parent.append(el);
     return el;
   };
+  // na ozkem zaslonu (telefon) večje pisave, da so berljive
+  const F = window.innerWidth < 700 ? 1.7 : 1;
   const X0 = 110, X1 = 680, Y0 = 22, Y1 = 186;
   const tStart = t.opened - 5 * 60000;
   const jup = (jupHist.get(t.token) || []).filter((v) => v.t >= tStart);
@@ -986,7 +988,7 @@ function openChart(t, c, svg, legend) {
   for (let i = 0; i < 4; i++) {
     const value = lo + ((hi - lo) * i) / 3, yy = y(value);
     add("line", { x1: X0, x2: X1, y1: yy, y2: yy, stroke: "#2b3547" });
-    add("text", { x: 3, y: yy + 4, fill: "#a7b7ca", "font-size": 11 }, lab(value));
+    add("text", { x: 3, y: yy + 4, fill: "#a7b7ca", "font-size": 11 * F }, lab(value));
   }
   // časovna os: lep korak, da je 4 do 7 oznak
   const span = tEnd - tStart;
@@ -994,7 +996,7 @@ function openChart(t, c, svg, legend) {
   const first = Math.ceil(tStart / (stepMin * 60000)) * stepMin * 60000;
   for (let tm = first; tm <= tEnd; tm += stepMin * 60000) {
     add("line", { x1: x(tm), x2: x(tm), y1: Y0, y2: Y1, stroke: "#2b3547" });
-    add("text", { x: x(tm), y: 220, fill: "#a7b7ca", "font-size": 11, "text-anchor": "middle" }, new Date(tm).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit" }));
+    add("text", { x: x(tm), y: 220, fill: "#a7b7ca", "font-size": 11 * F, "text-anchor": "middle" }, new Date(tm).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit" }));
   }
   // vodoravne ravni (vstop, cilj, pol), oznake desno brez prekrivanja
   const levels = [{ v: t.entry, color: "#e2e8f0", dash: "", tag: "VSTOP " + lab(t.entry) }];
@@ -1050,7 +1052,7 @@ function openChart(t, c, svg, legend) {
   for (const m of marks) {
     add("circle", { cx: m.x, cy: m.y, r: 4.5, fill: m.color, stroke: "#0b1220", "stroke-width": 1.5 });
     const anchor = m.x > X0 + (X1 - X0) * 0.8 ? "end" : "start";
-    add("text", { x: m.x + (anchor === "end" ? -8 : 8), y: m.y < Y0 + 16 ? m.y + 16 : m.y - 8, fill: m.color, "font-size": 10, "font-weight": 700, "text-anchor": anchor }, m.text);
+    add("text", { x: m.x + (anchor === "end" ? -8 : 8), y: m.y < Y0 + 16 ? m.y + 16 : m.y - 8, fill: m.color, "font-size": 10 * F, "font-weight": 700, "text-anchor": anchor }, m.text);
   }
   // zadnja cena: utrip + ista številka kot ploščica
   const last = path.at(-1);
@@ -1061,14 +1063,14 @@ function openChart(t, c, svg, legend) {
   levels.push({ v: last.p, color: "#9bedcf", tag: "ZDAJ " + lab(last.p), bold: true });
   // oznake ravni desno, razmaknjene, da se ne prekrivajo
   const tags = levels.map((l) => ({ ...l, ty: y(l.v) + 4 })).sort((a, b) => a.ty - b.ty);
-  for (let i = 1; i < tags.length; i++) if (tags[i].ty - tags[i - 1].ty < 12) tags[i].ty = tags[i - 1].ty + 12;
-  for (let i = tags.length - 2; i >= 0; i--) if (tags[i + 1].ty - tags[i].ty < 12) tags[i].ty = tags[i + 1].ty - 12;
+  for (let i = 1; i < tags.length; i++) if (tags[i].ty - tags[i - 1].ty < 12 * F) tags[i].ty = tags[i - 1].ty + 12 * F;
+  for (let i = tags.length - 2; i >= 0; i--) if (tags[i + 1].ty - tags[i].ty < 12 * F) tags[i].ty = tags[i + 1].ty - 12 * F;
   for (const g of tags) {
-    const w = g.tag.length * 5.6 + 8;
-    add("rect", { x: X1 + 2, y: g.ty - 9, width: w, height: 12, rx: 3, fill: "#0b1220", opacity: 0.85 });
-    add("text", { x: X1 + 6, y: g.ty, fill: g.color, "font-size": 9.5, "font-weight": 700 }, g.tag);
+    const w = g.tag.length * 5.6 * F + 8;
+    add("rect", { x: X1 + 2, y: g.ty - 9 * F, width: w, height: 12 * F, rx: 3, fill: "#0b1220", opacity: 0.85 });
+    add("text", { x: X1 + 6, y: g.ty, fill: g.color, "font-size": 9.5 * F, "font-weight": 700 }, g.tag);
   }
-  svg.setAttribute("viewBox", "0 0 " + (X1 + 100) + " 230");
+  svg.setAttribute("viewBox", "0 0 " + (X1 + Math.round(100 * F)) + " 230");
   if (legend) {
     const items = [
       { color: "#9bedcf", dash: "", label: useJup ? "Cena po Jupitru (6 s), po njej bot odloča" : "Cena iz posnetkov DEX Screenerja (Jupiter brez cene)" },
@@ -1523,7 +1525,64 @@ function navigate(v, m = mode) {
   status();
   draw();
   renderExportReminder();
+  syncMobileTabs();
 }
+// 29. 9. 2026: mobilna vrstica z zavihki (PWA). Vidna samo pod 700 px (CSS .mtabs). Klik kliče iste gumbe kot zgornji nav.
+const MTABS = [
+  { id: "watch", label: "Pozicije", icon: "M3 17l5-6 4 4 5-8 4 5" },
+  { id: "overview", label: "Bilanca", icon: "M3 4h18v16H3z M7 14l3-3 3 2 4-5" },
+  { id: "history", label: "Dnevnik", icon: "M5 4h14v16H5z M9 9h6 M9 13h6" },
+  { id: "compare", label: "Lab", icon: "M9 3v6l-5 9a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-9V3" },
+  { id: "more", label: "Več", icon: "M5 12h.01 M12 12h.01 M19 12h.01" },
+];
+let mtabsEl = null, mmoreEl = null;
+function buildMobileTabs() {
+  if (mtabsEl) return;
+  mtabsEl = document.createElement("nav");
+  mtabsEl.className = "mtabs";
+  mtabsEl.setAttribute("aria-label", "Zavihki");
+  for (const t of MTABS) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "mtab";
+    b.dataset.id = t.id;
+    b.innerHTML = '<i class="ind"></i><svg viewBox="0 0 24 24"><path d="' + t.icon + '"/></svg>' + t.label + (t.id === "watch" ? '<span class="mbadge" hidden></span>' : "");
+    b.onclick = () => {
+      if (t.id === "more") return toggleMore();
+      closeMore();
+      $("#" + t.id).click();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+    mtabsEl.append(b);
+  }
+  document.body.append(mtabsEl);
+  document.addEventListener("click", (e) => { if (mmoreEl && !mmoreEl.contains(e.target) && !e.target.closest?.(".mtab")) closeMore(); });
+}
+function toggleMore() {
+  if (mmoreEl) return closeMore();
+  mmoreEl = document.createElement("div");
+  mmoreEl.className = "mmore";
+  const items = [["Radar", () => $("#live").click()], ["Kako deluje", () => $("#about").click()], ["Nastavitve bota", () => $("#botPill").click()], ["Odjava", () => $("#logout").click()]];
+  for (const [label, fn] of items) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = label;
+    b.onclick = () => { closeMore(); fn(); window.scrollTo({ top: 0, behavior: "smooth" }); };
+    mmoreEl.append(b);
+  }
+  document.body.append(mmoreEl);
+}
+function closeMore() { if (mmoreEl) { mmoreEl.remove(); mmoreEl = null; } }
+function syncMobileTabs() {
+  if (!mtabsEl) return;
+  const cur = view === "dashboard" ? "overview" : view === "watching" ? "watch" : view === "journal" ? "history" : view === "comparison" ? "compare" : view === "info" ? "more" : view === "market" ? "more" : "";
+  for (const b of mtabsEl.querySelectorAll(".mtab")) b.classList.toggle("on", b.dataset.id === cur);
+  const n = trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && !t.practice).length;
+  const badge = mtabsEl.querySelector(".mbadge");
+  if (badge) { badge.textContent = n; badge.hidden = !n; }
+}
+buildMobileTabs();
+syncMobileTabs();
 $("#live").onclick = () => navigate("market", "live");
 $("#history").onclick = () => navigate("journal");
 $("#about").onclick = () => navigate("info");
@@ -3373,6 +3432,7 @@ function manualClose(t, feedbackEl) {
   draw();
 }
 function renderOpenTrades() {
+  syncMobileTabs();
   const row = $("#openRow"),
     host = $("#openCards");
   if (!row || !host) return;
@@ -3405,6 +3465,7 @@ function renderOpenTrades() {
       minutes = Math.max(0, Math.round((Date.now() - t.opened) / 60000)),
       dur = minutes < 60 ? minutes + " min" : Math.floor(minutes / 60) + " h " + (minutes % 60) + " min";
     const card = el("article", "openCard " + (pnl === null ? "flat" : pnl >= 0 ? "up" : "down"));
+    card.append(el("div", "ocGlow"));
     // glava: ime + oznake levo, rezultat desno
     const head = el("div", "ocHead");
     const name = el("div", "ocName");
@@ -3581,6 +3642,16 @@ function renderOpenTrades() {
 // Po tem ostane vnos samo se v dnevniku sprememb v zavihku Kako deluje.
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
+  {
+    id: 18,
+    at: "2026-09-29T11:00:00Z",
+    date: "29. 9. 2026",
+    title: "Sonar na telefonu",
+    short: "<b>Sonar deluje kot aplikacija na telefonu.</b> Odpri foqs.si/sonar v Chromu na Androidu in izberi \"Dodaj na začetni zaslon\".",
+    body:
+      "Pod 700 px širine ima Sonar novo postavitev: spodnji zavihki (Pozicije, Bilanca, Dnevnik, Lab, Več), kompaktne kartice odprtih pozicij z odsevom po rezultatu in grafom po Jupitru, tabele z vodoravnim drsenjem. Radar, Kako deluje, nastavitve bota in odjava so pod Več. Namestitev: Chrome na Androidu, meni s tremi pikami, Dodaj na začetni zaslon (ali Namesti aplikacijo). Isti podatki in isti račun kot na računalniku, stran se osvežuje sama. Ni finančni nasvet, gre za demo.",
+    tags: [["Mobilno", "ok"]],
+  },
   {
     id: 17,
     at: "2026-09-29T08:30:00Z",
