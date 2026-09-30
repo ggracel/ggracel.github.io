@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 59;
+const CLIENT_VERSION = 60;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -16,11 +16,11 @@ import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, ent
 // Konstante senčnega testa so tu zgoraj, ker jih berejo funkcije, ki se kličejo že ob nalaganju modula (TDZ).
 // Primerjava: senčni posli, ki jih strežnik (edge funkcija collect, datoteka shadow.ts) piše v tabelo memecoin_shadow_trades.
 // Brskalnik jih samo bere in sešteje. Pravila so v strežniku zamrznjena; tu se nič ne odloča.
-const SHADOW_STRATEGIES = ["bankr-filter", "bankr-filter-sled30", "bankr-vsi", "v1.2-cilj50-jup-p5", "v1.2-cilj50-jup-p10", "v1.2-cilj50-p5", "v1.2-cilj30-jup", "v1.2-cilj50-jup", "v1.0", "v1.0-cisto", "v1.0-jup", "v1.2-filter", "v1.2-cilj10", "v1.2-cilj50", "v1.2-cilj70", "v1.2-cilj100", "v1.2-sled7", "v1.2-srednje", "v2.2-dip", "v3-mirno", "v3-kontrola", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj", "v2.2-dip-siroko"];
+const SHADOW_STRATEGIES = ["v1.2-cilj50-jup-bot", "bankr-filter", "bankr-filter-sled30", "bankr-vsi", "v1.2-cilj50-jup-p5", "v1.2-cilj50-jup-p10", "v1.2-cilj50-p5", "v1.2-cilj30-jup", "v1.2-cilj50-jup", "v1.0", "v1.0-cisto", "v1.0-jup", "v1.2-filter", "v1.2-cilj10", "v1.2-cilj50", "v1.2-cilj70", "v1.2-cilj100", "v1.2-sled7", "v1.2-srednje", "v2.2-dip", "v3-mirno", "v3-kontrola", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj", "v2.2-dip-siroko"];
 // Ustavljene: ne odpirajo novih poslov, zgodovina in odprti posli ostanejo (glej shadow.ts PAUSED). Ta seznam mora ustrezati shadow.ts.
 const SHADOW_PAUSED = { "v2.0": "20. 9.", "v2.0-brez-holderjev": "19. 9.", "v2.1-preboj": "20. 9.", "v2.2-dip-siroko": "20. 9.", "v1.2-srednje": "20. 9.", "v1.0-cisto": "25. 9." };
-const SHADOW_LABEL = { "bankr-filter": "★ BANKR · Base launchi + filter deployerja", "bankr-filter-sled30": "★ BANKR · filter + sled 30 (pol +100, brez cilja)", "bankr-vsi": "★ BANKR · vsi Base launchi (kontrola)", "v1.2-cilj50-jup-p5": "★ NOVO · tvoj bot od 26. 9. (Jupiter + pavza 5 min)", "v1.2-cilj50-jup-p10": "★ NOVO · Jupiter + pavza 10 min", "v1.2-cilj50-p5": "★ NOVO · DEX 30 s + pavza 5 min", "v1.2-cilj30-jup": "v1.2 Jupiter, cilj +30", "v1.2-cilj50-jup": "v1.2 Jupiter, cilj +50 (kontrola za +30)", "v1.0": "v1.0 +10/-5", "v1.0-cisto": "v1.0 čisto (brez sumljivih posnetkov)", "v1.0-jup": "v1.0 Jupiter (cene na 6 s)", "v1.2-filter": "v1.2 staro Srednje (pol +25, sled 20)", "v1.2-cilj10": "v1.2 cilj +10 / meja -5", "v1.2-cilj50": "v1.2 Srednje + cilj +50 (profil Srednje)", "v1.2-cilj70": "v1.2 Srednje + cilj +70", "v1.2-cilj100": "v1.2 Srednje + cilj +100", "v1.2-sled7": "v1.2 Srednje, sled 7 %", "v1.2-srednje": "v1.2 Srednje brez cilja (pol +20, sled 15)", "v2.2-dip": "v2.2 dip s kupci", "v3-mirno": "v3 mirno", "v3-kontrola": "v3 kontrola (naključni vstop)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj", "v2.2-dip-siroko": "v2.2 dip s kupci, široko" };
-const SHADOW_COLOR = { "bankr-filter": "#ff9f43", "bankr-filter-sled30": "#ffd166", "bankr-vsi": "#c47a2c", "v1.2-cilj50-jup-p5": "#46bec5", "v1.2-cilj50-jup-p10": "#ffd43b", "v1.2-cilj50-p5": "#ff8787", "v1.2-cilj30-jup": "#00e5ff", "v1.2-cilj50-jup": "#8ea2ff", "v1.0": "#9fb0c8", "v1.0-cisto": "#dbe6f5", "v1.0-jup": "#a8ff60", "v1.2-filter": "#f0a6ff", "v1.2-cilj10": "#ffb3c7", "v1.2-cilj50": "#ffd166", "v1.2-cilj70": "#ffa94d", "v1.2-cilj100": "#ff6b6b", "v1.2-sled7": "#b197fc", "v1.2-srednje": "#c98cff", "v2.2-dip": "#46bec5", "v3-mirno": "#74c0fc", "v3-kontrola": "#adb5bd", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff", "v2.2-dip-siroko": "#ff9f7a" };
+const SHADOW_LABEL = { "bankr-filter": "★ BANKR · Base launchi + filter deployerja", "bankr-filter-sled30": "★ BANKR · filter + sled 30 (pol +100, brez cilja)", "bankr-vsi": "★ BANKR · vsi Base launchi (kontrola)", "v1.2-cilj50-jup-bot": "★ TVOJ BOT od 28. 9. (1x na kovanec na 24 h, brez noči)", "v1.2-cilj50-jup-p5": "★ kontrola: stari bot do 28. 9. (brez omejitve na par, 24/7)", "v1.2-cilj50-jup-p10": "★ NOVO · Jupiter + pavza 10 min", "v1.2-cilj50-p5": "★ NOVO · DEX 30 s + pavza 5 min", "v1.2-cilj30-jup": "v1.2 Jupiter, cilj +30", "v1.2-cilj50-jup": "v1.2 Jupiter, cilj +50 (kontrola za +30)", "v1.0": "v1.0 +10/-5", "v1.0-cisto": "v1.0 čisto (brez sumljivih posnetkov)", "v1.0-jup": "v1.0 Jupiter (cene na 6 s)", "v1.2-filter": "v1.2 staro Srednje (pol +25, sled 20)", "v1.2-cilj10": "v1.2 cilj +10 / meja -5", "v1.2-cilj50": "v1.2 Srednje + cilj +50 (profil Srednje)", "v1.2-cilj70": "v1.2 Srednje + cilj +70", "v1.2-cilj100": "v1.2 Srednje + cilj +100", "v1.2-sled7": "v1.2 Srednje, sled 7 %", "v1.2-srednje": "v1.2 Srednje brez cilja (pol +20, sled 15)", "v2.2-dip": "v2.2 dip s kupci", "v3-mirno": "v3 mirno", "v3-kontrola": "v3 kontrola (naključni vstop)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj", "v2.2-dip-siroko": "v2.2 dip s kupci, široko" };
+const SHADOW_COLOR = { "bankr-filter": "#ff9f43", "bankr-filter-sled30": "#ffd166", "bankr-vsi": "#c47a2c", "v1.2-cilj50-jup-bot": "#46bec5", "v1.2-cilj50-jup-p5": "#8ea2ff", "v1.2-cilj50-jup-p10": "#ffd43b", "v1.2-cilj50-p5": "#ff8787", "v1.2-cilj30-jup": "#00e5ff", "v1.2-cilj50-jup": "#8ea2ff", "v1.0": "#9fb0c8", "v1.0-cisto": "#dbe6f5", "v1.0-jup": "#a8ff60", "v1.2-filter": "#f0a6ff", "v1.2-cilj10": "#ffb3c7", "v1.2-cilj50": "#ffd166", "v1.2-cilj70": "#ffa94d", "v1.2-cilj100": "#ff6b6b", "v1.2-sled7": "#b197fc", "v1.2-srednje": "#c98cff", "v2.2-dip": "#46bec5", "v3-mirno": "#74c0fc", "v3-kontrola": "#adb5bd", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff", "v2.2-dip-siroko": "#ff9f7a" };
 // Kaj vsak set pravil gleda za vstop in kako izstopi. Besedilo mora ustrezati shadow.ts; ob spremembi pravil popravi oboje.
 const SHADOW_RULES = {
   "v1.0": {
@@ -194,7 +194,12 @@ SHADOW_RULES["bankr-vsi"] = {
 // 26. 9. 2026: ponovni vstop v isti kovanec v 1 do 3 min po izstopu je izgubljal v vseh virih (senca -7 %, dvojček -11 % na posel).
 // Pavza po izstopu. p5 je natanko tvoj bot od 26. 9. (Srednje, Jupiter na 6 s, 5 min pavze), p10 in DEX-p5 sta primerjavi.
 SHADOW_RULES["v1.2-cilj50-jup-p5"] = {
-  vstop: [...SHADOW_RULES["v1.2-cilj50-jup"].vstop, "Po izstopu iz kovanca 5 min brez ponovnega vstopa vanj."],
+  vstop: [...SHADOW_RULES["v1.2-cilj50-jup"].vstop, "Po izstopu iz kovanca 5 min brez ponovnega vstopa vanj.", "Od 28. 9. je to KONTROLA: tako je bot delal do 28. 9. (brez omejitve na par, tudi ponoči). Razlika do pravila 'tvoj bot' meri samo omejitev na par in noč."],
+  izstop: SHADOW_RULES["v1.2-cilj50-jup"].izstop,
+};
+// 30. 9. 2026: zrcalo bota od 28. 9. (bot.ts v23): kot p5, plus en vstop na kovanec na 24 h in brez vstopov 00 do 06.
+SHADOW_RULES["v1.2-cilj50-jup-bot"] = {
+  vstop: [...SHADOW_RULES["v1.2-cilj50-jup"].vstop, "Po izstopu iz kovanca 5 min brez ponovnega vstopa vanj.", "En vstop na kovanec na 24 h (28. 9.: prvi vstopi +1,50 SOL, ponovni -1,24 SOL čez teden).", "Brez vstopov med 00:00 in 06:00 po Ljubljani (28. 9.: 74 nočnih poslov, -0,68 SOL). Izstopi tečejo ves čas.", "To je natanko tvoj bot od 28. 9. 2026, na 0,07 SOL na posel. Proti kontroli 'stari bot' meri, koliko prineseta omejitev na par in noč."],
   izstop: SHADOW_RULES["v1.2-cilj50-jup"].izstop,
 };
 SHADOW_RULES["v1.2-cilj50-jup-p10"] = {
@@ -3643,6 +3648,16 @@ function renderOpenTrades() {
 // Po tem ostane vnos samo se v dnevniku sprememb v zavihku Kako deluje.
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
+  {
+    id: 19,
+    at: "2026-09-30T08:00:00Z",
+    date: "30. 9. 2026",
+    title: "Laboratorij: senca, ki je natanko tvoj bot",
+    short: "<b>V Laboratoriju je novo pravilo 'tvoj bot od 28. 9.'</b> (1x na kovanec, brez noči). Staro 'Jupiter + 5 min' je zdaj označeno kot kontrola.",
+    body:
+      "Do zdaj je Laboratorij primerjal bota s pravilom, ki nima novih omejitev (29. 9.: bot 42 poslov, senca 133), zato številke niso bile primerljive. Novo pravilo zrcali bota natanko: vstop v1.0 + filter v1.2, Jupiter, pol +20, sled 15, trda -12, cilj +50, pavza 5 min, en vstop na kovanec na 24 h, brez vstopov 00 do 06. Staro pravilo ostane kot kontrola, razlika med njima meri samo omejitev na par in noč. Popravek pri botu: posel, ki je že prodal polovico in potem izgubi podatke, se zapre po zadnji znani ceni namesto da bi bil prekinjen; prej je iz bilance izginila tudi že realizirana polovica (PUMPTOBER 29. 9., popravljeno za nazaj: +0,0456 SOL). Ni finančni nasvet, gre za demo.",
+    tags: [["Laboratorij", "ok"], ["Bot", ""]],
+  },
   {
     id: 18,
     at: "2026-09-29T11:00:00Z",
