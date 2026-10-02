@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 61;
+const CLIENT_VERSION = 62;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -16,7 +16,7 @@ import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, ent
 // Konstante senčnega testa so tu zgoraj, ker jih berejo funkcije, ki se kličejo že ob nalaganju modula (TDZ).
 // Primerjava: senčni posli, ki jih strežnik (edge funkcija collect, datoteka shadow.ts) piše v tabelo memecoin_shadow_trades.
 // Brskalnik jih samo bere in sešteje. Pravila so v strežniku zamrznjena; tu se nič ne odloča.
-const SHADOW_STRATEGIES = ["v1.2-cilj50-jup-bot", "v1.2-cilj50-jup-bot-nakupi", "bankr-filter", "bankr-filter-sled30", "bankr-vsi", "v1.2-cilj50-jup-p5", "v1.2-cilj50-jup-p10", "v1.2-cilj50-p5", "v1.2-cilj30-jup", "v1.2-cilj50-jup", "v1.0", "v1.0-cisto", "v1.0-jup", "v1.2-filter", "v1.2-cilj10", "v1.2-cilj50", "v1.2-cilj70", "v1.2-cilj100", "v1.2-sled7", "v1.2-srednje", "v2.2-dip", "v3-mirno", "v3-kontrola", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj", "v2.2-dip-siroko"];
+const SHADOW_STRATEGIES = ["v1.2-cilj50-jup-bot", "v1.2-cilj50-jup-bot-nakupi", "v1.2-cilj50-jup-p5", "v1.2-cilj50-jup-p10", "v1.2-cilj50-p5", "v1.2-cilj30-jup", "v1.2-cilj50-jup", "v1.0", "v1.0-cisto", "v1.0-jup", "v1.2-filter", "v1.2-cilj10", "v1.2-cilj50", "v1.2-cilj70", "v1.2-cilj100", "v1.2-sled7", "v1.2-srednje", "v2.2-dip", "v3-mirno", "v3-kontrola", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj", "v2.2-dip-siroko"];
 // Ustavljene: ne odpirajo novih poslov, zgodovina in odprti posli ostanejo (glej shadow.ts PAUSED). Ta seznam mora ustrezati shadow.ts.
 const SHADOW_PAUSED = { "v2.0": "20. 9.", "v2.0-brez-holderjev": "19. 9.", "v2.1-preboj": "20. 9.", "v2.2-dip-siroko": "20. 9.", "v1.2-srednje": "20. 9.", "v1.0-cisto": "25. 9." };
 const SHADOW_LABEL = { "bankr-filter": "★ BANKR · Base launchi + filter deployerja", "bankr-filter-sled30": "★ BANKR · filter + sled 30 (pol +100, brez cilja)", "bankr-vsi": "★ BANKR · vsi Base launchi (kontrola)", "v1.2-cilj50-jup-bot": "★ TVOJ BOT od 28. 9. (1x na kovanec na 24 h, brez noči)", "v1.2-cilj50-jup-bot-nakupi": "★ NOVO · tvoj bot + vsaj 25 nakupov v 5 min", "v1.2-cilj50-jup-p5": "★ kontrola: stari bot do 28. 9. (brez omejitve na par, 24/7)", "v1.2-cilj50-jup-p10": "★ NOVO · Jupiter + pavza 10 min", "v1.2-cilj50-p5": "★ NOVO · DEX 30 s + pavza 5 min", "v1.2-cilj30-jup": "v1.2 Jupiter, cilj +30", "v1.2-cilj50-jup": "v1.2 Jupiter, cilj +50 (kontrola za +30)", "v1.0": "v1.0 +10/-5", "v1.0-cisto": "v1.0 čisto (brez sumljivih posnetkov)", "v1.0-jup": "v1.0 Jupiter (cene na 6 s)", "v1.2-filter": "v1.2 staro Srednje (pol +25, sled 20)", "v1.2-cilj10": "v1.2 cilj +10 / meja -5", "v1.2-cilj50": "v1.2 Srednje + cilj +50 (profil Srednje)", "v1.2-cilj70": "v1.2 Srednje + cilj +70", "v1.2-cilj100": "v1.2 Srednje + cilj +100", "v1.2-sled7": "v1.2 Srednje, sled 7 %", "v1.2-srednje": "v1.2 Srednje brez cilja (pol +20, sled 15)", "v2.2-dip": "v2.2 dip s kupci", "v3-mirno": "v3 mirno", "v3-kontrola": "v3 kontrola (naključni vstop)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj", "v2.2-dip-siroko": "v2.2 dip s kupci, široko" };
@@ -3238,8 +3238,7 @@ function renderComparison() {
   rows.replaceChildren();
   renderSpot(rows.closest("article"));
   loadSpot().then(() => renderSpot(rows.closest("article")));
-  renderBankr(rows.closest("article"));
-  loadBankr().then(() => renderBankr(rows.closest("article")));
+  // 2. 10. 2026: Bankr radar ustavljen (vsa tri pravila globoko v minusu), okvir ni več prikazan. Zgodovina ostane v bazi.
   for (const s of SHADOW_STRATEGIES) {
     const st = stats.get(s);
     const tr = document.createElement("tr");
@@ -3653,6 +3652,16 @@ function renderOpenTrades() {
 // Po tem ostane vnos samo se v dnevniku sprememb v zavihku Kako deluje.
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
+  {
+    id: 21,
+    at: "2026-10-02T09:00:00Z",
+    date: "2. 10. 2026",
+    title: "Bankr radar ustavljen",
+    short: "<b>Bankr radar je ustavljen</b> in umaknjen iz Laboratorija. Vsa tri pravila so bila globoko v minusu.",
+    body:
+      "Po štirih dneh: filter deployerja -11,5 % na posel, filter + sled 30 -19,7 % (0 dobitkov od 24), vsi launchi -9,5 %. Večina Bankr launchev nikoli ne dobi kupca, stroški Bankr poola pa so 3,7 % na cel posel. Zbiranje je ugasnjeno, odprti senčni posli so zaprti po zadnji znani ceni, zgodovina ostane v bazi. Ni finančni nasvet, gre za demo.",
+    tags: [["Laboratorij", ""]],
+  },
   {
     id: 20,
     at: "2026-10-02T07:30:00Z",
