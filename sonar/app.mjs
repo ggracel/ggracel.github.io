@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 62;
+const CLIENT_VERSION = 63;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -16,11 +16,11 @@ import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, ent
 // Konstante senčnega testa so tu zgoraj, ker jih berejo funkcije, ki se kličejo že ob nalaganju modula (TDZ).
 // Primerjava: senčni posli, ki jih strežnik (edge funkcija collect, datoteka shadow.ts) piše v tabelo memecoin_shadow_trades.
 // Brskalnik jih samo bere in sešteje. Pravila so v strežniku zamrznjena; tu se nič ne odloča.
-const SHADOW_STRATEGIES = ["v1.2-cilj50-jup-bot", "v1.2-cilj50-jup-bot-nakupi", "v1.2-cilj50-jup-p5", "v1.2-cilj50-jup-p10", "v1.2-cilj50-p5", "v1.2-cilj30-jup", "v1.2-cilj50-jup", "v1.0", "v1.0-cisto", "v1.0-jup", "v1.2-filter", "v1.2-cilj10", "v1.2-cilj50", "v1.2-cilj70", "v1.2-cilj100", "v1.2-sled7", "v1.2-srednje", "v2.2-dip", "v3-mirno", "v3-kontrola", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj", "v2.2-dip-siroko"];
+const SHADOW_STRATEGIES = ["v1.2-cilj50-jup-bot", "v1.2-cilj50-jup-bot-nakupi", "v1.2-cilj10-jup-bot", "v1.2-cilj50-jup-bot-brez-bundlov", "v1.2-cilj50-jup-p5", "v1.2-cilj50-jup-p10", "v1.2-cilj50-p5", "v1.2-cilj30-jup", "v1.2-cilj50-jup", "v1.0", "v1.0-cisto", "v1.0-jup", "v1.2-filter", "v1.2-cilj10", "v1.2-cilj50", "v1.2-cilj70", "v1.2-cilj100", "v1.2-sled7", "v1.2-srednje", "v2.2-dip", "v3-mirno", "v3-kontrola", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj", "v2.2-dip-siroko"];
 // Ustavljene: ne odpirajo novih poslov, zgodovina in odprti posli ostanejo (glej shadow.ts PAUSED). Ta seznam mora ustrezati shadow.ts.
 const SHADOW_PAUSED = { "v2.0": "20. 9.", "v2.0-brez-holderjev": "19. 9.", "v2.1-preboj": "20. 9.", "v2.2-dip-siroko": "20. 9.", "v1.2-srednje": "20. 9.", "v1.0-cisto": "25. 9." };
-const SHADOW_LABEL = { "bankr-filter": "★ BANKR · Base launchi + filter deployerja", "bankr-filter-sled30": "★ BANKR · filter + sled 30 (pol +100, brez cilja)", "bankr-vsi": "★ BANKR · vsi Base launchi (kontrola)", "v1.2-cilj50-jup-bot": "★ TVOJ BOT od 28. 9. (1x na kovanec na 24 h, brez noči)", "v1.2-cilj50-jup-bot-nakupi": "★ NOVO · tvoj bot + vsaj 25 nakupov v 5 min", "v1.2-cilj50-jup-p5": "★ kontrola: stari bot do 28. 9. (brez omejitve na par, 24/7)", "v1.2-cilj50-jup-p10": "★ NOVO · Jupiter + pavza 10 min", "v1.2-cilj50-p5": "★ NOVO · DEX 30 s + pavza 5 min", "v1.2-cilj30-jup": "v1.2 Jupiter, cilj +30", "v1.2-cilj50-jup": "v1.2 Jupiter, cilj +50 (kontrola za +30)", "v1.0": "v1.0 +10/-5", "v1.0-cisto": "v1.0 čisto (brez sumljivih posnetkov)", "v1.0-jup": "v1.0 Jupiter (cene na 6 s)", "v1.2-filter": "v1.2 staro Srednje (pol +25, sled 20)", "v1.2-cilj10": "v1.2 cilj +10 / meja -5", "v1.2-cilj50": "v1.2 Srednje + cilj +50 (profil Srednje)", "v1.2-cilj70": "v1.2 Srednje + cilj +70", "v1.2-cilj100": "v1.2 Srednje + cilj +100", "v1.2-sled7": "v1.2 Srednje, sled 7 %", "v1.2-srednje": "v1.2 Srednje brez cilja (pol +20, sled 15)", "v2.2-dip": "v2.2 dip s kupci", "v3-mirno": "v3 mirno", "v3-kontrola": "v3 kontrola (naključni vstop)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj", "v2.2-dip-siroko": "v2.2 dip s kupci, široko" };
-const SHADOW_COLOR = { "bankr-filter": "#ff9f43", "bankr-filter-sled30": "#ffd166", "bankr-vsi": "#c47a2c", "v1.2-cilj50-jup-bot": "#46bec5", "v1.2-cilj50-jup-bot-nakupi": "#ff6fae", "v1.2-cilj50-jup-p5": "#8ea2ff", "v1.2-cilj50-jup-p10": "#ffd43b", "v1.2-cilj50-p5": "#ff8787", "v1.2-cilj30-jup": "#00e5ff", "v1.2-cilj50-jup": "#8ea2ff", "v1.0": "#9fb0c8", "v1.0-cisto": "#dbe6f5", "v1.0-jup": "#a8ff60", "v1.2-filter": "#f0a6ff", "v1.2-cilj10": "#ffb3c7", "v1.2-cilj50": "#ffd166", "v1.2-cilj70": "#ffa94d", "v1.2-cilj100": "#ff6b6b", "v1.2-sled7": "#b197fc", "v1.2-srednje": "#c98cff", "v2.2-dip": "#46bec5", "v3-mirno": "#74c0fc", "v3-kontrola": "#adb5bd", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff", "v2.2-dip-siroko": "#ff9f7a" };
+const SHADOW_LABEL = { "bankr-filter": "★ BANKR · Base launchi + filter deployerja", "bankr-filter-sled30": "★ BANKR · filter + sled 30 (pol +100, brez cilja)", "bankr-vsi": "★ BANKR · vsi Base launchi (kontrola)", "v1.2-cilj50-jup-bot": "★ TVOJ BOT od 28. 9. (1x na kovanec na 24 h, brez noči)", "v1.2-cilj50-jup-bot-nakupi": "★ NOVO · tvoj bot + vsaj 25 nakupov v 5 min", "v1.2-cilj10-jup-bot": "★ NOVO · tvoj bot s profilom Hitri (+10 / -5)", "v1.2-cilj50-jup-bot-brez-bundlov": "★ NOVO · tvoj bot brez bundlov", "v1.2-cilj50-jup-p5": "★ kontrola: stari bot do 28. 9. (brez omejitve na par, 24/7)", "v1.2-cilj50-jup-p10": "★ NOVO · Jupiter + pavza 10 min", "v1.2-cilj50-p5": "★ NOVO · DEX 30 s + pavza 5 min", "v1.2-cilj30-jup": "v1.2 Jupiter, cilj +30", "v1.2-cilj50-jup": "v1.2 Jupiter, cilj +50 (kontrola za +30)", "v1.0": "v1.0 +10/-5", "v1.0-cisto": "v1.0 čisto (brez sumljivih posnetkov)", "v1.0-jup": "v1.0 Jupiter (cene na 6 s)", "v1.2-filter": "v1.2 staro Srednje (pol +25, sled 20)", "v1.2-cilj10": "v1.2 cilj +10 / meja -5", "v1.2-cilj50": "v1.2 Srednje + cilj +50 (profil Srednje)", "v1.2-cilj70": "v1.2 Srednje + cilj +70", "v1.2-cilj100": "v1.2 Srednje + cilj +100", "v1.2-sled7": "v1.2 Srednje, sled 7 %", "v1.2-srednje": "v1.2 Srednje brez cilja (pol +20, sled 15)", "v2.2-dip": "v2.2 dip s kupci", "v3-mirno": "v3 mirno", "v3-kontrola": "v3 kontrola (naključni vstop)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj", "v2.2-dip-siroko": "v2.2 dip s kupci, široko" };
+const SHADOW_COLOR = { "bankr-filter": "#ff9f43", "bankr-filter-sled30": "#ffd166", "bankr-vsi": "#c47a2c", "v1.2-cilj50-jup-bot": "#46bec5", "v1.2-cilj50-jup-bot-nakupi": "#ff6fae", "v1.2-cilj10-jup-bot": "#c0eb75", "v1.2-cilj50-jup-bot-brez-bundlov": "#e8590c", "v1.2-cilj50-jup-p5": "#8ea2ff", "v1.2-cilj50-jup-p10": "#ffd43b", "v1.2-cilj50-p5": "#ff8787", "v1.2-cilj30-jup": "#00e5ff", "v1.2-cilj50-jup": "#8ea2ff", "v1.0": "#9fb0c8", "v1.0-cisto": "#dbe6f5", "v1.0-jup": "#a8ff60", "v1.2-filter": "#f0a6ff", "v1.2-cilj10": "#ffb3c7", "v1.2-cilj50": "#ffd166", "v1.2-cilj70": "#ffa94d", "v1.2-cilj100": "#ff6b6b", "v1.2-sled7": "#b197fc", "v1.2-srednje": "#c98cff", "v2.2-dip": "#46bec5", "v3-mirno": "#74c0fc", "v3-kontrola": "#adb5bd", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff", "v2.2-dip-siroko": "#ff9f7a" };
 // Kaj vsak set pravil gleda za vstop in kako izstopi. Besedilo mora ustrezati shadow.ts; ob spremembi pravil popravi oboje.
 const SHADOW_RULES = {
   "v1.0": {
@@ -205,6 +205,15 @@ SHADOW_RULES["v1.2-cilj50-jup-bot"] = {
 // 2. 10. 2026: kot tvoj bot, vstop samo pri vsaj 25 nakupih v 5 min. Meri, ali filter preseka rug pulle.
 SHADOW_RULES["v1.2-cilj50-jup-bot-nakupi"] = {
   vstop: [...SHADOW_RULES["v1.2-cilj50-jup-bot"].vstop.slice(0, -1), "Vsaj 25 nakupov v zadnjih 5 min ob vstopu (brez podatka ni vstopa).", "Od 27. 9. so bili med 21 posli z manj kot 25 nakupi 3 rugi pod -50 %, med ostalimi 336 pa 2. Brez teh treh je bil donos obeh skupin enak (-2,1 % proti -2,2 % na posel), zato je to filter rugov, ne donosa, in sloni na treh primerih. Merimo, koliko rugov je med posli, ki jih to pravilo preskoči."],
+  izstop: SHADOW_RULES["v1.2-cilj50-jup-bot"].izstop,
+};
+// 2. 10. 2026 (pregled 14 dni): isti vstop kot bot, izstop profila Hitri; in bot brez kovancev z bundli.
+SHADOW_RULES["v1.2-cilj10-jup-bot"] = {
+  vstop: SHADOW_RULES["v1.2-cilj50-jup-bot"].vstop.slice(0, -1).concat(["Vstop natanko kot tvoj bot, razlika je samo izstop."]),
+  izstop: ["Vse proda pri +10 %, trda meja -5 % (profil Hitri), po Jupitrovih cenah na 6 s.", "V senci je bil +10 / -5 na istih vstopih boljši od profila Srednje 11 od 13 dni (-1,8 % proti -3,5 % na posel). Na tvojih poslih od 29. 9. bi bil rezultat -0,28 SOL namesto -0,55 SOL. Rugov ne ustavi, ker cena mejo preskoči."],
+};
+SHADOW_RULES["v1.2-cilj50-jup-bot-brez-bundlov"] = {
+  vstop: SHADOW_RULES["v1.2-cilj50-jup-bot"].vstop.slice(0, -1).concat(["Ne vstopi, ko preverjanje verige kaže bundle: vsaj 3 od 10 največjih denarnic s skoraj enako količino (razlika pod 1 %), tipična sled enega kupca z več denarnicami. Brez podatka z verige vstopi.", "Od 23. 9. (2.205 vstopov): rugi pri bundle kovancih 2,4 %, pri ostalih 0,7 %, v obeh polovicah obdobja. Odreže okoli tretjino vstopov."]),
   izstop: SHADOW_RULES["v1.2-cilj50-jup-bot"].izstop,
 };
 SHADOW_RULES["v1.2-cilj50-jup-p10"] = {
@@ -3652,6 +3661,16 @@ function renderOpenTrades() {
 // Po tem ostane vnos samo se v dnevniku sprememb v zavihku Kako deluje.
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
+  {
+    id: 22,
+    at: "2026-10-02T10:00:00Z",
+    date: "2. 10. 2026",
+    title: "Laboratorij: tvoj bot s profilom Hitri in brez bundlov",
+    short: "<b>Dve novi senčni pravili:</b> tvoj bot z izstopom +10 / -5 in tvoj bot brez kovancev z bundli. Do 7. 10. samo merjenje.",
+    body:
+      "Pregled 14 dni: od 29. 9. so vso izgubo naredili štirje rugi (-0,71 SOL), brez njih bi bil bot rahlo v plusu. Med poslom se ruga ne da ujeti, ker cena v enem samem skoku pade z okoli 0 na -90 %. Zato dve meritvi. Prva ima isti vstop kot bot in izstop profila Hitri (vse pri +10 %, meja -5 %), ker je bil ta izstop v senci na istih vstopih boljši od Srednjega 11 od 13 dni. Druga je bot, ki ne vstopa v kovance z bundlom (vsaj 3 od 10 največjih denarnic s skoraj enako količino), kjer je bilo rugov 3,4-krat več. Odločitev 7. 10. Ni finančni nasvet, gre za demo.",
+    tags: [["Laboratorij", "ok"]],
+  },
   {
     id: 21,
     at: "2026-10-02T09:00:00Z",
