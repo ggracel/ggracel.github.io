@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 64;
+const CLIENT_VERSION = 65;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -18,7 +18,7 @@ import { pattern, result, overview, netReturnPercent, tradeSize, parseStake, ent
 // Brskalnik jih samo bere in sešteje. Pravila so v strežniku zamrznjena; tu se nič ne odloča.
 const SHADOW_STRATEGIES = ["v1.2-cilj50-jup-bot", "v1.2-cilj50-jup-bot-nakupi", "v1.2-cilj10-jup-bot", "v1.2-cilj50-jup-bot-brez-bundlov", "v1.2-cilj50-jup-p5", "v1.2-cilj50-jup-p10", "v1.2-cilj50-p5", "v1.2-cilj30-jup", "v1.2-cilj50-jup", "v1.0", "v1.0-cisto", "v1.0-jup", "v1.2-filter", "v1.2-cilj10", "v1.2-cilj50", "v1.2-cilj70", "v1.2-cilj100", "v1.2-sled7", "v1.2-srednje", "v2.2-dip", "v3-mirno", "v3-kontrola", "v2.0", "v2.0-brez-holderjev", "v2.1-preboj", "v2.2-dip-siroko"];
 // Ustavljene: ne odpirajo novih poslov, zgodovina in odprti posli ostanejo (glej shadow.ts PAUSED). Ta seznam mora ustrezati shadow.ts.
-const SHADOW_PAUSED = { "v2.0": "20. 9.", "v2.0-brez-holderjev": "19. 9.", "v2.1-preboj": "20. 9.", "v2.2-dip-siroko": "20. 9.", "v1.2-srednje": "20. 9.", "v1.0-cisto": "25. 9." };
+const SHADOW_PAUSED = { "v1.2-cilj70": "3. 10.", "v1.2-cilj100": "3. 10.", "v1.2-sled7": "3. 10.", "v1.2-filter": "3. 10.", "v2.0": "20. 9.", "v2.0-brez-holderjev": "19. 9.", "v2.1-preboj": "20. 9.", "v2.2-dip-siroko": "20. 9.", "v1.2-srednje": "20. 9.", "v1.0-cisto": "25. 9." };
 const SHADOW_LABEL = { "bankr-filter": "★ BANKR · Base launchi + filter deployerja", "bankr-filter-sled30": "★ BANKR · filter + sled 30 (pol +100, brez cilja)", "bankr-vsi": "★ BANKR · vsi Base launchi (kontrola)", "v1.2-cilj50-jup-bot": "★ TVOJ BOT od 28. 9. (1x na kovanec na 24 h, brez noči)", "v1.2-cilj50-jup-bot-nakupi": "★ NOVO · tvoj bot + vsaj 25 nakupov v 5 min", "v1.2-cilj10-jup-bot": "★ NOVO · tvoj bot s profilom Hitri (+10 / -5)", "v1.2-cilj50-jup-bot-brez-bundlov": "★ NOVO · tvoj bot brez bundlov", "v1.2-cilj50-jup-p5": "★ kontrola: stari bot do 28. 9. (brez omejitve na par, 24/7)", "v1.2-cilj50-jup-p10": "★ NOVO · Jupiter + pavza 10 min", "v1.2-cilj50-p5": "★ NOVO · DEX 30 s + pavza 5 min", "v1.2-cilj30-jup": "v1.2 Jupiter, cilj +30", "v1.2-cilj50-jup": "v1.2 Jupiter, cilj +50 (kontrola za +30)", "v1.0": "v1.0 +10/-5", "v1.0-cisto": "v1.0 čisto (brez sumljivih posnetkov)", "v1.0-jup": "v1.0 Jupiter (cene na 6 s)", "v1.2-filter": "v1.2 staro Srednje (pol +25, sled 20)", "v1.2-cilj10": "v1.2 cilj +10 / meja -5", "v1.2-cilj50": "v1.2 Srednje + cilj +50 (profil Srednje)", "v1.2-cilj70": "v1.2 Srednje + cilj +70", "v1.2-cilj100": "v1.2 Srednje + cilj +100", "v1.2-sled7": "v1.2 Srednje, sled 7 %", "v1.2-srednje": "v1.2 Srednje brez cilja (pol +20, sled 15)", "v2.2-dip": "v2.2 dip s kupci", "v3-mirno": "v3 mirno", "v3-kontrola": "v3 kontrola (naključni vstop)", "v2.0": "v2.0", "v2.0-brez-holderjev": "v2.0 brez holderjev", "v2.1-preboj": "v2.1 preboj", "v2.2-dip-siroko": "v2.2 dip s kupci, široko" };
 const SHADOW_COLOR = { "bankr-filter": "#ff9f43", "bankr-filter-sled30": "#ffd166", "bankr-vsi": "#c47a2c", "v1.2-cilj50-jup-bot": "#46bec5", "v1.2-cilj50-jup-bot-nakupi": "#ff6fae", "v1.2-cilj10-jup-bot": "#c0eb75", "v1.2-cilj50-jup-bot-brez-bundlov": "#e8590c", "v1.2-cilj50-jup-p5": "#8ea2ff", "v1.2-cilj50-jup-p10": "#ffd43b", "v1.2-cilj50-p5": "#ff8787", "v1.2-cilj30-jup": "#00e5ff", "v1.2-cilj50-jup": "#8ea2ff", "v1.0": "#9fb0c8", "v1.0-cisto": "#dbe6f5", "v1.0-jup": "#a8ff60", "v1.2-filter": "#f0a6ff", "v1.2-cilj10": "#ffb3c7", "v1.2-cilj50": "#ffd166", "v1.2-cilj70": "#ffa94d", "v1.2-cilj100": "#ff6b6b", "v1.2-sled7": "#b197fc", "v1.2-srednje": "#c98cff", "v2.2-dip": "#46bec5", "v3-mirno": "#74c0fc", "v3-kontrola": "#adb5bd", "v2.0": "#62e4b3", "v2.0-brez-holderjev": "#ecbf69", "v2.1-preboj": "#6fa5ff", "v2.2-dip-siroko": "#ff9f7a" };
 // Kaj vsak set pravil gleda za vstop in kako izstopi. Besedilo mora ustrezati shadow.ts; ob spremembi pravil popravi oboje.
@@ -2632,38 +2632,98 @@ function dashboard() {
   }
   rows.className = o.closed.length ? "" : "empty";
   if (!o.closed.length) rows.textContent = "Za izbrano obdobje še ni zaključenih živih demo poslov. Vaje so samo v dnevniku.";
+  // 3. 10. 2026 (G: "ko grem z miško gor, info po času"): časovna os in pregled po urah.
+  // Krivulja je stopničasta po času zaključka posla; miška (ali prst) pokaže okno ure ali več ur:
+  // koliko poslov se je zaprlo, koliko je okno prineslo in koliko je bilo skupaj do konca okna.
   const svg = $("#dashCurve");
   svg.replaceChildren();
-  if (o.curve.length) {
-    const values = [0, ...o.curve.map((p) => p.pnl)],
-      lo = Math.min(...values),
-      hi = Math.max(...values),
-      range = hi - lo || 0.001;
-    const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-    line.setAttribute(
-      "points",
-      values.map((v, i) => `${25 + (i / (values.length - 1)) * 650},${195 - ((v - lo) / range) * 160}`).join(" "),
-    );
-    line.setAttribute("fill", "none");
-    line.setAttribute("stroke", o.net < 0 ? "#ff858e" : "#62e4b3");
-    line.setAttribute("stroke-width", "3");
+  const box = svg.parentElement;
+  box.querySelector(".curveTip")?.remove();
+  svg.onpointermove = svg.onpointerleave = null;
+  const done = o.closed.filter((t) => Number.isFinite(t.closed) && Number.isFinite(t.pnl)).sort((a, b) => a.closed - b.closed);
+  if (done.length) {
+    const NS = "http://www.w3.org/2000/svg";
+    const mk = (tag, attrs) => {
+      const el = document.createElementNS(NS, tag);
+      for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+      return el;
+    };
+    const fmt = (x) => (x > 0 ? "+" : x < 0 ? "-" : "") + Math.abs(x).toLocaleString("sl-SI", { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + " SOL";
+    const H = 3600000;
+    let cum = 0;
+    const pts = done.map((t) => ({ t: t.closed, d: t.pnl, v: (cum += t.pnl), sym: t.symbol }));
+    const first = pts[0].t, last = pts.at(-1).t;
+    const spanH = (last - first) / H;
+    const step = spanH <= 30 ? 1 : spanH <= 60 ? 2 : spanH <= 7 * 24 ? 6 : 24;
+    const tzOff = (ms) => -new Date(ms).getTimezoneOffset() * 60000;
+    const floorB = (ms) => { const loc = ms + tzOff(ms); return loc - (((loc % (step * H)) + step * H) % (step * H)) - tzOff(ms); };
+    const t0 = floorB(first), t1 = Math.max(floorB(last) + step * H, t0 + step * H);
+    const values = [0, ...pts.map((p) => p.v)], lo = Math.min(...values), hi = Math.max(...values), range = hi - lo || 0.001;
+    const X = (ms) => 25 + ((ms - t0) / (t1 - t0)) * 650, Y = (v) => 190 - ((v - lo) / range) * 155;
     for (const v of [lo, 0, hi]) {
-      const y = 195 - ((v - lo) / range) * 160;
-      const grid = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      for (const [k, x] of Object.entries({ x1: 25, x2: 675, y1: y, y2: y, stroke: "#33465e", "stroke-dasharray": "4 5" }))
-        grid.setAttribute(k, x);
-      svg.append(grid);
-      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      label.setAttribute("x", "28");
-      label.setAttribute("y", Math.max(16, y - 6));
-      label.setAttribute("fill", "#a0b5d1");
-      label.setAttribute("font-size", "13");
-      label.textContent = v.toFixed(4) + " SOL";
-      svg.append(label);
+      svg.append(mk("line", { x1: 25, x2: 675, y1: Y(v), y2: Y(v), stroke: "#33465e", "stroke-dasharray": "4 5" }));
+      const lab = mk("text", { x: 28, y: Math.max(16, Y(v) - 6), fill: "#a0b5d1", "font-size": 13 });
+      lab.textContent = fmt(v);
+      svg.append(lab);
     }
-    svg.append(line);
+    const multiDay = new Date(t0).toDateString() !== new Date(t1 - 1).toDateString();
+    const hm = (ms) => new Date(ms).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit" });
+    const dm = (ms) => new Date(ms).toLocaleDateString("sl-SI", { day: "numeric", month: "numeric" });
+    const nB = Math.round((t1 - t0) / (step * H));
+    const every = Math.max(1, Math.ceil(nB / 8));
+    for (let i = 0; i <= nB; i += every) {
+      const ms = t0 + i * step * H, x = X(ms);
+      svg.append(mk("line", { x1: x, x2: x, y1: 30, y2: 194, stroke: "#1f2d42", "stroke-width": 1 }));
+      const lab = mk("text", { x, y: 214, fill: "#7f93ad", "font-size": 12, "text-anchor": i === 0 ? "start" : i >= nB ? "end" : "middle" });
+      lab.textContent = step >= 24 ? dm(ms) : multiDay && hm(ms) === "00:00" ? dm(ms) : hm(ms);
+      svg.append(lab);
+    }
+    let d = "M" + X(t0) + "," + Y(0);
+    for (const p of pts) d += " H" + X(p.t).toFixed(1) + " V" + Y(p.v).toFixed(1);
+    d += " H" + X(t1);
+    svg.append(mk("path", { d, fill: "none", stroke: o.net < 0 ? "#ff858e" : "#62e4b3", "stroke-width": 3, "stroke-linejoin": "round" }));
+    // pregled po oknih
+    const guide = mk("rect", { x: 0, y: 30, width: 0, height: 164, fill: "#46bec5", opacity: 0.12, visibility: "hidden" });
+    const dot = mk("circle", { r: 5, fill: "#dce5f3", stroke: "#080d16", "stroke-width": 2, visibility: "hidden" });
+    svg.append(guide, dot);
+    if (getComputedStyle(box).position === "static") box.style.position = "relative";
+    const tip = document.createElement("div");
+    tip.className = "curveTip";
+    tip.hidden = true;
+    tip.style.cssText = "position:absolute;z-index:5;pointer-events:none;background:#0f1a2a;border:1px solid #2c4060;border-radius:10px;padding:8px 10px;font-size:13px;line-height:1.45;color:#dce5f3;box-shadow:0 6px 18px #0008;white-space:nowrap";
+    box.append(tip);
+    const show = (ev) => {
+      const r = svg.getBoundingClientRect();
+      const vx = ((ev.clientX - r.left) / r.width) * 700;
+      if (vx < 25 || vx > 675) return hide();
+      const ms = t0 + ((vx - 25) / 650) * (t1 - t0);
+      const a = Math.min(floorB(ms), t1 - step * H), b = a + step * H;
+      const inWin = pts.filter((p) => p.t >= a && p.t < b);
+      const before = pts.filter((p) => p.t < b);
+      const endV = before.length ? before.at(-1).v : 0;
+      const winSum = inWin.reduce((s, p) => s + p.d, 0);
+      guide.setAttribute("x", X(a)); guide.setAttribute("width", Math.max(1, X(b) - X(a))); guide.setAttribute("visibility", "visible");
+      dot.setAttribute("cx", X(Math.min(b, t1))); dot.setAttribute("cy", Y(endV)); dot.setAttribute("visibility", "visible");
+      const best = inWin.length ? inWin.reduce((m, p) => (p.d > m.d ? p : m)) : null, worst = inWin.length ? inWin.reduce((m, p) => (p.d < m.d ? p : m)) : null;
+      tip.innerHTML = "";
+      const line = (txt, color) => { const el = document.createElement("div"); el.textContent = txt; if (color) el.style.color = color; tip.append(el); };
+      line((multiDay || step >= 24 ? dm(a) + " " : "") + hm(a) + " do " + hm(b));
+      line(inWin.length ? inWin.length + (inWin.length === 1 ? " posel" : inWin.length < 5 ? " posli" : " poslov") + " · okno " + fmt(winSum) : "V tem oknu ni zaključenih poslov", inWin.length ? (winSum < 0 ? "#ff858e" : "#62e4b3") : "#7f93ad");
+      line("Skupaj do " + hm(b) + ": " + fmt(endV), "#a0b5d1");
+      if (inWin.length > 1) line("Najboljši " + best.sym + " " + fmt(best.d) + " · najslabši " + worst.sym + " " + fmt(worst.d), "#7f93ad");
+      tip.hidden = false;
+      const br = box.getBoundingClientRect();
+      let left = ev.clientX - br.left + 14;
+      if (left + tip.offsetWidth > br.width - 4) left = ev.clientX - br.left - tip.offsetWidth - 14;
+      tip.style.left = Math.max(4, left) + "px";
+      tip.style.top = Math.max(4, r.top - br.top + 8) + "px";
+    };
+    const hide = () => { tip.hidden = true; guide.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); };
+    svg.onpointermove = show;
+    svg.onpointerdown = show;
+    svg.onpointerleave = hide;
     $("#curveNote").textContent =
-      "Od 0 do " + o.net.toFixed(6) + " SOL · vsak korak je zaključen posel v izbranem obdobju; razmiki ne predstavljajo časa.";
+      "Od 0 do " + fmt(o.net) + " · os je čas zaključka posla, okna po " + (step >= 24 ? "1 dan" : step + " h") + ". Z miško (ali prstom) čez graf vidiš, kaj se je zgodilo v posameznem oknu.";
   } else $("#curveNote").textContent = "Krivulja se pojavi po prvem zaključenem živem demo poslu.";
 }
 
@@ -3693,6 +3753,16 @@ function renderOpenTrades() {
 // Po tem ostane vnos samo se v dnevniku sprememb v zavihku Kako deluje.
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
+  {
+    id: 24,
+    at: "2026-10-03T09:00:00Z",
+    date: "3. 10. 2026",
+    title: "Bilanca: graf po času, izidi signalov, pospravljen Laboratorij",
+    short: "<b>Graf v Bilanci ima zdaj časovno os</b>: z miško čez graf vidiš, kaj se je zgodilo v vsaki uri.",
+    body:
+      "Potek neto rezultata je zdaj narisan po času zaključka posla, ne več po zaporedju. Ko greš z miško (ali prstom) čez graf, se označi okno (1 h, pri daljših obdobjih 2 h, 6 h ali dan) in pokaže, koliko poslov se je v njem zaprlo, koliko je okno prineslo, koliko je bilo skupaj do konca okna ter najboljši in najslabši posel. V Laboratoriju so ustavljena štiri pravila, ki so bila na istih vstopih stalno slabša od cilja +50: cilj +70, cilj +100, sled 7 in staro Srednje; zgodovina ostane. Strežnik od zdaj za vsak signal po eni uri zapiše, kaj je cena naredila (najvišje, najnižje, po 15, 30 in 60 min), tudi za zadnjih 7 dni nazaj. Ni finančni nasvet, gre za demo.",
+    tags: [["Bilanca", "ok"], ["Laboratorij", ""]],
+  },
   {
     id: 23,
     at: "2026-10-03T08:15:00Z",
