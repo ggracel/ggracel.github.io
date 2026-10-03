@@ -535,6 +535,38 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-v
 .quickrow label{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);font-weight:700;margin-bottom:5px}
 .quickrow input{width:100%;height:42px;border-radius:11px;border:1px solid var(--c3);background:var(--c1);color:var(--fg);padding:0 10px;font:500 14px var(--inter)}
 
+/* ================= izbirnik ure (kolesca namesto sistemskega) ================= */
+.app .tpk{margin-top:16px}
+.app .tpk-head{display:grid;grid-template-columns:1fr 34px 1fr;text-align:center;font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin:0 0 7px}
+.app .tpk-body{position:relative;display:grid;grid-template-columns:1fr 34px 1fr;align-items:center;height:190px;border-radius:22px;background:var(--c1);overflow:hidden}
+.app .tpk-band{position:absolute;left:8px;right:8px;top:50%;height:44px;margin-top:-22px;border-radius:14px;background:var(--teal-w);box-shadow:inset 0 0 0 1px rgba(70,190,197,.32);pointer-events:none}
+.app .tpk-grp{position:relative;display:flex;justify-content:center;align-items:center;height:190px}
+.app .tpk-col{position:relative;flex:none;height:190px;width:56px;padding:76px 0;box-sizing:border-box;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;overscroll-behavior:contain;touch-action:pan-y;outline:none;
+  -webkit-mask-image:linear-gradient(180deg,transparent,#000 34%,#000 66%,transparent);mask-image:linear-gradient(180deg,transparent,#000 34%,#000 66%,transparent)}
+.app .tpk-col::-webkit-scrollbar{display:none}
+.app .tpk-col span{display:block;height:38px;line-height:38px;text-align:center;scroll-snap-align:center;font-family:var(--poppins);font-size:21px;font-weight:500;color:var(--mute);font-variant-numeric:tabular-nums;cursor:pointer;user-select:none;-webkit-user-select:none;transition:color .15s,transform .2s cubic-bezier(.3,1.4,.5,1)}
+.app .tpk-col span.on{color:var(--fg);font-weight:600;transform:scale(1.2)}
+.app .tpk-col:focus-visible{box-shadow:inset 0 0 0 2px var(--teal);border-radius:12px}
+.app .tpk-c{font-family:var(--poppins);font-size:24px;font-weight:600;color:var(--fg);margin:0 1px;position:relative;top:-2px;z-index:1}
+.app .tpk-arr{display:grid;place-items:center;color:var(--teal);z-index:1}
+.app .tpk-arr .ic{width:20px;height:20px}
+.app .tpk-ql{font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin:14px 0 7px}
+.app .tpk-quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.app .tpk-quick button{border:none;border-radius:15px;background:var(--c2);color:var(--fg);padding:9px 4px 8px;cursor:pointer;font:600 13.5px var(--poppins);font-variant-numeric:tabular-nums;white-space:nowrap;transition:background .2s,box-shadow .2s,color .2s,transform .18s cubic-bezier(.3,1.4,.5,1)}
+.app .tpk-quick button small{display:block;font:500 10.5px var(--inter);color:var(--mute);margin-top:2px}
+.app .tpk-quick button.on{background:var(--teal-w);box-shadow:inset 0 0 0 1.5px var(--teal);color:var(--teal)}
+.app .tpk-quick button.on small{color:var(--teal);opacity:.8}
+.app .brk{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;padding:8px 8px 8px 16px;border-radius:18px;background:var(--c1)}
+.app .brk>span{font-size:14px;font-weight:600;color:var(--fg)}
+.app .brk>span small{display:block;font-size:11px;font-weight:500;color:var(--mute);margin-top:1px}
+.app .stp{display:flex;align-items:center;gap:4px}
+.app .stp button{width:42px;height:42px;border-radius:13px;border:none;background:var(--c2);color:var(--fg);display:grid;place-items:center;cursor:pointer;touch-action:manipulation;transition:transform .15s,background .15s}
+.app .stp button:active{transform:scale(.9);background:var(--c3)}
+.app .stp .ic{width:18px;height:18px;stroke-width:2.4}
+.app .stp b{min-width:76px;text-align:center;font:600 16px var(--poppins);font-variant-numeric:tabular-nums}
+.app .stp b.zero{color:var(--mute);font-weight:500}
+.app #modeT .calc{margin-top:12px}
+
 /* ================= namizje: dvostolpicna plosca (spremenimo kasneje) ================= */
 .deskonly{display:none}
 @media(min-width:1080px){
@@ -768,11 +800,32 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-v
         </div>
       </div>
       <div id="modeT" style="display:none">
-        <div class="fld2">
-          <label>Začetek<input type="time" id="eFrom" value="08:00" oninput="liveCalc()"></label>
-          <label>Konec<input type="time" id="eTo" value="16:00" oninput="liveCalc()"></label>
+        <input type="hidden" id="eFrom" value="08:00">
+        <input type="hidden" id="eTo" value="16:00">
+        <input type="hidden" id="eBreak" value="">
+        <div class="tpk">
+          <div class="tpk-head"><span>Začetek</span><span></span><span>Konec</span></div>
+          <div class="tpk-body">
+            <div class="tpk-band" aria-hidden="true"></div>
+            <div class="tpk-grp">
+              <div class="tpk-col" id="wFh" tabindex="0" aria-label="Ura začetka"></div><b class="tpk-c">:</b><div class="tpk-col" id="wFm" tabindex="0" aria-label="Minute začetka"></div>
+            </div>
+            <div class="tpk-arr" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></svg></div>
+            <div class="tpk-grp">
+              <div class="tpk-col" id="wTh" tabindex="0" aria-label="Ura konca"></div><b class="tpk-c">:</b><div class="tpk-col" id="wTm" tabindex="0" aria-label="Minute konca"></div>
+            </div>
+          </div>
+          <div class="tpk-ql" id="tpkQl">Hitra izbira</div>
+          <div class="tpk-quick" id="tpkQuick"></div>
         </div>
-        <label>Pavza (minut, se odšteje)<input type="number" id="eBreak" inputmode="numeric" min="0" max="480" step="5" placeholder="0" oninput="liveCalc()"></label>
+        <div class="brk">
+          <span>Pavza<small>se odšteje od ur</small></span>
+          <div class="stp">
+            <button type="button" data-d="-5" aria-label="Manj pavze"><svg class="ic" viewBox="0 0 24 24"><path d="M6 12h12"/></svg></button>
+            <b id="brkV">brez</b>
+            <button type="button" data-d="5" aria-label="Več pavze"><svg class="ic" viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></button>
+          </div>
+        </div>
         <div class="calc" id="eCalc">0 h = 0 €</div>
       </div>
       <label>Ponovi ta delavnik (do konca meseca)</label>
@@ -1841,7 +1894,138 @@ function setMode(m){
   document.getElementById('eTabs').setAttribute('data-on', m==='t'?'1':'0');
   document.getElementById('modeH').style.display = m==='h'?'':'none';
   document.getElementById('modeT').style.display = m==='t'?'':'none';
+  if(m==='t') tpSync(false);
   liveCalc();
+}
+/* ================= izbirnik ure: kolesca (zanka), pogoste izmene, pavza ================= */
+var TP_ROW=38, TP_REP=5, tpMute={}, tpHeld={}, tpIdle={}, tpLast={};
+var TP_COLS={Fh:{t:'eFrom',u:'h',n:24}, Fm:{t:'eFrom',u:'m',n:12}, Th:{t:'eTo',u:'h',n:24}, Tm:{t:'eTo',u:'m',n:12}};
+function tpParse(v){ var p=String(v||'').split(':'), h=parseInt(p[0],10), m=parseInt(p[1],10); return {h:isNaN(h)?8:h, m:isNaN(m)?0:m}; }
+function tpBuild(){
+  Object.keys(TP_COLS).forEach(function(id){
+    var c=TP_COLS[id], el=document.getElementById('w'+id);
+    if(!el || el.childElementCount) return;
+    var html='';
+    for(var r=0;r<TP_REP;r++) for(var i=0;i<c.n;i++) html+='<span data-i="'+(r*c.n+i)+'">'+pad(c.u==='h'? i : i*5)+'</span>';
+    el.innerHTML=html;
+    el.addEventListener('scroll', function(){ tpOnScroll(id); }, {passive:true});
+    el.addEventListener('touchstart', function(){ tpHeld[id]=true; }, {passive:true});
+    function rel(){ tpHeld[id]=false; tpArmIdle(id); }
+    el.addEventListener('touchend', rel, {passive:true});
+    el.addEventListener('touchcancel', rel, {passive:true});
+    el.addEventListener('click', function(e){
+      var sp=e.target.closest? e.target.closest('span[data-i]') : null; if(!sp) return;
+      el.scrollTo({top:+sp.getAttribute('data-i')*TP_ROW, behavior: reduceMotion?'auto':'smooth'});
+    });
+    el.addEventListener('keydown', function(e){
+      if(e.key!=='ArrowDown' && e.key!=='ArrowUp') return;
+      e.preventDefault(); el.scrollBy({top:(e.key==='ArrowDown'?1:-1)*TP_ROW, behavior: reduceMotion?'auto':'smooth'});
+    });
+  });
+}
+function tpIdx(el){ return Math.round(el.scrollTop/TP_ROW); }
+function tpOnScroll(id){
+  var c=TP_COLS[id], el=document.getElementById('w'+id), idx=tpIdx(el);
+  if(idx!==tpLast[id]){
+    var prev=el.querySelector('span.on'); if(prev) prev.classList.remove('on');
+    if(el.children[idx]) el.children[idx].classList.add('on');
+    tpLast[id]=idx;
+    if(performance.now()>(tpMute[id]||0)){ tpWrite(id, idx % c.n); haptic(3); }
+  }
+  tpArmIdle(id);
+}
+function tpArmIdle(id){
+  clearTimeout(tpIdle[id]);
+  tpIdle[id]=setTimeout(function(){ if(!tpHeld[id]) tpRecenter(id); },180);
+}
+/* kolesce je zanka: po koncu vrtenja tiho skoci nazaj v srednjo kopijo */
+function tpRecenter(id){
+  var c=TP_COLS[id], el=document.getElementById('w'+id), idx=tpIdx(el), mid=2*c.n;
+  if(idx<mid || idx>=mid+c.n){ tpMute[id]=performance.now()+150; el.scrollTop=(mid+(idx%c.n))*TP_ROW; }
+}
+function tpWrite(id, k){
+  var c=TP_COLS[id], inp=document.getElementById(c.t), t=tpParse(inp.value);
+  if(c.u==='h') t.h=k; else t.m=k*5;
+  inp.value=pad(t.h)+':'+pad(t.m);
+  tpMarkQuick(); liveCalc();
+}
+function tpSet(id, k, smooth){
+  var c=TP_COLS[id], el=document.getElementById('w'+id); if(!el) return;
+  var top=(2*c.n+k)*TP_ROW;
+  tpMute[id]=performance.now()+(smooth? 750 : 150);
+  if(smooth && !reduceMotion) el.scrollTo({top:top, behavior:'smooth'}); else el.scrollTop=top;
+}
+function tpSync(smooth){
+  tpBuild();
+  var f=tpParse(document.getElementById('eFrom').value), t=tpParse(document.getElementById('eTo').value);
+  function m5(m){ return Math.min(11, Math.round(m/5)); }
+  tpSet('Fh', f.h%24, smooth); tpSet('Fm', m5(f.m), smooth);
+  tpSet('Th', t.h%24, smooth); tpSet('Tm', m5(t.m), smooth);
+  renderBrk(); tpRenderQuick();
+}
+/* tri najpogostejse izmene iz tvojih vnosov (ob enaki pogostosti novejsa), dopolnjene s predlogi */
+function tpShifts(){
+  var cnt={}, last={};
+  Object.keys(S.data).forEach(function(k){
+    var v=S.data[k];
+    if(v && typeof v==='object' && v.f && v.t){
+      var key=v.f+'|'+v.t+'|'+(v.b||0);
+      cnt[key]=(cnt[key]||0)+1; if(!last[key] || k>last[key]) last[key]=k;
+    }
+  });
+  var list=Object.keys(cnt).sort(function(a,b){ return (cnt[b]-cnt[a]) || (last[b]>last[a]? 1 : -1); }).slice(0,3);
+  var mine=list.length>0;
+  ['08:00|16:00|0','07:00|15:00|0','09:00|17:00|0'].forEach(function(d){ if(list.length<3 && list.indexOf(d)<0) list.push(d); });
+  return {list:list, mine:mine};
+}
+function tpRenderQuick(){
+  var el=document.getElementById('tpkQuick'); if(!el) return;
+  var sh=tpShifts();
+  document.getElementById('tpkQl').textContent = sh.mine? 'Tvoje pogoste izmene' : 'Hitra izbira';
+  el.innerHTML=sh.list.map(function(x){
+    var p=x.split('|'), b=+p[2]||0;
+    return '<button type="button" class="tap" data-s="'+x+'">'+p[0]+'-'+p[1]+'<small>'+(b? 'pavza '+b+' min' : 'brez pavze')+'</small></button>';
+  }).join('');
+  [].forEach.call(el.children, function(btn){ btn.onclick=function(){ tpPick(btn.getAttribute('data-s')); }; });
+  tpMarkQuick();
+}
+function tpPick(x){
+  var p=x.split('|');
+  document.getElementById('eFrom').value=p[0];
+  document.getElementById('eTo').value=p[1];
+  document.getElementById('eBreak').value=(+p[2]||'');
+  haptic(6); tpSync(true); liveCalc();
+}
+function tpMarkQuick(){
+  var cur=document.getElementById('eFrom').value+'|'+document.getElementById('eTo').value+'|'+(parseInt(document.getElementById('eBreak').value,10)||0);
+  [].forEach.call(document.querySelectorAll('#tpkQuick button'), function(b){ b.classList.toggle('on', b.getAttribute('data-s')===cur); });
+}
+function renderBrk(){
+  var b=parseInt(document.getElementById('eBreak').value,10)||0, el=document.getElementById('brkV');
+  el.textContent = b? b+' min' : 'brez';
+  el.classList.toggle('zero', !b);
+}
+function brkStep(d){
+  var inp=document.getElementById('eBreak'), b=parseInt(inp.value,10)||0;
+  var nb=Math.max(0, Math.min(480, b+d));
+  if(nb===b) return false;
+  inp.value = nb? nb : '';
+  renderBrk(); tpMarkQuick(); liveCalc(); haptic(4);
+  return true;
+}
+/* pavza: tap = 5 min, drzanje = hitro stevanje */
+function initBrk(){
+  [].forEach.call(document.querySelectorAll('.stp button[data-d]'), function(b){
+    var d=+b.getAttribute('data-d'), t1=null, t2=null;
+    function stop(){ clearTimeout(t1); clearInterval(t2); t1=t2=null; }
+    b.addEventListener('pointerdown', function(e){
+      if(e.button!=null && e.button!==0) return;
+      e.preventDefault(); stop(); brkStep(d);
+      t1=setTimeout(function(){ t2=setInterval(function(){ if(!brkStep(d)) stop(); },90); },380);
+    });
+    ['pointerup','pointerleave','pointercancel'].forEach(function(ev){ b.addEventListener(ev, stop); });
+    b.addEventListener('keydown', function(e){ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); brkStep(d); } });
+  });
 }
 function timeToMin(s){ if(!s) return null; var p=s.split(':'); return (+p[0])*60+(+p[1]); }
 function calcRange(){
@@ -1871,6 +2055,10 @@ function openEntry(k){
     document.getElementById('eBreak').value=v.b||'';
     npPut(h||2); setMode('t');
   } else {
+    var sh0=tpShifts().list[0].split('|');
+    document.getElementById('eFrom').value=sh0[0];
+    document.getElementById('eTo').value=sh0[1];
+    document.getElementById('eBreak').value=(+sh0[2]||'');
     npPut(h||2); setMode('h');
     renderNp(true,true);
   }
@@ -1911,7 +2099,9 @@ function liveCalc(){
   var v=entryVal(), r=dayRate(entryKey||todayKey());
   var ne=document.getElementById('npE');
   if(ne) ne.textContent='= '+eur(v*r);
-  var pre = entryMode==='t' ? (document.getElementById('eFrom').value+' do '+document.getElementById('eTo').value+' \u2192 ') : '';
+  var fv=document.getElementById('eFrom').value, tv2=document.getElementById('eTo').value;
+  var night = timeToMin(tv2)<=timeToMin(fv);
+  var pre = entryMode==='t' ? (fv+' do '+tv2+(night?' (+1 dan)':'')+' \u2192 ') : '';
   document.getElementById('eCalc').textContent = pre+hrs(v)+' = '+eur(v*r);
 }
 function buildValue(){
@@ -2619,7 +2809,7 @@ persist(); /* shrani morebitno migracijo */
 render();
 renderAcct();
 if(SESS) syncStart();   /* takoj ob odprtju */
-initPTR(); initSwipe(); initFab(); initSheetDrag();
+initPTR(); initSwipe(); initFab(); initSheetDrag(); initBrk();
 bootStart();
 maybeWelcome();
 setInterval(function(){
