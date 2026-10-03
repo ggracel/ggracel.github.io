@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 65;
+const CLIENT_VERSION = 651;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -1510,7 +1510,7 @@ function status() {
   const day = Math.max(1, Math.ceil((Date.now() - SHADOW_START) / 86400000));
   const active = SHADOW_STRATEGIES.filter((k) => !SHADOW_PAUSED[k]).length;
   $("#status").textContent = freshNow
-    ? "● ZBIRALEC AKTIVEN · posnetek " + time(last) + " · " + coins.size + " kovancev · senca " + active + " pravil · dan " + day + " od " + SHADOW_MIN_DAYS
+    ? "● ZBIRALEC AKTIVEN · posnetek " + time(last) + " · " + coins.size + " kovancev · senca " + active + " pravil · dan " + day + (day > SHADOW_MIN_DAYS ? "" : " od " + SHADOW_MIN_DAYS)
     : busy && last && Date.now() - last > 120000
       ? "● NALAGAM · zavihek je bil v premoru (zadnji posnetek " + time(last) + "), nalagam sveže posnetke · bot na strežniku je ves čas tekel"
       : "● PREMOR · zadnji posnetek " + (last ? time(last) : "neznan") + " · čakam na nov posnetek · bot na strežniku teče naprej";
@@ -1742,6 +1742,8 @@ function exportJournal() {
   a.href = URL.createObjectURL(blob);
   a.download = "demo-dnevnik.json";
   a.click();
+  try { localStorage.setItem("sonar-exported-at", String(Date.now())); } catch {}
+  renderExportReminder();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 for (const id of ["export", "cmpExport", "journalExport"]) {
@@ -1751,10 +1753,16 @@ for (const id of ["export", "cmpExport", "journalExport"]) {
 
 // Opozorilo, da se bliža konec senčnega testa. Pokaže se 3 dni prej in odšteva.
 // Izvoza ne sprožimo sami, samo pokažemo gumb; klikne ga uporabnik.
+// 3. 10. 2026: G je dnevnik 14-dnevnega testa poslal 2. 10. (izvoz 07:33 UTC), zato se opozorilo ne kaže več;
+// enako po vsakem izvozu v tem brskalniku (sonar-exported-at).
+const SHADOW_EXPORTED_AT = Date.parse("2026-10-02T07:33:24Z");
 function renderExportReminder() {
   const daysRun = (Date.now() - SHADOW_START) / 86400000;
   const due = daysRun >= SHADOW_MIN_DAYS;
-  const show = daysRun >= SHADOW_MIN_DAYS - SHADOW_WARN_DAYS;
+  let exportedAt = SHADOW_EXPORTED_AT;
+  try { exportedAt = Math.max(exportedAt, Number(localStorage.getItem("sonar-exported-at")) || 0); } catch {}
+  const exported = exportedAt >= SHADOW_START + (SHADOW_MIN_DAYS - SHADOW_WARN_DAYS) * 86400000;
+  const show = !exported && daysRun >= SHADOW_MIN_DAYS - SHADOW_WARN_DAYS;
   const left = Math.max(1, Math.ceil(SHADOW_MIN_DAYS - daysRun));
   const dni = left === 1 ? "1 dan" : left === 2 ? "2 dneva" : left + " dni";
   const text = due
@@ -1816,7 +1824,9 @@ window.addEventListener("pagehide", () => {
 const APP_VERSION = CLIENT_VERSION;
 // Različica je vidna v glavi (DEMO · v49), da se na prvi pogled vidi, ali zavihek teče na zadnji kodi.
 // Prikaz različice kot 5.1, 5.2 ... (interno ostane celo število, 51 = 5.1)
-const verLabel = (v) => (v / 10).toFixed(1);
+// 3. 10. 2026 (G): drobni popravki dobijo tretjo številko. Od 6.5 naprej je interno trimestno: 651 = 6.5.1, 660 = 6.6.
+// Številka se mora vseeno povečati ob vsaki objavi, sicer se odprti zavihki in telefon ne osvežijo sami.
+const verLabel = (v) => (v >= 100 ? Math.floor(v / 100) + "." + (Math.floor(v / 10) % 10) + (v % 10 ? "." + (v % 10) : "") : (v / 10).toFixed(1));
 if ($("#appVer")) $("#appVer").textContent = " · v" + verLabel(APP_VERSION);
 async function checkVersion() {
   try {
@@ -3322,8 +3332,7 @@ function renderComparison() {
     statusEl.textContent =
       "Senčni test teče od 17. 9. 2026 · dan " +
       Math.max(1, Math.ceil(daysRun)) +
-      " od " +
-      SHADOW_MIN_DAYS +
+      (daysRun > SHADOW_MIN_DAYS ? " (prvih " + SHADOW_MIN_DAYS + " dni končanih, dnevnik poslan 2. 10.)" : " od " + SHADOW_MIN_DAYS) +
       " · " +
       total +
       " senčnih poslov v obdobju, " +
