@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 63;
+const CLIENT_VERSION = 64;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -1901,6 +1901,38 @@ document.addEventListener("visibilitychange", () => {
     syncServerTrades();
   }
 });
+// 3. 10. 2026 (izpad 2./3. 10.): rdeča vrstica, ko strežnik ne zbira ali sta senca in bot na pavzi.
+// Bere tabelo memecoin_health, ki jo polnita varovalo v collect/znacilke in čuvaj v bazi (pg_cron vsaki 2 min).
+const HEALTH_STALE_MS = 3 * 60000;
+async function checkHealth() {
+  const bar = document.getElementById("healthBar");
+  if (!bar || !db) return;
+  const hm = (iso) => new Date(iso).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Ljubljana" });
+  const ago = (iso) => Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  const msgs = [];
+  try {
+    const { data, error } = await db.from("memecoin_health").select("key,fails,last_ok,last_err,skip_until,updated_at");
+    if (error) throw error;
+    const h = Object.fromEntries((data || []).map((r) => [r.key, r]));
+    const now = Date.now();
+    const old = (r) => !r || !r.last_ok || now - new Date(r.last_ok).getTime() > HEALTH_STALE_MS;
+    if (h.posnetki && now - new Date(h.posnetki.updated_at).getTime() > 6 * 60000) {
+      msgs.push("Čuvaj strežnika se ni oglasil od " + hm(h.posnetki.updated_at) + ". Baza je morda preobremenjena.");
+    } else {
+      if (old(h.posnetki)) msgs.push("Strežnik ne zbira posnetkov" + (h.posnetki?.last_ok ? " od " + hm(h.posnetki.last_ok) + " (pred " + ago(h.posnetki.last_ok) + " min)" : "") + ". Bot ta čas ne vstopa.");
+      if (old(h.cene)) msgs.push("Jupitrove cene stojijo" + (h.cene?.last_ok ? " od " + hm(h.cene.last_ok) : "") + ".");
+    }
+    const c = h.collect;
+    if (c?.skip_until && new Date(c.skip_until).getTime() > now) msgs.push("Senca in bot sta na pavzi po " + c.fails + " zaporednih napakah do " + hm(c.skip_until) + ". Zadnja napaka: " + String(c.last_err || "?").slice(0, 120));
+    else if (c?.last_ok && old(c) && !old(h.posnetki)) msgs.push("Senca in bot ne tečeta od " + hm(c.last_ok) + ".");
+  } catch (e) {
+    msgs.push("Stanja strežnika ni mogoče prebrati (" + String(e?.message || e).slice(0, 80) + "). Baza je morda nedosegljiva.");
+  }
+  bar.hidden = !msgs.length;
+  bar.textContent = msgs.length ? "⚠ " + msgs.join(" ") : "";
+}
+setInterval(checkHealth, 60000);
+setTimeout(checkHealth, 3000);
 // Zbujanje po spanju računalnika: intervali med spanjem ne tečejo, zato ob prvem tiku po premoru takoj poberemo nove podatke.
 let lastBeat = Date.now();
 setInterval(() => {
@@ -3661,6 +3693,16 @@ function renderOpenTrades() {
 // Po tem ostane vnos samo se v dnevniku sprememb v zavihku Kako deluje.
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
+  {
+    id: 23,
+    at: "2026-10-03T08:15:00Z",
+    date: "3. 10. 2026",
+    title: "Izpad strežnika 2./3. 10. in varovala",
+    short: "<b>Strežnik je stal od 2. 10. 18:17 do 3. 10. 09:27.</b> Vzrok je odpravljen, dodana so varovala in rdeča vrstica ob izpadu.",
+    body:
+      "Po samodejnem osveženju statistike baze je branje zadnjih 22 minut posnetkov začelo brati celo tabelo (1,2 milijona vrstic) in vsak klic je padel na časovni meji. Ker se je klic ponavljal vsakih 30 s, je čez noč izčrpal disk baze, zato so od okoli 00:45 postale počasne ali stale tudi prijava in ostale strani na foqs.si. Bot ta čas ni vstopal, senca ni merila. Popravki: funkciji branja (posnetki in Laboratorij) zdaj vsak klic načrtujeta znova in vedno uporabita indeks. Zbiralec in značilke imata varovalo: ne začneta, če prejšnji tek še teče, po treh zaporednih napakah pa se ustavita za 2 min, nato 4, 8, 16, največ 30 min, namesto da bi bazo udarjala vsakih 30 s. Čuvaj v bazi vsaki 2 minuti zapiše starost zadnjega posnetka in cene; ko je strežnik zastal, aplikacija na vrhu pokaže rdečo vrstico. Hramba ostane 7 dni.",
+    tags: [["Strežnik", ""], ["Varovalo", "ok"]],
+  },
   {
     id: 22,
     at: "2026-10-02T10:00:00Z",
