@@ -577,6 +577,53 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-v
 .app .sheet .tgl input:checked + i::after{transform:translateX(20px)}
 .app .sheet .tgl input:focus-visible + i{outline:2px solid var(--teal);outline-offset:2px}
 
+/* ================= kazalec tempa (A) ================= */
+.app .r-gap{fill:none;stroke:var(--warn);stroke-opacity:.42;stroke-width:14;stroke-linecap:butt;opacity:0;
+  transition:stroke-dasharray 1.3s cubic-bezier(.22,1,.36,1),stroke-dashoffset 1.3s cubic-bezier(.22,1,.36,1),opacity .45s}
+.app .r-tick{transform-origin:120px 120px;transform:rotate(0deg);opacity:0;transition:transform 1.3s cubic-bezier(.22,1,.36,1),opacity .45s}
+.app .tk-bar{fill:var(--fg);stroke:var(--ink);stroke-width:2.2;paint-order:stroke}
+.app .tk-flag{fill:var(--fg)}
+.app .pace-a{display:none;align-items:center;gap:12px;margin:8px auto 2px;width:fit-content;max-width:100%;padding:9px 16px 9px 9px;border-radius:20px;
+  background:linear-gradient(135deg,rgba(70,190,197,.17),rgba(70,190,197,.05));box-shadow:inset 0 0 0 1px rgba(70,190,197,.26)}
+.app .pace-a.on{display:flex;animation:paIn .55s cubic-bezier(.2,.9,.3,1.2) both}
+@keyframes paIn{from{opacity:0;transform:translateY(8px) scale(.96)}}
+.app .pa-ic{flex:none;position:relative;width:40px;height:40px;border-radius:50%;display:grid;place-items:center}
+.app .pa-tx b{display:block;font-family:var(--poppins);font-weight:600;font-size:15px;letter-spacing:-.005em;color:var(--teal)}
+.app .pa-tx b em{font-style:normal;color:var(--teal-l)}
+.app .pa-tx small{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--mute);margin-top:2px}
+.app .pa-tx small i{flex:none;width:3px;height:11px;border-radius:2px;background:var(--fg)}
+/* pred tempom: turkizen ogenjcek */
+.app .pace-a.ahead{animation:paIn .55s cubic-bezier(.2,.9,.3,1.2) both,paGlow 2.6s ease-in-out .6s infinite}
+@keyframes paGlow{0%,100%{box-shadow:inset 0 0 0 1px rgba(70,190,197,.26),0 0 0 rgba(70,190,197,0)}50%{box-shadow:inset 0 0 0 1px rgba(70,190,197,.45),0 0 26px rgba(70,190,197,.18)}}
+.app .pace-a.ahead .pa-ic{background:radial-gradient(circle at 50% 74%,rgba(70,190,197,.5),rgba(70,190,197,.1) 60%,transparent 72%)}
+.app .flame{width:27px;height:31px;overflow:visible;margin-top:-4px;filter:drop-shadow(0 0 4px rgba(70,190,197,.95)) drop-shadow(0 0 10px rgba(70,190,197,.45))}
+.app .flame .fl-o{fill:url(#flO);transform-box:fill-box;transform-origin:50% 100%;animation:flO 1.7s ease-in-out infinite}
+.app .flame .fl-i{fill:url(#flI);transform-box:fill-box;transform-origin:50% 100%;animation:flI 1.15s ease-in-out infinite}
+.app .flame .fl-b{fill:#46BEC5;opacity:.35;transform-box:fill-box;transform-origin:50% 50%;animation:flB 1.7s ease-in-out infinite}
+.app .flame .fl-s{fill:#A6E9EC;opacity:0;animation:flS 1.9s ease-out infinite}
+.app .flame .s2{animation-delay:.65s}
+.app .flame .s3{animation-delay:1.3s}
+@keyframes flO{0%,100%{transform:scale(1,1) skewX(0)}25%{transform:scale(.95,1.07) skewX(-3deg)}50%{transform:scale(1.03,.96) skewX(2deg)}75%{transform:scale(.97,1.05) skewX(-1.5deg)}}
+@keyframes flI{0%,100%{transform:scale(1,1)}30%{transform:scale(.9,1.12)}65%{transform:scale(1.07,.93)}}
+@keyframes flB{0%,100%{opacity:.25;transform:scaleX(.9)}50%{opacity:.5;transform:scaleX(1.1)}}
+@keyframes flS{0%{opacity:0;transform:translateY(3px)}20%{opacity:.95}100%{opacity:0;transform:translateY(-11px)}}
+/* za tempom in cilj dosezen */
+.app .pa-dot{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--teal);color:var(--ink)}
+.app .pa-dot .ic{width:16px;height:16px;stroke-width:2.6}
+.app .pace-a.behind{background:linear-gradient(135deg,rgba(232,180,99,.16),rgba(232,180,99,.05));box-shadow:inset 0 0 0 1px rgba(232,180,99,.24)}
+.app .pace-a.behind .pa-dot{background:var(--warn)}
+.app .pace-a.behind .pa-tx b{color:var(--warn)}
+.app .pace-a.behind .pa-tx b em{color:#f3d29f}
+/* napoved v kartici z drsnikom: trak s crto na cilju */
+.app .pbar{position:relative;height:8px;border-radius:99px;background:var(--c3);margin:14px 14px 5px 0}
+.app .pbar i{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:99px;background:rgba(244,242,242,.3);transition:width .9s cubic-bezier(.22,1,.36,1),background .4s}
+.app .pbar i.over{background:linear-gradient(90deg,var(--teal),var(--teal-l))}
+.app .pbar .pg{position:absolute;left:50%;top:-5px;bottom:-5px;width:2px;margin-left:-1px;border-radius:2px;background:var(--fg)}
+.app .pbar b{position:absolute;right:-14px;top:50%;transform:translateY(-52%);font:700 13px var(--poppins);color:var(--teal);opacity:0;transition:opacity .3s}
+.app .pbar b.on{opacity:1}
+.app .plab{display:flex;justify-content:space-between;margin-right:14px;font-size:10.5px;color:var(--dim)}
+.app .plab span:nth-child(2){color:var(--mute);font-weight:600;transform:translateX(-4px)}
+
 /* ================= namizje: dvostolpicna plosca (spremenimo kasneje) ================= */
 .deskonly{display:none}
 @media(min-width:1080px){
@@ -694,10 +741,11 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-v
             <svg class="ring" id="ringSvg" viewBox="0 0 240 240" aria-hidden="true">
               <defs><linearGradient id="gD" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#A6E9EC"/><stop offset="1" stop-color="#46BEC5"/></linearGradient></defs>
               <circle class="arc r-track" cx="120" cy="120" r="100"/>
-              <path class="r-proj" id="rProj"/><path class="r-proj2" id="rProj2"/><circle class="r-projdot" id="rProjDot" r="3.4"/>
+              <circle class="r-gap" id="rGap" cx="120" cy="120" r="100" transform="rotate(-90 120 120)"/>
               <circle class="arc r-plan" id="rPlanArc" cx="120" cy="120" r="100"/>
               <circle class="arc r-act" id="rActArc" cx="120" cy="120" r="100"/>
               <g class="r-tipg" id="rTip"><circle class="r-tip" cx="120" cy="20" r="6"/></g>
+              <g class="r-tick" id="rTick"><rect class="tk-bar" x="118.25" y="8.5" width="3.5" height="23" rx="1.75"/><path class="tk-flag" d="M115.6 1.2 L124.4 1.2 L120 6.4 Z"/></g>
             </svg>
             <div class="ring-in">
               <div class="big" id="rMoney">0 €</div>
@@ -706,6 +754,10 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-v
             </div>
             <canvas class="burst" id="burst" width="336" height="336"></canvas>
           </div>
+          <div class="pace-a" id="paceA" aria-live="polite">
+            <span class="pa-ic" id="paIc"></span>
+            <span class="pa-tx"><b id="paB"></b><small id="paS"></small></span>
+          </div>
           <div class="neto" id="netoLine" style="display:none"></div>
           <div class="reward" id="rewardBox">Delam za <b id="rewName"></b><span class="bar"><i id="rewBar"></i></span><small id="rewTxt"></small></div>
           <div class="goal-hit" id="goalHit">Mesečni cilj dosežen</div>
@@ -713,6 +765,8 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-v
             <div class="boost-top"><small id="xTitle">Vsaka ura šteje</small><span id="bVal">brez dodatnih ur</span></div>
             <input type="range" id="boostR" min="0" max="3" step="0.5" value="0" aria-label="Dodatne ure na dan" oninput="boostChange()">
             <div class="boost-res" id="bRes"></div>
+            <div class="pbar" id="pBar" aria-hidden="true"><i id="pbF"></i><span class="pg"></span><b id="pbX">+</b></div>
+            <div class="plab" id="pLab"><span>0</span><span>cilj</span><span>2× cilja</span></div>
             <div id="xRows" hidden></div>
           </div>
         </section>
@@ -1230,31 +1284,64 @@ function projMonth(){
   var pd=paceDays(vy,vm), base=projHours(mh.aH,pd)*S.rate;
   return base + boostH*S.rate*pd.left;
 }
+/* kazalec tempa: kje bi moral biti danes, ce bi cilj delal enakomerno skozi mesec.
+   Danasnji dan steje sele, ko je vpisan (zjutraj nisi "za tempom" za cel dan). */
+function paceInfo(){
+  var isCur=(vy===now.getFullYear() && vm===now.getMonth()), gE=goalE();
+  if(!isCur || gE<=0) return null;
+  var mh=monthCalc(vy,vm), n=dim(vy,vm), t=now.getDate(), tk=todayKey(), tv=S.data[tk];
+  var total=countDays(vy,vm,1,n), el=countDays(vy,vm,1,t-1);
+  if(countDays(vy,vm,t,t)===1 && tv!=null && !isPlan(tv)) el++;
+  var e= total>0 ? el/total : 0, exp=gE*e, earned=mh.aE;
+  var leftH=Math.max(0, goalH()-mh.aH), dl=paceDays(vy,vm).left;
+  return {e:e, exp:exp, earned:earned, diff:earned-exp, gE:gE, done:earned>=gE, need: dl>0? leftH/dl : leftH};
+}
+var FLAME='<svg class="flame" viewBox="0 0 24 28" aria-hidden="true"><defs>'+
+  '<linearGradient id="flO" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#A6E9EC"/><stop offset=".5" stop-color="#46BEC5"/><stop offset="1" stop-color="#2ea4ab" stop-opacity=".8"/></linearGradient>'+
+  '<linearGradient id="flI" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#A6E9EC"/></linearGradient></defs>'+
+  '<ellipse class="fl-b" cx="12" cy="25.2" rx="6.5" ry="1.8"/>'+
+  '<path class="fl-o" d="M12 2C13 6.2 17.6 9 18.6 13.6 19.6 18.4 16.4 25 12 25 7.6 25 4.6 21.2 5.2 16.8 5.6 13.8 7.4 12 8.6 10.4 8.9 12.4 9.8 13.6 11 14.2 10.2 10 10.6 5.6 12 2Z"/>'+
+  '<path class="fl-i" d="M12 11.5C12.8 14 15.4 15.6 15.4 19 15.4 21.6 13.8 23.4 12 23.4 10.2 23.4 8.6 21.8 8.6 19.6 8.6 18 9.4 16.8 10.4 16 10.5 17.2 11 18 11.6 18.4 11.2 16 11.3 13.6 12 11.5Z"/>'+
+  '<circle class="fl-s s1" cx="9.5" cy="9" r="1"/><circle class="fl-s s2" cx="14.6" cy="8" r=".8"/><circle class="fl-s s3" cx="12" cy="5.5" r=".7"/></svg>';
+var paceState='';
 function renderProjArc(load){
-  var el=document.getElementById('rProj'), el2=document.getElementById('rProj2'), dot=document.getElementById('rProjDot');
-  var gE=goalE(), proj=projMonth();
-  if(proj==null || gE<=0){ [el,el2,dot].forEach(function(x){ x.style.opacity=0; }); return; }
-  var frac=Math.min(2,proj/gE), over=proj>=gE;
-  [el,el2,dot].forEach(function(x){ x.style.opacity=''; x.classList.toggle('over',over); });
-  function put(f){
-    var l1=Math.min(1,f), l2=Math.max(0,f-1);
-    el.setAttribute('d',arcPath(120,120,114,l1));
-    el2.setAttribute('d',arcPath(120,120,123,l2));
-    el2.style.display= l2>0.004?'':'none';
-    var pt = l2>0.004? arcPt(120,120,123,l2) : arcPt(120,120,114,l1);
-    dot.setAttribute('cx',pt[0].toFixed(2)); dot.setAttribute('cy',pt[1].toFixed(2));
-    dot.style.display= f>0.01?'':'none';
+  var tg=document.getElementById('rTick'), gap=document.getElementById('rGap'), chip=document.getElementById('paceA');
+  var p=paceInfo();
+  if(!p || (p.e===0 && p.earned===0)){
+    tg.style.opacity=0; gap.style.opacity=0; chip.className='pace-a'; paceState=''; return;
   }
-  cancelAnimationFrame(projRaf);
-  if(load && !reduceMotion){
-    put(0); var t0=performance.now()+300;
-    (function st(t){ var k=Math.max(0,Math.min(1,(t-t0)/900)); put(frac*(1-Math.pow(1-k,4))); if(k<1) projRaf=requestAnimationFrame(st); })(performance.now());
-  } else put(frac);
+  var a=Math.min(1,p.earned/p.gE);
+  if(load && !reduceMotion){ tg.style.transition='none'; tg.style.transform='rotate(0deg)'; void tg.getBoundingClientRect(); tg.style.transition=''; }
+  tg.style.opacity = p.done? 0 : 1;
+  tg.style.transform='rotate('+(p.e*360).toFixed(2)+'deg)';
+  if(!p.done && a<p.e){
+    gap.style.opacity=1;
+    gap.style.strokeDasharray=((p.e-a)*RINGC).toFixed(1)+' '+RINGC;
+    gap.style.strokeDashoffset=(-a*RINGC).toFixed(1);
+  } else gap.style.opacity=0;
+  var st = p.done? 'done' : (p.diff>=-0.5? 'ahead' : 'behind');
+  if(st!==paceState){
+    chip.className='pace-a on '+st;
+    document.getElementById('paIc').innerHTML = st==='ahead'? FLAME
+      : '<span class="pa-dot">'+(st==='done'? ico('check') : '<svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg>')+'</span>';
+    paceState=st;
+  }
+  var B=document.getElementById('paB'), Sm=document.getElementById('paS');
+  if(st==='done'){
+    B.textContent='Cilj dosežen';
+    Sm.textContent= p.earned-p.gE>=1 ? '+'+eur(Math.round(p.earned-p.gE))+' nad ciljem' : 'točno na cilju';
+  } else if(st==='ahead'){
+    B.innerHTML= p.diff<1 ? 'Točno na tempu' : 'Pred tempom za <em>'+eur(Math.round(p.diff))+'</em>';
+    Sm.innerHTML='<i></i>po načrtu danes '+eur(Math.round(p.exp));
+  } else {
+    B.innerHTML='Za tempom <em>'+eur(Math.round(-p.diff))+'</em>';
+    Sm.textContent='Za cilj od zdaj ~'+(Math.round(p.need*10)/10).toLocaleString('sl-SI')+' h na dan';
+  }
 }
 function boostChange(){
   var v=+document.getElementById('boostR').value||0;
   if(v!==boostH) haptic(4);
-  boostH=v; renderBoost(); renderProjArc(false);
+  boostH=v; renderBoost();
 }
 function renderBoost(){
   var box=document.getElementById('extraCard');
@@ -1266,9 +1353,18 @@ function renderBoost(){
   document.getElementById('boostR').style.setProperty('--p',(boostH/3*100)+'%');
   document.getElementById('bVal').textContent = boostH? '+'+(Math.round(boostH*100)/100).toLocaleString('sl-SI')+' h na dan' : 'brez dodatnih ur';
   var res=document.getElementById('bRes');
-  if(proj==null){ res.textContent='Ko vpišeš prve ure, tukaj vidiš, s čim končaš mesec.'; box.classList.remove('good'); return; }
+  if(proj==null){ res.textContent='Ko vpišeš prve ure, tukaj vidiš, s čim končaš mesec.'; box.classList.remove('good');
+    document.getElementById('pBar').style.display=document.getElementById('pLab').style.display='none'; return; }
   res.innerHTML=(boostH?'Tako končaš z ':'Pri tem tempu končaš z ')+'<b>~'+eur(Math.round(proj))+'</b>'+(gE>0?' · '+Math.round(proj/gE*100)+' % cilja':'');
   box.classList.toggle('good', gE>0 && proj>=gE);
+  var pb=document.getElementById('pBar'), pl=document.getElementById('pLab');
+  pb.style.display = pl.style.display = gE>0? '' : 'none';
+  if(gE>0){
+    var f=document.getElementById('pbF'), fr=Math.min(2,proj/gE);
+    f.style.width=(fr/2*100).toFixed(1)+'%';
+    f.classList.toggle('over', proj>=gE);
+    document.getElementById('pbX').classList.toggle('on', proj>2*gE);
+  }
 }
 /* mejniki kot tir z vozlisci */
 function renderMiles(){
@@ -1531,7 +1627,7 @@ function render(opt){
   } else rb.classList.remove('on');
 
   var hit = gH>0 && mh.aH>=gH;
-  document.getElementById('goalHit').classList.toggle('on',hit);
+  document.getElementById('goalHit').classList.toggle('on',hit && !isCur);
   var mk=vy+'-'+vm;
   if(hit && !S.celebrated[mk]){ S.celebrated[mk]=1; save(); celebrate(); }
 
