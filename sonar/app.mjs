@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 651;
+const CLIENT_VERSION = 652;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -1661,12 +1661,28 @@ function enter(c, s, automatic) {
 }
 $("#open").onclick = () => manualEntry(current(), "#feedback");
 
+// 4. 10. 2026 (G: "pametno iskanje v dnevniku in bilanci"): živi filter po kovancu, ki se uporabi ob vsakem vtipkanem znaku.
+// Ujema ticker, ime kovanca (iz spremljanih) in naslov; velikost črk in znak $ ne štejeta. Prazno polje = brez filtra.
+// Filter vpliva samo na seznam vrstic, ne na seštevke, statistiko in graf.
+const normQ = (v) => String(v || "").toLowerCase().replace(/\$/g, "").trim();
+const searchQ = (sel) => normQ($(sel)?.value);
+function coinName(token) {
+  for (const c of coins.values()) if (c.token === token && c.name) return c.name;
+  return "";
+}
+function tradeMatches(t, q) {
+  if (!q) return true;
+  return [t.symbol, t.token, coinName(t.token)].some((v) => v && String(v).toLowerCase().includes(q));
+}
 function journal() {
   renderReview();
   renderDeleted();
   renderEvents();
   $("#rows").replaceChildren();
-  for (const t of trades.filter((t) => !t.deletedAt && !t.interrupted).reverse()) {
+  const jq = searchQ("#journalSearch");
+  const shown = trades.filter((t) => !t.deletedAt && !t.interrupted && tradeMatches(t, jq)).reverse();
+  $("#journalSearchNote").textContent = jq ? (shown.length ? plural(shown.length, "zadetek", "zadetka", "zadetki", "zadetkov") : "ni zadetkov") : "";
+  for (const t of shown) {
     const tr = document.createElement("tr");
     const vals = [
       `${t.symbol} · ${t.practice ? "VAJA" : "ŽIVI POSNETKI"} · vložek ${tradeSize(t).toLocaleString("sl-SI")} SOL`,
@@ -1699,6 +1715,7 @@ function journal() {
     $("#rows").append(tr);
   }
   if (!trades.some((t) => !t.deletedAt && !t.interrupted)) $("#rows").textContent = "Še ni demo poslov.";
+  else if (!shown.length) $("#rows").textContent = "Noben posel se ne ujema z iskanjem. Izbriši polje, da vidiš vse.";
   $("#totals").textContent = ["ŽIVI POSNETKI", "VAJA"]
     .map(
       (label, i) =>
@@ -2496,6 +2513,8 @@ $("#recentMore").onclick = () => {
   dashboard();
 };
 $("#quality").onchange = dashboard;
+$("#dashSearch").oninput = dashboard;
+$("#journalSearch").oninput = journal;
 // Mini bilanca na vrhu Pozicij: današnje številke, iste kot v Bilanci pri obdobju Danes.
 function miniDash() {
   if (!$("#miniKpis")) return;
@@ -2610,11 +2629,14 @@ function dashboard() {
     ".";
   const rows = $("#dashRecent");
   rows.replaceChildren();
-  const recent = [...o.closed].sort((a, b) => b.closed - a.closed);
+  const dq = searchQ("#dashSearch");
+  const recent = [...o.closed].filter((t) => tradeMatches(t, dq)).sort((a, b) => b.closed - a.closed);
+  $("#dashSearchNote").textContent = dq ? (recent.length ? plural(recent.length, "zadetek", "zadetka", "zadetki", "zadetkov") + " v izbranem obdobju" : "ni zadetkov v izbranem obdobju") : "";
   const more = $("#recentMore");
-  more.hidden = recent.length <= 5;
+  // Ob iskanju pokažemo vse zadetke naenkrat, gumb "Pokaži več" ni potreben.
+  more.hidden = !!dq || recent.length <= 5;
   more.textContent = showAllRecent ? "Pokaži manj" : "Pokaži vseh " + recent.length + " v izbranem obdobju";
-  for (const t of showAllRecent ? recent : recent.slice(0, 5)) {
+  for (const t of showAllRecent || dq ? recent : recent.slice(0, 5)) {
     const row = document.createElement("div");
     row.className = "tradeRow";
     const name = document.createElement("div");
@@ -2640,8 +2662,9 @@ function dashboard() {
     row.append(profit);
     rows.append(row);
   }
-  rows.className = o.closed.length ? "" : "empty";
+  rows.className = o.closed.length && recent.length ? "" : "empty";
   if (!o.closed.length) rows.textContent = "Za izbrano obdobje še ni zaključenih živih demo poslov. Vaje so samo v dnevniku.";
+  else if (!recent.length) rows.textContent = "Noben zaključek v izbranem obdobju se ne ujema z iskanjem. Izbriši polje ali razširi obdobje.";
   // 3. 10. 2026 (G: "ko grem z miško gor, info po času"): časovna os in pregled po urah.
   // Krivulja je stopničasta po času zaključka posla; miška (ali prst) pokaže okno ure ali več ur:
   // koliko poslov se je zaprlo, koliko je okno prineslo in koliko je bilo skupaj do konca okna.
@@ -3762,6 +3785,15 @@ function renderOpenTrades() {
 // Po tem ostane vnos samo se v dnevniku sprememb v zavihku Kako deluje.
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
+  {
+    id: 25,
+    at: "2026-10-04T12:00:00Z",
+    date: "4. 10. 2026",
+    title: "Iskanje po kovancu v Dnevniku in Bilanci",
+    short: "<b>V Dnevniku in Bilanci je polje za iskanje</b>: vtipkaj ticker ali ime kovanca in seznam se filtrira sproti.",
+    body:
+      "Nad tabelo v Dnevniku in nad zadnjimi zaključki v Bilanci je polje za iskanje. Ujema ticker, ime kovanca in naslov, velikost črk ni pomembna. Seznam se filtrira ob vsakem vtipkanem znaku; ob iskanju v Bilanci se pokažejo vsi zadetki v izbranem obdobju, ne samo zadnjih pet. Seštevki, statistika in graf ostanejo za celotno obdobje. Ni finančni nasvet, gre za demo.",
+  },
   {
     id: 24,
     at: "2026-10-03T09:00:00Z",
