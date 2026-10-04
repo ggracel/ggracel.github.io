@@ -567,10 +567,22 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-v
 .app .stp b.zero{color:var(--mute);font-weight:500}
 .app #modeT .calc{margin-top:12px}
 
+/* ================= stikalo v nastavitvah ================= */
+.app .sheet .tgl{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:10px;padding:13px 14px;border-radius:16px;background:var(--c1);cursor:pointer;color:var(--fg);font-size:14px;font-weight:600;position:relative}
+.app .sheet .tgl>span small{display:block;font-size:11.5px;font-weight:500;color:var(--mute);margin-top:3px;line-height:1.4}
+.app .sheet .tgl input{position:absolute;opacity:0;width:1px;height:1px;padding:0;border:0;margin:0;pointer-events:none}
+.app .sheet .tgl i{flex:none;position:relative;width:50px;height:30px;border-radius:99px;background:var(--c3);transition:background .25s}
+.app .sheet .tgl i::after{content:"";position:absolute;left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:var(--fg);box-shadow:0 2px 6px rgba(0,0,0,.4);transition:transform .3s cubic-bezier(.3,1.4,.5,1)}
+.app .sheet .tgl input:checked + i{background:var(--teal)}
+.app .sheet .tgl input:checked + i::after{transform:translateX(20px)}
+.app .sheet .tgl input:focus-visible + i{outline:2px solid var(--teal);outline-offset:2px}
+
 /* ================= namizje: dvostolpicna plosca (spremenimo kasneje) ================= */
 .deskonly{display:none}
 @media(min-width:1080px){
-  html,body{overflow:auto;height:auto}
+  html{overflow-y:auto;height:auto}
+  body{overflow:visible;height:auto;display:block;overscroll-behavior:auto}
+  .splash{position:fixed}
   .app{position:static;overflow:visible}
   .scr{height:auto;overflow:visible;background:transparent}
   .hdr{position:sticky;max-width:1560px;margin:0 auto;display:flex;align-items:center;gap:18px;padding:14px 22px 12px}
@@ -860,12 +872,11 @@ button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-v
       <label>Cena nagrade (€)<input type="number" id="sRewPrice" inputmode="decimal" min="0" placeholder="npr. 600"></label>
 
       <div class="set-sec">
-        <h4>Denar</h4>
-        <div class="fld2">
-          <label>Na roke (% bruto, 0 = izklop)<input type="number" id="sNet" inputmode="numeric" min="0" max="100" placeholder="npr. 78"></label>
-          <label>Vikend faktor (npr. 1,5)<input type="number" id="sWkx" inputmode="decimal" step="0.05" min="1" placeholder="1"></label>
-        </div>
-        <button class="btn soft wide tap" style="margin-top:12px" onclick="exportCsvMonth()"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Izvozi CSV meseca na zaslonu</span></button>
+        <h4>Tempo in napoved</h4>
+        <label class="tgl" for="sWkend">
+          <span>Štej tudi vikende<small>Ko je izklopljeno, se ure na dan, tempo in napoved računajo samo za ponedeljek do petek.</small></span>
+          <input type="checkbox" id="sWkend" onchange="setCalc()"><i aria-hidden="true"></i>
+        </label>
       </div>
 
       <button class="btn pri wide tap" style="margin-top:18px" onclick="saveSettings()">Shrani nastavitve</button>
@@ -931,7 +942,7 @@ function lsSet(k,v){ try{ if(storageOK) localStorage.setItem(k,v); }catch(e){} }
 
 function defState(){
   return {rate:0, goalHours:0, goalMode:'h', goalMoney:0, reward:'', rewPrice:0,
-          theme:'dark', netPct:0, wkx:1, data:{}, celebrated:{}, msDone:0,
+          theme:'dark', netPct:0, wkx:1, wkend:1, data:{}, celebrated:{}, msDone:0,
           meta:{perDay:{}, del:{}, settingsTs:0, log:[]}, _v:5};
 }
 var S=load();
@@ -1052,6 +1063,27 @@ function dayRate(k){
 }
 function entEur(k,v){ return entH(v)*dayRate(k); }
 function netOf(n){ return n*(S.netPct||0)/100; }
+/* dnevi, ki stejejo v tempo: vsi ali samo pon-pet (nastavitev "Štej tudi vikende") */
+function countDays(y,m,from,to,wk){
+  if(wk==null) wk=(S.wkend!==0);
+  var c=0;
+  for(var d=from; d<=to; d++){ var w=new Date(y,m,d).getDay(); if(wk || (w!==0 && w!==6)) c++; }
+  return c;
+}
+function paceDays(y,m){
+  var n=dim(y,m), t=now.getDate();
+  return {total:countDays(y,m,1,n), done:countDays(y,m,1,t), left:countDays(y,m,t,n)};
+}
+/* napoved ur do konca meseca pri tem tempu */
+function projHours(aH, pd){ return pd.done>0 ? aH/pd.done*pd.total : aH; }
+/* slovenska oblika: 1 dan, 2 dneva, 3 dnevi, 5 dni (+ "delovni" ko vikendi ne stejejo) */
+function dniTxt(n){
+  var w=(S.wkend===0), r=n%100;
+  if(r===1) return n+(w?' delovni dan':' dan');
+  if(r===2) return n+(w?' delovna dneva':' dneva');
+  if(r===3||r===4) return n+(w?' delovni dnevi':' dnevi');
+  return n+(w?' delovnih dni':' dni');
+}
 
 function goalH(){ if(S.goalMode==='e') return S.rate>0 ? S.goalMoney/S.rate : 0; return S.goalHours; }
 function goalE(){ if(S.goalMode==='e') return S.goalMoney; return S.goalHours*S.rate; }
@@ -1195,8 +1227,8 @@ function projMonth(){
   var isCur=(vy===now.getFullYear() && vm===now.getMonth());
   var mh=monthCalc(vy,vm);
   if(!isCur || mh.aH<=0) return null;
-  var n=dim(vy,vm), base=mh.aH/now.getDate()*n*S.rate;
-  return base + boostH*S.rate*(n-now.getDate()+1);
+  var pd=paceDays(vy,vm), base=projHours(mh.aH,pd)*S.rate;
+  return base + boostH*S.rate*pd.left;
 }
 function renderProjArc(load){
   var el=document.getElementById('rProj'), el2=document.getElementById('rProj2'), dot=document.getElementById('rProjDot');
@@ -1229,8 +1261,8 @@ function renderBoost(){
   var isCur=(vy===now.getFullYear() && vm===now.getMonth());
   if(!isCur || !S.rate){ box.style.display='none'; return; }
   box.style.display='';
-  var n=dim(vy,vm), dl=n-now.getDate()+1, gE=goalE(), proj=projMonth();
-  document.getElementById('xTitle').textContent='Vsaka ura šteje · še '+dl+' dni';
+  var dl=paceDays(vy,vm).left, gE=goalE(), proj=projMonth();
+  document.getElementById('xTitle').textContent='Vsaka ura šteje · še '+dniTxt(dl);
   document.getElementById('boostR').style.setProperty('--p',(boostH/3*100)+'%');
   document.getElementById('bVal').textContent = boostH? '+'+(Math.round(boostH*100)/100).toLocaleString('sl-SI')+' h na dan' : 'brez dodatnih ur';
   var res=document.getElementById('bRes');
@@ -1435,7 +1467,7 @@ function render(opt){
   else{
     var txt=hrs(leftH)+' · '+eur(leftH*S.rate);
     if(isCur){
-      var daysLeft = dim(vy,vm)-now.getDate()+1;
+      var daysLeft = paceDays(vy,vm).left;
       if(daysLeft>0) txt+=' · '+ (Math.round(leftH/daysLeft*10)/10).toLocaleString('sl-SI')+'\u00A0h/dan';
     }
     leftEl.textContent=txt; leftEl.className='';
@@ -1449,7 +1481,7 @@ function render(opt){
   var paceRow=document.getElementById('kPaceRow');
   if(isCur && mh.aH>0){
     paceRow.style.display='';
-    var proj = mh.aH/now.getDate()*dim(vy,vm)*S.rate;
+    var proj = projHours(mh.aH, paceDays(vy,vm))*S.rate;
     document.getElementById('kPace').textContent='~'+eur(Math.round(proj));
   } else paceRow.style.display='none';
 
@@ -1474,10 +1506,11 @@ function render(opt){
   var pc=document.getElementById('paceChip');
   pc.classList.remove('on','pc-ok','pc-warn');
   if(isCur && gH>0 && mh.aH>0 && leftH>0){
-    var daysLeft2 = dim(vy,vm)-now.getDate()+1;
-    var proj2 = mh.aH/now.getDate()*dim(vy,vm);
+    var pdx = paceDays(vy,vm);
+    var daysLeft2 = pdx.left;
+    var proj2 = projHours(mh.aH, pdx);
     var needPerDay = daysLeft2>0 ? leftH/daysLeft2 : 0;
-    var curPerDay = mh.aH/now.getDate();
+    var curPerDay = pdx.done>0 ? mh.aH/pdx.done : mh.aH;
     if(proj2>=gH){ pc.classList.add('on','pc-ok'); pc.textContent='Na poti do cilja - ta tempo ti prinese ~'+hrs(Math.round(proj2))+'.'; }
     else { pc.classList.add('on','pc-warn'); pc.textContent='Ta tempo ti da le ~'+hrs(Math.round(proj2))+'. Za cilj od zdaj: '+
       (Math.round(needPerDay*10)/10).toLocaleString('sl-SI')+'\u00A0h/dan (zdaj ~'+(Math.round(curPerDay*10)/10).toLocaleString('sl-SI')+' h/dan).'; }
@@ -1530,12 +1563,12 @@ function render(opt){
     else if(leftH<=0){ setTxt('dLeft','Cilj dosežen 🎉'); setTxt('dLeftSub', hrs(mh.aH-gH)+' čez cilj'); }
     else {
       setTxt('dLeft', hrs(leftH));
-      var dLeft2 = isCur? dim(vy,vm)-now.getDate()+1 : 0;
+      var dLeft2 = isCur? paceDays(vy,vm).left : 0;
       setTxt('dLeftSub', eur(leftH*S.rate)+(dLeft2>0? ' · '+(Math.round(leftH/dLeft2*10)/10).toLocaleString('sl-SI')+' h/dan' : ''));
     }
     if(isCur && mh.aH>0){
-      setTxt('dProj', '~'+eur(Math.round(mh.aH/now.getDate()*dim(vy,vm)*S.rate)));
-      setTxt('dProjSub','pri tem tempu · še '+(dim(vy,vm)-now.getDate()+1)+' dni');
+      setTxt('dProj', '~'+eur(Math.round(projHours(mh.aH, paceDays(vy,vm))*S.rate)));
+      setTxt('dProjSub','pri tem tempu · še '+dniTxt(paceDays(vy,vm).left));
     } else { setTxt('dProj','-'); setTxt('dProjSub', isCur? 'ni še vnosov':'pretekli mesec'); }
     setTxt('dToday', isCur&&tv!=null? hrs(entH(tv)) : '-');
     setTxt('dTodaySub', isCur&&tv!=null? (isPlan(tv)? 'planirano' : eur(entEur(tk,tv))) : (isCur?'še nič vpisanega':''));
@@ -2179,8 +2212,9 @@ function openSettings(){
   document.getElementById('sGoalEur').value=S.goalMoney||'';
   document.getElementById('sReward').value=S.reward||'';
   document.getElementById('sRewPrice').value=S.rewPrice||'';
-  document.getElementById('sNet').value=S.netPct||'';
-  document.getElementById('sWkx').value=(S.wkx&&S.wkx!==1)?S.wkx:'';
+  if(document.getElementById('sNet')) document.getElementById('sNet').value=S.netPct||'';
+  if(document.getElementById('sWkx')) document.getElementById('sWkx').value=(S.wkx&&S.wkx!==1)?S.wkx:'';
+  document.getElementById('sWkend').checked = (S.wkend!==0);
   setGoalMode(S.goalMode==='e'?'e':'h');
   paintThemeSeg();
   renderAcct();
@@ -2193,18 +2227,20 @@ function openSettings(){
 function setCalc(){
   var r=parseFloat(String(document.getElementById('sRate').value).replace(',','.'))||0;
   var el=document.getElementById('sCalc');
-  var n=dim(now.getFullYear(),now.getMonth());
+  var wkEl=document.getElementById('sWkend'), wkOn=wkEl? wkEl.checked : (S.wkend!==0);
+  var n=countDays(now.getFullYear(),now.getMonth(),1,dim(now.getFullYear(),now.getMonth()),wkOn);
+  var perDay=wkOn? 'na dan' : 'na delovni dan';
   if(goalMode==='h'){
     var g=parseFloat(String(document.getElementById('sGoal').value).replace(',','.'))||0;
-    el.textContent = (r>0&&g>0)? 'Cilj = '+eur(r*g)+' na mesec · ~'+eur(r*g/n)+'\u00A0na dan' : 'Vpiši postavko in cilj, da vidiš izračun';
+    el.textContent = (r>0&&g>0)? 'Cilj = '+eur(r*g)+' na mesec · ~'+eur(r*g/n)+'\u00A0'+perDay : 'Vpiši postavko in cilj, da vidiš izračun';
   } else {
     var e=parseFloat(String(document.getElementById('sGoalEur').value).replace(',','.'))||0;
-    if(r>0&&e>0){ var hh=e/r; el.textContent='Za '+eur(e)+' rabiš '+(Math.round(hh*10)/10).toLocaleString('sl-SI')+' h · ~'+(Math.round(hh/n*10)/10).toLocaleString('sl-SI')+'\u00A0h na dan'; }
+    if(r>0&&e>0){ var hh=e/r; el.textContent='Za '+eur(e)+' rabiš '+(Math.round(hh*10)/10).toLocaleString('sl-SI')+' h · ~'+(Math.round(hh/n*10)/10).toLocaleString('sl-SI')+'\u00A0h '+perDay; }
     else el.textContent='Vpiši postavko in znesek, da vidiš potrebne ure';
   }
 }
 /* nastavitve, ki se sinhronizirajo kot celota (novejsi settingsTs zmaga) */
-var SET_FIELDS=['rate','goalHours','goalMode','goalMoney','reward','rewPrice','netPct','wkx'];  /* tema je fiksno temna */
+var SET_FIELDS=['rate','goalHours','goalMode','goalMoney','reward','rewPrice','netPct','wkx','wkend'];  /* tema je fiksno temna */
 function setSnap(){ var o={}; SET_FIELDS.forEach(function(f){ o[f]=S[f]; }); return JSON.stringify(o); }
 function saveSettings(){
   /* varovalka: naprava, ki se se ni nikoli uskladila z oblakom, ne sme z (praznimi)
@@ -2222,10 +2258,15 @@ function saveSettings(){
   S.reward=document.getElementById('sReward').value.trim();
   var rp=parseFloat(String(document.getElementById('sRewPrice').value).replace(',','.'));
   S.rewPrice=isNaN(rp)||rp<0?0:rp;
-  var np=parseInt(document.getElementById('sNet').value,10);
-  S.netPct=isNaN(np)||np<0||np>100?0:np;
-  var wx=parseFloat(String(document.getElementById('sWkx').value).replace(',','.'));
-  S.wkx=isNaN(wx)||wx<1?1:Math.min(3,wx);
+  if(document.getElementById('sNet')){
+    var np=parseInt(document.getElementById('sNet').value,10);
+    S.netPct=isNaN(np)||np<0||np>100?0:np;
+  }
+  if(document.getElementById('sWkx')){
+    var wx=parseFloat(String(document.getElementById('sWkx').value).replace(',','.'));
+    S.wkx=isNaN(wx)||wx<1?1:Math.min(3,wx);
+  }
+  S.wkend = document.getElementById('sWkend').checked ? 1 : 0;
   /* vsako polje ima svoj cas spremembe: posodobi se samo tisto, kar si res spremenil,
      zato shranjevanje ene nastavitve nikoli ne povozi ostalih v oblaku */
   var prev=JSON.parse(before), after=JSON.parse(setSnap()), nowTs=Date.now(), changedSet=false;
@@ -2580,12 +2621,12 @@ function renderAcct(){
   if(SESS){
     box.innerHTML='<div class="who"><div class="av">'+(em.charAt(0)||'?').toUpperCase()+'</div>'+
       '<div style="min-width:0"><b>'+em+'</b><small>foqs račun · '+syncState+'</small></div></div>'+
-      '<div class="sso">Ista prijava velja za vse foqs aplikacije na tej napravi.</div>'+
+      '<div class="sso">Ena prijava za vse foqs. aplikacije.</div>'+
       '<button class="btn soft wide tap" onclick="logout()">Odjava</button>';
   } else {
     box.innerHTML='<div class="who"><div class="av" style="background:var(--c2);color:var(--mute)">?</div>'+
       '<div><b>Nisi prijavljen</b><small>Podatki so samo na tej napravi.</small></div></div>'+
-      '<div class="sso">Prijavi se enkrat - velja tudi za habit in ostale foqs aplikacije.</div>'+
+      '<div class="sso">Ena prijava za vse foqs. aplikacije.</div>'+
       '<button class="btn pri wide tap" onclick="closeOvl(\'setOvl\');openAuth()">Prijava / nov račun</button>';
   }
 }
@@ -2655,7 +2696,7 @@ function bootFly(){
   if(!sp){ app.classList.remove('booting'); app.classList.add('logo-in'); render({load:true}); return; }
   var logo=document.getElementById('spLogo');
   var hl=document.querySelector('.hdr .logo .w');
-  var pr=app.getBoundingClientRect();
+  var pr=sp.getBoundingClientRect();
   if(logo && hl){
     var hr=hl.getBoundingClientRect(), l2=logo.getBoundingClientRect();
     var lx=parseFloat(logo.style.left)||0, ly=parseFloat(logo.style.top)||0;
@@ -2687,7 +2728,7 @@ function bootStart(){
     if(s1) s1.textContent='pripravljam';
   }
   var logo=document.getElementById('spLogo');
-  var pr=app.getBoundingClientRect(), lr=logo.getBoundingClientRect();
+  var pr=sp.getBoundingClientRect(), lr=logo.getBoundingClientRect();
   var lx=(pr.width-lr.width)/2, ly=pr.height/2-lr.height/2-14;
   logo.style.left=lx+'px'; logo.style.top=ly+'px';
   bootLater(function(){ var b=document.getElementById('spBar'); if(b) b.style.width='100%'; },420);
