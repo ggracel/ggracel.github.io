@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 680;
+const CLIENT_VERSION = 690;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -1545,7 +1545,8 @@ function navigate(v, m = mode) {
   $("#dashboard").hidden = v !== "dashboard";
   $("#comparison").hidden = v !== "comparison";
   $("#copy").hidden = v !== "copy";
-  for (const id of ["live", "history", "about", "watch", "overview", "compare", "kopiranje"])
+  $("#reports").hidden = v !== "reports";
+  for (const id of ["live", "history", "about", "watch", "overview", "compare", "kopiranje", "pregledi"])
     $("#" + id).classList.toggle(
       "active",
       id ===
@@ -1561,7 +1562,9 @@ function navigate(v, m = mode) {
                   ? "compare"
                   : v === "copy"
                     ? "kopiranje"
-                    : m),
+                    : v === "reports"
+                      ? "pregledi"
+                      : m),
     );
   status();
   draw();
@@ -1573,7 +1576,7 @@ const MTABS = [
   { id: "watch", label: "Pozicije", icon: "M3 17l5-6 4 4 5-8 4 5" },
   { id: "overview", label: "Bilanca", icon: "M3 4h18v16H3z M7 14l3-3 3 2 4-5" },
   { id: "kopiranje", label: "Kopiranje", icon: "M8 8h12v12H8z M4 16V4h12" },
-  { id: "compare", label: "Lab", icon: "M9 3v6l-5 9a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-9V3" },
+  { id: "pregledi", label: "Pregledi", icon: "M4 20V10 M10 20V4 M16 20v-6 M22 20H2" },
   { id: "more", label: "Več", icon: "M5 12h.01 M12 12h.01 M19 12h.01" },
 ];
 let mtabsEl = null, mmoreEl = null;
@@ -1603,7 +1606,7 @@ function toggleMore() {
   if (mmoreEl) return closeMore();
   mmoreEl = document.createElement("div");
   mmoreEl.className = "mmore";
-  const items = [["Dnevnik", () => $("#history").click()], ["Radar", () => $("#live").click()], ["Kako deluje", () => $("#about").click()], ["Nastavitve bota", () => $("#botPill").click()], ["Odjava", () => $("#logout").click()]];
+  const items = [["Dnevnik", () => $("#history").click()], ["Laboratorij", () => $("#compare").click()], ["Radar", () => $("#live").click()], ["Kako deluje", () => $("#about").click()], ["Nastavitve bota", () => $("#botPill").click()], ["Odjava", () => $("#logout").click()]];
   for (const [label, fn] of items) {
     const b = document.createElement("button");
     b.type = "button";
@@ -1616,7 +1619,7 @@ function toggleMore() {
 function closeMore() { if (mmoreEl) { mmoreEl.remove(); mmoreEl = null; } }
 function syncMobileTabs() {
   if (!mtabsEl) return;
-  const cur = view === "dashboard" ? "overview" : view === "watching" ? "watch" : view === "journal" ? "more" : view === "comparison" ? "compare" : view === "copy" ? "kopiranje" : view === "info" ? "more" : view === "market" ? "more" : "";
+  const cur = view === "dashboard" ? "overview" : view === "watching" ? "watch" : view === "journal" ? "more" : view === "comparison" ? "more" : view === "copy" ? "kopiranje" : view === "reports" ? "pregledi" : view === "info" ? "more" : view === "market" ? "more" : "";
   for (const b of mtabsEl.querySelectorAll(".mtab")) b.classList.toggle("on", b.dataset.id === cur);
   const n = trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && !t.practice).length;
   const badge = mtabsEl.querySelector(".mbadge");
@@ -3812,6 +3815,15 @@ function renderOpenTrades() {
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
   {
+    id: 29,
+    at: "2026-10-05T19:30:00Z",
+    date: "5. 10. 2026",
+    title: "Nov zavihek Pregledi: jutranji pregled bota in kopiranja v aplikaciji",
+    short: "<b>Pregledi so v aplikaciji.</b> Jutranji pregled bota in kopiranja je zdaj zavihek: 14 dni na en pogled, izbrani dan, podrobnosti zložene.",
+    body:
+      "Vsako jutro ob 8:00 nastane pregled prejšnjega dne za bota in za kopiranje denarnic. Do zdaj je bil samo na ločeni strani, od 5. 10. je zavihek Pregledi: zgoraj 14 dni kot stolpci za oba sistema (klik izbere dan), pod tem bot in kopiranje drug ob drugem s štirimi ključnimi številkami in zaključkom v navadnem jeziku, vse ostalo (potek dneva, deli dneva, rep, pravila, zdravje, opozorila) je zloženo v vrstice, ki jih odpreš po potrebi. Zgodovina ni omejena na 7 dni. Na telefonu je Pregledi v spodnji vrstici namesto Laboratorija, ki je zdaj pod Več. Ni finančni nasvet.",
+  },
+  {
     id: 28,
     at: "2026-10-05T17:00:00Z",
     date: "5. 10. 2026",
@@ -4599,3 +4611,179 @@ $("#cpWallet").onchange = (e) => { copyUI.wallet = e.target.value; renderCopyFee
 $("#cpStateSel").onchange = (e) => { copyUI.state = e.target.value; renderCopyFeed(); };
 $("#cpSearch").oninput = (e) => { copyUI.q = e.target.value; renderCopyFeed(); };
 $("#cpSkips").onclick = () => { copyUI.skips = !copyUI.skips; renderCopyFeed(); };
+
+// 5. 10. 2026: zavihek Pregledi. Jutranje opravilo vsak dan ob 8:00 vpiše pregled bota v memecoin_reports in pregled
+// kopiranja v copy_reports (dan, data jsonb, povzetek). Zavihek bere obe tabeli in riše: pulz 14 dni za oba sistema,
+// izbrani dan z botom in kopiranjem drug ob drugem, podrobnosti zložene. Nič se ne računa sproti, vse pride iz tabel.
+let pgState = { bot: [], copy: [], day: null, loadedAt: 0, error: "" }, pgBusy = false;
+const pgN = (x, d = 2) => (Number.isFinite(Number(x)) ? plainMinus(Number(x).toLocaleString("sl-SI", { minimumFractionDigits: d, maximumFractionDigits: d })) : "-");
+const pgS = (x, d = 2) => (Number.isFinite(Number(x)) ? (Number(x) > 0 ? "+" : "") + pgN(x, d) : "-");
+const pgTone = (x) => (Number(x) > 0 ? "positive" : Number(x) < 0 ? "negative" : "");
+const pgEsc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const PG_DNEVI = ["nedelja", "ponedeljek", "torek", "sreda", "četrtek", "petek", "sobota"];
+const PG_KRATKO = ["ned", "pon", "tor", "sre", "čet", "pet", "sob"];
+function pgDate(dan) { const [y, m, d] = dan.split("-").map(Number); return new Date(y, m - 1, d); }
+function pgLong(dan) { const d = pgDate(dan); return PG_DNEVI[d.getDay()][0].toUpperCase() + PG_DNEVI[d.getDay()].slice(1) + ", " + d.getDate() + ". " + (d.getMonth() + 1) + ". " + d.getFullYear(); }
+function pgShort(dan) { const d = pgDate(dan); return d.getDate() + ". " + (d.getMonth() + 1) + "."; }
+async function loadPregledi() {
+  if (!db || pgBusy) return;
+  pgBusy = true;
+  try {
+    const [b, c] = await Promise.all([
+      db.from("memecoin_reports").select("dan,data,povzetek,created_at").order("dan", { ascending: false }).limit(60),
+      db.from("copy_reports").select("dan,data,povzetek,created_at").order("dan", { ascending: false }).limit(60),
+    ]);
+    if (b.error) throw b.error;
+    if (c.error) throw c.error;
+    pgState.bot = b.data || [];
+    pgState.copy = c.data || [];
+    pgState.error = "";
+    pgState.loadedAt = Date.now();
+    const days = pgDays();
+    if (!pgState.day || !days.includes(pgState.day)) pgState.day = days[0] || null;
+  } catch (e) {
+    pgState.error = e?.message || String(e);
+  }
+  pgBusy = false;
+  renderPregledi();
+}
+function pgDays() { return [...new Set([...pgState.bot.map((r) => r.dan), ...pgState.copy.map((r) => r.dan)])].sort().reverse(); }
+function pgRow(list, dan) { return list.find((r) => r.dan === dan) || null; }
+// Pulz: stolpec na dan za zadnjih 14 dni, višina je neto SOL, klik izbere dan.
+function pgPulz(list, pick, days14) {
+  const vals = days14.map((d) => { const r = pgRow(list, d); return r ? pick(r.data) : null; });
+  const mx = Math.max(...vals.map((v) => Math.abs(v || 0)), 0.01);
+  return days14.map((d, i) => {
+    const v = vals[i];
+    if (v === null || v === undefined) return `<button type="button" class="pgBar empty" data-day="${d}" title="${pgShort(d)}: ni pregleda"><i></i></button>`;
+    const h = (Math.abs(v) / mx) * 48;
+    const st = v >= 0 ? `bottom:50%;height:${h}%` : `top:50%;height:${h}%`;
+    return `<button type="button" class="pgBar ${v >= 0 ? "up" : "dn"}${d === pgState.day ? " on" : ""}" data-day="${d}" title="${pgShort(d)}: ${pgS(v, 3)} SOL"><i style="${st}"></i></button>`;
+  }).join("");
+}
+function pgCurve(series, opts = {}) {
+  const all = series.flatMap((s) => s.pts || []);
+  if (!all.length) return `<p class="muted pgEmpty">Ni krivulje za ta dan.</p>`;
+  const W = 700, H = 200, L = 44, R = 12, T = 12, B = 26;
+  let lo = Math.min(0, ...all.map((p) => p[1])), hi = Math.max(0, ...all.map((p) => p[1]));
+  if (hi - lo < 1e-9) hi = lo + 1;
+  const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+  const x = (m) => L + (Math.min(1440, Math.max(0, m)) / 1440) * (W - L - R);
+  const y = (v) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  const lines = series.map((s) => {
+    if (!s.pts?.length) return "";
+    const pts = [[s.pts[0][0], 0], ...s.pts];
+    return `<polyline fill="none" stroke="${s.color}" stroke-width="${s.width || 2}" stroke-linejoin="round" points="${pts.map((p) => x(p[0]).toFixed(1) + "," + y(p[1]).toFixed(1)).join(" ")}"/>`;
+  }).join("");
+  const marks = (opts.oznake || []).map((o) => `<circle cx="${x(o.min).toFixed(1)}" cy="${y(o.v).toFixed(1)}" r="3.5" fill="#dbe7ff"/><text x="${(x(o.min) + 6).toFixed(1)}" y="${(y(o.v) - 6).toFixed(1)}" fill="#8ca4c5" font-size="10">${pgEsc(o.label)}</text>`).join("");
+  const vrzel = opts.vrzel ? `<rect x="${x(opts.vrzel.od).toFixed(1)}" y="${T}" width="${(x(opts.vrzel.do) - x(opts.vrzel.od)).toFixed(1)}" height="${H - T - B}" fill="#ffffff08"/><text x="${(x(opts.vrzel.od) + 4).toFixed(1)}" y="${T + 12}" fill="#5f7390" font-size="10">${pgEsc(opts.vrzel.label || "")}</text>` : "";
+  const axis = [lo + pad, 0, hi - pad].filter((v, i, a) => a.indexOf(v) === i).map((v) => `<line x1="${L}" y1="${y(v).toFixed(1)}" x2="${W - R}" y2="${y(v).toFixed(1)}" stroke="${v === 0 ? "#2a3d58" : "#16233a"}" stroke-dasharray="${v === 0 ? "" : "3 4"}"/><text x="${L - 6}" y="${(y(v) + 3).toFixed(1)}" fill="#5f7390" font-size="10" text-anchor="end">${pgS(v, 2)}</text>`).join("");
+  const hours = [0, 6, 12, 18, 24].map((h) => `<text x="${x(h * 60).toFixed(1)}" y="${H - 8}" fill="#5f7390" font-size="10" text-anchor="${h === 0 ? "start" : h === 24 ? "end" : "middle"}">${String(h).padStart(2, "0")}:00</text>`).join("");
+  return `<svg class="pgChart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Kumulativni neto rezultat dneva v SOL">${vrzel}${axis}${lines}${marks}${hours}</svg>`;
+}
+function pgTable(head, rows, fmt) {
+  if (!rows?.length) return `<p class="muted pgEmpty">Ni podatkov.</p>`;
+  return `<div class="scroll"><table class="pgTbl"><thead><tr>${head.map((h) => `<th>${pgEsc(h)}</th>`).join("")}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c, i) => fmt(c, i, r)).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+const pgCell = (txt, cls = "") => `<td class="${cls}">${txt}</td>`;
+const pgSolCell = (v, d = 4) => pgCell(pgS(v, d), "pgNum " + pgTone(v));
+const pgPctCell = (v, d = 1) => pgCell(Number.isFinite(Number(v)) ? pgS(v, d) + " %" : "-", "pgNum " + pgTone(v));
+const pgPlain = (v) => pgCell(v === null || v === undefined ? "-" : pgEsc(v), "pgNum");
+function pgKpi(label, value, unit, sub, tone = "") {
+  return `<div class="pgK ${tone}"><small>${pgEsc(label)}</small><strong>${value}${unit ? `<u>${unit}</u>` : ""}</strong><em>${pgEsc(sub || "")}</em></div>`;
+}
+function pgBotCol(r) {
+  if (!r) return `<div class="pgCol"><div class="pgCh"><i class="pgDot" style="--c:#46bec5"></i><b>Bot</b></div><p class="muted pgEmpty">Za ta dan ni pregleda bota.</p></div>`;
+  const d = r.data, k = d.kpi || {};
+  const tocke = d.zakljucek?.tocke?.length ? `<ul class="pgTocke">${d.zakljucek.tocke.map((t) => `<li>${t}</li>`).join("")}</ul>` : "";
+  return `<div class="pgCol"><div class="pgCh"><i class="pgDot" style="--c:#46bec5"></i><b>Bot</b><span class="muted">${pgEsc(d.znacka || d.podnaslov?.split(".")[0] || "")}</span></div>
+    <div class="pgKs">
+      ${pgKpi("Neto", pgS(k.neto, 4), "SOL", k.prejNeto !== undefined ? "dan prej " + pgS(k.prejNeto, 4) : "", pgTone(k.neto))}
+      ${pgKpi("PnL", pgS(k.pnl ?? k.naPosel, 2), "%", k.tedenPnl !== undefined ? "teden prej " + pgS(k.tedenPnl, 2) + " %" : k.prejPnl !== undefined ? "dan prej " + pgS(k.prejPnl, 2) + " %" : "", pgTone(k.pnl ?? k.naPosel))}
+      ${pgKpi("Poslov", pgEsc(k.poslov ?? "-"), "", k.win !== undefined ? pgN(k.win, 1) + " % dobitkov" + (k.dobitkov !== undefined ? " (" + k.dobitkov + ")" : "") : "")}
+      ${pgKpi("Globoke", pgEsc(k.globoke ?? "-"), "", k.globokeDelez !== undefined ? "pod -25 %, " + pgN(k.globokeDelez, 1) + " % poslov" : "pod -25 %")}
+    </div>
+    <p class="pgLead">${d.zakljucek?.lead || pgEsc(r.povzetek || "")}</p>${tocke}</div>`;
+}
+function pgCopyCol(r) {
+  if (!r) return `<div class="pgCol"><div class="pgCh"><i class="pgDot" style="--c:#c0eb75"></i><b>Kopiranje</b></div><p class="muted pgEmpty">Za ta dan ni pregleda kopiranja (kopiranje teče od 5. 10. 2026).</p></div>`;
+  const d = r.data, k = d.kpi || {};
+  const tocke = d.zakljucek?.tocke?.length ? `<ul class="pgTocke">${d.zakljucek.tocke.map((t) => `<li>${t}</li>`).join("")}</ul>` : "";
+  const hs = `<span class="${pgTone(k.hitriNeto)}">${pgS(k.hitriNeto, 2)}</span> / <span class="${pgTone(k.sledNeto)}">${pgS(k.sledNeto, 2)}</span>`;
+  return `<div class="pgCol"><div class="pgCh"><i class="pgDot" style="--c:#c0eb75"></i><b>Kopiranje</b><span class="muted">${pgEsc(d.znacka || "8 denarnic · senca")}</span></div>
+    <div class="pgKs">
+      ${pgKpi("Zrcalo neto", pgS(k.zrcaloNeto, 4), "SOL", "PnL " + pgS(k.zrcaloPnl, 2) + " %" + (k.prejZrcaloNeto !== undefined ? ", dan prej " + pgS(k.prejZrcaloNeto, 4) : ""), pgTone(k.zrcaloNeto))}
+      ${pgKpi("Hitri / Sled", hs, "", "ista vstopa, lasten izstop")}
+      ${pgKpi("Nakupov", pgEsc(k.nakupov ?? "-"), "", (k.preskoki ?? 0) + " preskokov" + (k.odprtih ? ", " + k.odprtih + " odprtih" : ""))}
+      ${pgKpi("Zamik", k.zamikMed === null || k.zamikMed === undefined ? "-" : pgN(k.zamikMed, 0), "s", k.cenaZamikaMed === null || k.cenaZamikaMed === undefined ? "" : "cena zamika " + pgS(k.cenaZamikaMed * 100, 1) + " %")}
+    </div>
+    <p class="pgLead">${d.zakljucek?.lead || pgEsc(r.povzetek || "")}</p>${tocke}</div>`;
+}
+function pgDetails(title, sum, body, open = false) {
+  return `<details class="pgDet"${open ? " open" : ""}><summary><b>${pgEsc(title)}</b><span>${pgEsc(sum)}</span></summary><div class="pgIn">${body}</div></details>`;
+}
+function pgChips(arr, warn = false) { return (arr || []).map((s) => `<span class="pgChip${warn ? " w" : ""}">${pgEsc(s)}</span>`).join(""); }
+function renderPregledi() {
+  const root = $("#pgRoot");
+  if (!root) return;
+  if (pgState.error) { root.innerHTML = `<p class="cpStatus err"><i></i>Napaka pri branju pregledov: ${pgEsc(pgState.error)}</p>`; return; }
+  const days = pgDays();
+  if (!days.length) { root.innerHTML = `<p class="cpEmpty"><b>Še ni pregledov</b>Prvi jutranji pregled nastane ob 8:00.</p>`; return; }
+  const day = pgState.day || days[0];
+  const i = days.indexOf(day);
+  const last = [...pgState.bot, ...pgState.copy].map((r) => r.created_at).filter(Boolean).sort().pop();
+  // 14 dni nazaj od najnovejšega dne, tudi dnevi brez pregleda
+  const end = pgDate(days[0]);
+  const days14 = Array.from({ length: 14 }, (_, j) => { const d = new Date(end); d.setDate(end.getDate() - 13 + j); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); });
+  const botIn14 = pgState.bot.filter((r) => days14.includes(r.dan));
+  const copyIn14 = pgState.copy.filter((r) => days14.includes(r.dan));
+  const sum = (list, pick) => list.reduce((a, r) => a + (Number(pick(r.data)) || 0), 0);
+  const botSum = sum(botIn14, (d) => d.kpi?.neto), copySum = sum(copyIn14, (d) => d.kpi?.zrcaloNeto);
+  const b = pgRow(pgState.bot, day), c = pgRow(pgState.copy, day);
+  const bd = b?.data || {}, cd = c?.data || {};
+  // podrobnosti
+  const potek = `<div class="pgTwo"><div><small class="pgSub">Bot</small>${pgCurve([{ pts: bd.krivulja, color: "#46bec5" }], { oznake: bd.oznake, vrzel: bd.vrzel })}${bd.krivuljaOpomba ? `<p class="muted">${pgEsc(bd.krivuljaOpomba)}</p>` : ""}</div>
+    <div><small class="pgSub">Kopiranje <span class="cpLegend"><i style="--c:#46bec5"></i>Zrcalo <i style="--c:#e2a93a"></i>Hitri <i style="--c:#c0eb75"></i>Sled</span></small>${pgCurve([{ pts: cd.krivulje?.Zrcalo, color: "#46bec5" }, { pts: cd.krivulje?.Hitri, color: "#e2a93a", width: 1.5 }, { pts: cd.krivulje?.Sled, color: "#c0eb75", width: 1.5 }])}${cd.krivuljeOpomba ? `<p class="muted">${pgEsc(cd.krivuljeOpomba)}</p>` : ""}</div></div>`;
+  const blokFmt = (v, j) => (j === 0 ? pgCell(pgEsc(v)) : j === 1 ? pgPlain(v) : j === 2 ? pgSolCell(v, 3) : j === 3 ? pgPctCell(v, 2) : pgPctCell(v, 0).replace("+", ""));
+  const ure = `<div class="pgTwo"><div><small class="pgSub">Ta dan</small>${pgTable(["Del dneva", "Poslov", "Neto", "PnL", "V plusu"], bd.bloki, blokFmt)}</div><div><small class="pgSub">Zadnjih 7 dni</small>${pgTable(["Del dneva", "Poslov", "Neto", "PnL", "V plusu"], bd.bloki7, blokFmt)}</div></div>${bd.ureOpomba ? `<p class="muted">${pgEsc(bd.ureOpomba)}</p>` : ""}`;
+  const best7 = bd.bloki7?.length ? [...bd.bloki7].sort((p, q) => q[3] - p[3])[0] : null;
+  const rep = `<div class="pgTwo"><div><small class="pgSub">Bot</small>${pgTable(["Kovanec", "Čas", "Izid", "SOL"], bd.rep, (v, j) => (j === 0 ? pgCell(pgEsc(v)) : j === 1 ? pgPlain(v) : j === 2 ? pgPctCell(v, 1) : pgSolCell(v, 4)))}${bd.repOpomba ? `<p class="muted">${pgEsc(bd.repOpomba)}</p>` : ""}</div>
+    <div><small class="pgSub">Kopiranje (Zrcalo, ob njem Hitri in Sled na istem vstopu)</small>${pgTable(["Kovanec", "Denarnica", "Čas", "Zrcalo", "Hitri", "Sled"], cd.rep, (v, j) => (j < 3 ? pgCell(pgEsc(v ?? "-")) : pgPctCell(v, 1)))}${cd.repOpomba ? `<p class="muted">${pgEsc(cd.repOpomba)}</p>` : ""}</div></div>`;
+  const pravila = `${pgTable(["Pravilo", "Zaprtih", "Dobitki", "Povp. dobiček", "Povp. izguba", "Faktor", "PnL", "Neto SOL", "Držanje"], cd.pravila, (v, j) => (j === 0 ? pgCell(pgEsc(v)) : j === 1 ? pgPlain(v) : j === 2 ? pgPctCell(v, 0).replace("+", "") : j === 3 || j === 4 || j === 6 ? pgPctCell(v, 1) : j === 5 ? pgPlain(v === null ? "-" : pgN(v, 2)) : j === 7 ? pgSolCell(v, 4) : pgPlain(v === null ? "-" : pgN(v, 0) + " min")))}${cd.pravilaOpomba ? `<p class="muted">${pgEsc(cd.pravilaOpomba)}</p>` : ""}
+    <small class="pgSub">Denarnice (Zrcalo)</small>${pgTable(["Denarnica", "Nakupov", "Zrcalo neto", "V plusu", "Zamik", "Cena zamika", "Preskokov"], cd.denarnice, (v, j) => (j === 0 ? pgCell(pgEsc(v)) : j === 1 || j === 6 ? pgPlain(v) : j === 2 ? pgSolCell(v, 4) : j === 3 ? pgPlain(v === null ? "-" : pgN(v, 0) + " %") : j === 4 ? pgPlain(v === null ? "-" : pgN(v, 0) + " s") : pgPctCell(v === null ? null : v * 100, 1)))}${cd.denarniceOpomba ? `<p class="muted">${pgEsc(cd.denarniceOpomba)}</p>` : ""}
+    <div class="pgTwo"><div><small class="pgSub">Kako so se posli zaprli</small>${["Zrcalo", "Hitri", "Sled"].map((n) => (cd.izidi?.[n]?.length ? `<p class="pgMini"><b>${n}:</b> ${cd.izidi[n].map((x) => pgEsc(x[0]) + " " + x[1]).join(" · ")}</p>` : "")).join("")}</div><div><small class="pgSub">Preskoki</small>${cd.preskoki?.length ? `<p class="pgMini">${cd.preskoki.map((x) => pgEsc(x[0]) + " " + x[1]).join(" · ")}</p>` : `<p class="muted pgEmpty">Ni podatkov.</p>`}${cd.preskokiOpomba ? `<p class="muted">${pgEsc(cd.preskokiOpomba)}</p>` : ""}</div></div>`;
+  const vzorci = `<div class="pgTwo"><div><small class="pgSub">Vzorci vstopa</small>${pgTable(["Vzorec", "Poslov", "Na posel", "V plusu", "Min"], bd.vzorci, (v, j) => (j === 0 ? pgCell(pgEsc(v)) : j === 1 ? pgPlain(v) : j === 2 ? pgPctCell(v, 2) : j === 3 ? pgPlain(pgN(v, 0) + " %") : pgPlain(pgN(v, 1))))}${bd.vzorciOpomba ? `<p class="muted">${pgEsc(bd.vzorciOpomba)}</p>` : ""}</div>
+    <div><small class="pgSub">Vrste izstopov</small>${pgTable(["Izstop", "Poslov"], bd.izidi, (v, j) => (j === 0 ? pgCell(pgEsc(v)) : pgPlain(v)))}${bd.izidiOpomba ? `<p class="muted">${pgEsc(bd.izidiOpomba)}</p>` : ""}</div></div>
+    ${bd.kosi?.length ? `<small class="pgSub">Iz česa je sestavljen dan</small>${pgTable(["Skupina", "Poslov", "SOL"], bd.kosi, (v, j) => (j === 0 ? pgCell(pgEsc(v)) : j === 1 ? pgPlain(v) : pgSolCell(v, 4)))}${bd.kosiOpomba ? `<p class="muted">${pgEsc(bd.kosiOpomba)}</p>` : ""}` : ""}
+    ${bd.cilj50?.opomba ? `<small class="pgSub">Prodaja pri +50 %</small><p class="muted">${pgEsc(bd.cilj50.opomba)}</p>` : ""}
+    ${bd.senca?.length ? `<small class="pgSub">Senca ta dan</small>${pgTable(["Pravilo", "Poslov", "Na posel", "Napaka"], bd.senca, (v, j) => (j === 0 ? pgCell(pgEsc(v)) : j === 1 ? pgPlain(v) : j === 2 ? pgPctCell(v, 2) : pgPlain(v === null ? "-" : "± " + pgN(v, 2))))}${bd.sencaOpomba ? `<p class="muted">${pgEsc(bd.sencaOpomba)}</p>` : ""}` : ""}`;
+  const zdravje = `<div class="pgChips">${pgChips(bd.zdravje)}${pgChips(cd.zdravje)}</div>${!bd.zdravje?.length && !cd.zdravje?.length ? `<p class="muted pgEmpty">Ni zapisov o zdravju.</p>` : ""}`;
+  const opoz = [...(bd.opozorila || []).map((o) => ({ ...o, kdo: "Bot" })), ...(cd.opozorila || []).map((o) => ({ ...o, kdo: "Kopiranje" }))];
+  const prompt = bd.prompt || cd.prompt || "";
+  const opozBody = `${opoz.map((o) => `<p class="pgWarn"><b>${pgEsc(o.kdo)}: ${pgEsc(o.naslov || "")}</b><br>${pgEsc(o.besedilo || "")}</p>`).join("")}${prompt ? `<div class="pgPrompt"><div class="row"><b>Prompt za sonar chat</b><button type="button" id="pgCopyPrompt">Kopiraj prompt</button></div><pre>${pgEsc(prompt)}</pre></div>` : ""}`;
+  const vrstice = [
+    pgDetails("Potek dneva", [bd.krivuljaOpomba ? "bot: " + bd.krivuljaOpomba.split(". ")[0] : "", cd.krivuljeOpomba ? "kopiranje: " + cd.krivuljeOpomba.split(". ")[0] : ""].filter(Boolean).join(" · "), potek, true),
+    b ? pgDetails("Po delih dneva", best7 ? "zadnjih 7 dni najboljši " + best7[0] + " (" + pgS(best7[3], 2) + " % na posel)" : "", ure) : "",
+    pgDetails("Rep dneva", [bd.rep?.length ? "bot: " + bd.rep[0][0] + " " + pgS(bd.rep[0][2], 1) + " %, " + bd.rep[bd.rep.length - 1][0] + " " + pgS(bd.rep[bd.rep.length - 1][2], 1) + " %" : "", cd.rep?.length ? "kopiranje: " + cd.rep[0][0] + " " + pgS(cd.rep[0][3], 1) + " %" : ""].filter(Boolean).join(" · "), rep),
+    c ? pgDetails("Pravila kopiranja in denarnice", cd.denarnice?.length ? cd.denarnice.slice(0, 3).map((w) => w[0] + " " + pgS(w[2], 2)).join(" · ") : "", pravila) : "",
+    b ? pgDetails("Vzorci in izidi bota", bd.vzorci?.length ? [...bd.vzorci].sort((p, q) => q[2] - p[2]).map((v) => v[0] + " " + pgS(v[2], 1) + " %").slice(0, 3).join(" · ") : "", vzorci) : "",
+    pgDetails("Zdravje", ((bd.zdravje?.length || 0) + (cd.zdravje?.length || 0)) + " zapisov", zdravje),
+    opoz.length || prompt ? `<details class="pgDet warn"><summary><b>Opozorila${prompt ? " in prompt za sonar chat" : ""}</b><span>${opoz.length} ${opoz.length === 1 ? "opozorilo" : opoz.length === 2 ? "opozorili" : "opozoril"}${prompt ? " · 1 prompt" : ""}</span></summary><div class="pgIn">${opozBody}</div></details>` : "",
+  ].join("");
+  root.innerHTML = `
+    <div class="pgTop"><h2>Pregledi</h2><span class="pgPill">Zadnji pregled <b>${last ? new Date(last).toLocaleString("sl-SI", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) : "-"}</b> · naslednji jutri ob 8:00</span></div>
+    <div class="pgPulz">
+      <div class="pgPcard"><div class="pgPh"><h3>Bot · 14 dni</h3><span class="pgPsum">skupaj <b class="${pgTone(botSum)}">${pgS(botSum, 2)} SOL</b>${botIn14[0] ? ` · zadnji dan <b class="${pgTone(botIn14[0].data.kpi?.neto)}">${pgS(botIn14[0].data.kpi?.neto, 2)}</b>` : ""}</span></div><div class="pgBars">${pgPulz(pgState.bot, (d) => d.kpi?.neto, days14)}</div><div class="pgXl"><span>${pgShort(days14[0])}</span><span>${pgShort(days14[7])}</span><span>${pgShort(days14[13])}</span></div></div>
+      <div class="pgPcard"><div class="pgPh"><h3>Kopiranje · 14 dni</h3><span class="pgPsum">Zrcalo skupaj <b class="${pgTone(copySum)}">${pgS(copySum, 2)} SOL</b></span></div><div class="pgBars">${pgPulz(pgState.copy, (d) => d.kpi?.zrcaloNeto, days14)}</div><div class="pgXl"><span>${pgShort(days14[0])}</span><span>${pgShort(days14[7])}</span><span>${pgShort(days14[13])}</span></div></div>
+    </div>
+    <div class="pgDayHead"><h2>${pgLong(day)}</h2><div class="pgNav"><button type="button" data-nav="prev"${i >= days.length - 1 ? " disabled" : ""}>‹ ${i < days.length - 1 ? pgShort(days[i + 1]) : "prej"}</button><button type="button" data-nav="last"${i === 0 ? " disabled" : ""}>zadnji</button><button type="button" data-nav="next"${i <= 0 ? " disabled" : ""}>${i > 0 ? pgShort(days[i - 1]) : "naprej"} ›</button></div></div>
+    <div class="pgTwo pgCols">${pgBotCol(b)}${pgCopyCol(c)}</div>
+    <div class="pgDets">${vrstice}</div>
+    <p class="muted pgFoot">Pregled napiše jutranje opravilo iz podatkov prejšnjega dne (tabeli memecoin_reports in copy_reports). Številke so iste kot v Bilanci in Kopiranju, le zaključene za cel dan. Ni finančni nasvet.</p>`;
+  root.querySelectorAll(".pgBar").forEach((el) => { el.onclick = () => { if (days.includes(el.dataset.day)) { pgState.day = el.dataset.day; renderPregledi(); } }; });
+  root.querySelectorAll("[data-nav]").forEach((el) => { el.onclick = () => { const n = el.dataset.nav; pgState.day = n === "last" ? days[0] : n === "prev" ? days[Math.min(days.length - 1, i + 1)] : days[Math.max(0, i - 1)]; renderPregledi(); window.scrollTo({ top: 0, behavior: "smooth" }); }; });
+  const cp = $("#pgCopyPrompt");
+  if (cp) cp.onclick = async () => { try { await navigator.clipboard.writeText(prompt); cp.textContent = "Kopirano"; setTimeout(() => (cp.textContent = "Kopiraj prompt"), 1500); } catch { cp.textContent = "Označi in kopiraj ročno"; } };
+}
+$("#pregledi").onclick = () => { navigate("reports"); loadPregledi(); };
+setInterval(() => { if (view === "reports" && !document.hidden && Date.now() - pgState.loadedAt > 600000) loadPregledi(); }, 60000);
