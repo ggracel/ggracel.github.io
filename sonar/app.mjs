@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 670;
+const CLIENT_VERSION = 680;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -436,6 +436,17 @@ try {
 // Brskalnik je samo predpomnilnik: ob prijavi naložimo profil, vsaka sprememba gre nazaj gor.
 const db = window.memecoinsClient || null;
 const OWNER_KEY = "solana-owner-v1";
+// 5. 10. 2026 (G): Sonar je en sam bot, lastnikov (app_access role = 'owner'). Vsi na seznamu dostopa vidijo isti bot
+// (Pozicije, Bilanca, Dnevnik, Kopiranje), nastavitve in ročne vstope pa spreminja samo lastnik; ostali so "samo ogled".
+// botOwner: čigav bot gledamo (iz baze, rezervno G). viewer: prijavljeni ni lastnik -> nič se ne piše v profil.
+const BOT_OWNER_FALLBACK = "4e881127-c45c-49d0-9e4c-21521715063c";
+let botOwner = BOT_OWNER_FALLBACK,
+  viewer = false;
+function applyViewer() {
+  document.body.classList.toggle("viewer", viewer);
+  const tag = $("#viewTag");
+  if (tag) tag.hidden = !viewer;
+}
 let remoteUser = null,
   remoteAuto = null,
   syncTimer = null;
@@ -457,24 +468,30 @@ async function loadRemote() {
     } = await db.auth.getUser();
     if (!user) return;
     remoteUser = user;
-    // Lokalni predpomnilnik velja samo, če pripada istemu računu. Če se je v tem brskalniku prijavil kdo drug
+    try {
+      const { data: own } = await db.rpc("sonar_owner_id");
+      if (own) botOwner = own;
+    } catch {}
+    viewer = user.id !== botOwner;
+    applyViewer();
+    // Lokalni predpomnilnik velja samo, če pripada istemu botu (lastniku). Če se je v tem brskalniku prijavil kdo drug
     // (ali je predpomnilnik iz starejše različice brez lastnika), ga zavržemo in velja izključno profil.
     let owner = null;
     try {
       owner = localStorage.getItem(OWNER_KEY);
     } catch {}
-    const localTrusted = owner === user.id;
+    const localTrusted = owner === botOwner;
     if (!localTrusted) {
       trades = [];
       stake = 0.1;
       profile = DEFAULT_PROFILE;
       try {
-        localStorage.setItem(OWNER_KEY, user.id);
+        localStorage.setItem(OWNER_KEY, botOwner);
         localStorage.removeItem("solana-demo-v1");
         localStorage.removeItem("solana-auto-v1");
       } catch {}
     }
-    const { data, error } = await db.from("memecoin_state").select("trades,stake,auto_entries,profile,updated_at").eq("user_id", user.id).maybeSingle();
+    const { data, error } = await db.from("memecoin_state").select("trades,stake,auto_entries,profile,updated_at").eq("user_id", botOwner).maybeSingle();
     if (error) throw error;
     remoteStamp = stampMs(data?.updated_at);
     const remote = Array.isArray(data?.trades) ? data.trades : [];
@@ -487,7 +504,8 @@ async function loadRemote() {
       if (PROFILES[data.profile]) profile = data.profile;
       remoteAuto = !!data.auto_entries;
     }
-    if (!data || added) await pushRemote(true);
+    if (viewer) syncNote("samo ogled · bot lastnika, naložen " + hhmm(new Date(data?.updated_at || Date.now()).getTime()));
+    else if (!data || added) await pushRemote(true);
     else syncNote("profil naložen " + hhmm(new Date(data.updated_at).getTime()) + (added ? " · preneseno " + added + " lokalnih zapisov" : ""));
   } catch {
     syncNote("Profil trenutno ni dosegljiv, uporabljam lokalni dnevnik.", true);
@@ -546,7 +564,7 @@ function mergeTrades(local, remote) {
 // Žig primerjamo kot število, ne kot niz: baza vrne "+00:00", brskalnik piše "Z", nizovna primerjava bi bila vedno "drugačno".
 const stampMs = (v) => (v ? new Date(v).getTime() || 0 : 0);
 async function remoteChanged() {
-  const { data, error } = await db.from("memecoin_state").select("updated_at").eq("user_id", remoteUser.id).maybeSingle();
+  const { data, error } = await db.from("memecoin_state").select("updated_at").eq("user_id", botOwner).maybeSingle();
   if (error) throw error;
   return !!data && stampMs(data.updated_at) !== remoteStamp;
 }
@@ -554,7 +572,7 @@ async function syncRemote() {
   if (!db || !remoteUser) return;
   try {
     if (!(await remoteChanged())) return;
-    const { data, error } = await db.from("memecoin_state").select("trades,updated_at").eq("user_id", remoteUser.id).maybeSingle();
+    const { data, error } = await db.from("memecoin_state").select("trades,updated_at").eq("user_id", botOwner).maybeSingle();
     if (error || !Array.isArray(data?.trades)) return;
     remoteStamp = stampMs(data.updated_at) || remoteStamp;
     const before = JSON.stringify(trades);
@@ -569,12 +587,13 @@ setInterval(syncRemote, 45000);
 let lastPushed = "";
 async function pushRemote(force = false) {
   if (!db || !remoteUser) return;
+  if (viewer) return; // samo ogled: profil lastnika se ne piše
   const snapshot = () => JSON.stringify({ user_id: remoteUser.id, trades, stake, auto_entries: !!$("#auto")?.checked, profile });
   if (!force && snapshot() === lastPushed) return; // nič novega, ne pošiljaj (in ne beri) vsakih 30 s
   // Pred pisanjem združimo s profilom, da ne povozimo poslov iz drugega brskalnika, ampak samo, če ga je kdo medtem spremenil.
   try {
     if (await remoteChanged()) {
-      const { data } = await db.from("memecoin_state").select("trades,updated_at").eq("user_id", remoteUser.id).maybeSingle();
+      const { data } = await db.from("memecoin_state").select("trades,updated_at").eq("user_id", botOwner).maybeSingle();
       if (Array.isArray(data?.trades)) {
         trades = mergeTrades(trades, data.trades);
         remoteStamp = stampMs(data.updated_at) || remoteStamp;
@@ -675,7 +694,7 @@ async function syncServerTrades() {
     const openSrv = trades.filter((t) => t.server && !t.closed && !t.interrupted && !t.deletedAt);
     // odprte strežniške posle vedno osvežimo (njihov zadnji žig v spominu je lahko novejši od shranjenega)
     const from = openSrv.length ? Math.min(since, ...openSrv.map((t) => t.srvUpdated || 0)) : since;
-    const { data, error } = await db.from("memecoin_bot_trades").select("*").eq("user_id", remoteUser.id).gt("updated_at", new Date(from).toISOString()).order("updated_at", { ascending: true }).limit(1000);
+    const { data, error } = await db.from("memecoin_bot_trades").select("*").eq("user_id", botOwner).gt("updated_at", new Date(from).toISOString()).order("updated_at", { ascending: true }).limit(1000);
     if (error) throw error;
     if (applyServerRows(data)) draw();
   } catch {
@@ -1977,6 +1996,7 @@ setInterval(() => {
 }, 5000);
 
 $("#auto").onchange = () => {
+  if (viewer) { $("#auto").checked = !!remoteAuto; $("#autoSaved").textContent = "Samo ogled: nastavitve spreminja samo lastnik bota."; return; }
   try {
     const value = $("#auto").checked ? "on" : "off";
     localStorage.setItem("solana-auto-v1", value);
@@ -1998,7 +2018,7 @@ function renderBotPill() {
   const on = !!$("#auto").checked;
   const p = PROFILES[profile] || PROFILES[DEFAULT_PROFILE];
   const st = stake.toLocaleString("sl-SI", { maximumSignificantDigits: 21, useGrouping: false });
-  txt.textContent = "BOT · " + (on ? "SAMODEJNO 24/7" : "ROČNO") + " · " + st + " SOL · " + p.name.toUpperCase();
+  txt.textContent = "BOT · " + (on ? "SAMODEJNO 24/7" : "ROČNO") + " · " + st + " SOL · " + p.name.toUpperCase() + (viewer ? " · SAMO OGLED" : "");
   pill.classList.toggle("off", !on);
   pill.title =
     (on ? "Bot sam odpira in zapira demo posle na strežniku, 24/7, tudi ko je stran zaprta." : "Bot ne odpira sam, vstopaš ročno. Izstope odprtih poslov strežnik vodi naprej.") + " Klik odpre nastavitve.";
@@ -2930,6 +2950,7 @@ function stakeLabels() {
   $("#stakeCurrent").textContent = "Za nove posle: " + text + " SOL. Obstoječi vložki ostanejo enaki.";
 }
 function setStake(value) {
+  if (viewer) { $("#stakeMessage").textContent = "Samo ogled: nastavitve spreminja samo lastnik bota."; return; }
   const next = parseStake(value);
   if (next === null) {
     $("#stakeMessage").textContent = "Vnesi veljavno pozitivno število, na primer 0,2.";
@@ -2960,6 +2981,7 @@ $("#boardGraphClose").onclick = () => {
   $("#boardGraphPanel").hidden = true;
 };
 function manualBlock(c) {
+  if (viewer) return "Samo ogled: ročne vstope in nastavitve spreminja samo lastnik bota.";
   if (!fresh(c) || !Number.isFinite(c?.price) || c.price <= 0) return "Ročni vstop čaka na svežo pozitivno ceno.";
   if (trades.some((t) => !t.deletedAt && !t.interrupted && !t.closed && (t.id === c.id || t.token === c.token)))
     return "Ta kovanec že ima odprt demo posel.";
@@ -3546,6 +3568,7 @@ function showOpenTrades() {
   $("#openRow").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 function manualClose(t, feedbackEl) {
+  if (viewer) { feedbackEl.textContent = "Samo ogled: posle zapira samo lastnik bota."; return; }
   const c = coins.get(t.id);
   if (!c || !(c.price > 0)) {
     feedbackEl.textContent = "Ni znane cene za ta kovanec, izstop ni mogoč.";
@@ -3788,6 +3811,15 @@ function renderOpenTrades() {
 // Po tem ostane vnos samo se v dnevniku sprememb v zavihku Kako deluje.
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
+  {
+    id: 28,
+    at: "2026-10-05T17:00:00Z",
+    date: "5. 10. 2026",
+    title: "Sonar je en sam bot: vsi vidijo istega, nastavitve spreminja lastnik",
+    short: "<b>En bot za vse.</b> Vsi s povabilom vidijo isti bot (Pozicije, Bilanca, Dnevnik, Kopiranje); nastavitve in ročne vstope spreminja samo lastnik.",
+    body:
+      "Do zdaj je imel vsak račun svojega bota s svojimi nastavitvami in svojim dnevnikom. Od 5. 10. strežnik vodi en sam bot (lastnikov: 0,2 SOL, profil Srednje, samodejni vstopi), vsi s povabilom pa ga vidijo v celoti: iste Pozicije, Bilanca, Dnevnik, Laboratorij in Kopiranje. Nastavitve v piluli BOT, ročne vstope in zapiranje poslov lahko spreminja samo lastnik; ostali imajo oznako SAMO OGLED. Stari posli drugih računov ostanejo v bazi, a se ne prikazujejo in ne vodijo. Dostop do Sonarja ima samo, kdor je na seznamu povabljenih. Ni finančni nasvet, gre za demo.",
+  },
   {
     id: 27,
     at: "2026-10-05T14:30:00Z",
@@ -4232,6 +4264,7 @@ function renderProfile() {
 for (const b of document.querySelectorAll("#profileButtons button"))
   b.onclick = () => {
     if (!PROFILES[b.dataset.profile]) return;
+    if (viewer) { $("#stakeMessage").textContent = "Samo ogled: profil izstopa spreminja samo lastnik bota."; return; }
     profile = b.dataset.profile;
     try {
       localStorage.setItem("solana-profile-v1", profile);
