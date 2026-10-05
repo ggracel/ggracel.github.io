@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 662;
+const CLIENT_VERSION = 663;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -4251,7 +4251,7 @@ async function loadCopy() {
     const since = days === "all" ? "2026-10-01T00:00:00Z" : new Date(Date.now() - Number(days) * 86400000).toISOString();
     const dayAgo = new Date(Date.now() - 86400000).toISOString();
     const [t, c, s] = await Promise.all([
-      db.from("copy_shadow_trades").select("id,rule,wallet,token,symbol,signal_id,signal_t,opened_at,lag_s,entry_usd,peak_usd,low_usd,last_usd,last_t,stake_sol,closed_at,exit_usd,exit_reason,pnl_pct,pnl_sol,wallet_price_sol,note").gte("opened_at", since).neq("rule", "test").order("opened_at", { ascending: false }).limit(600),
+      db.from("copy_shadow_trades").select("id,rule,wallet,token,symbol,signal_id,signal_t,opened_at,lag_s,entry_usd,peak_usd,low_usd,last_usd,last_t,stake_sol,closed_at,exit_usd,exit_reason,pnl_pct,pnl_sol,wallet_price_sol,note").gte("opened_at", since).like("rule", "kopija-%").order("opened_at", { ascending: false }).limit(600),
       db.from("copy_candidates").select("wallet,label,status,stats").eq("status", "sledi"),
       db.from("copy_signals").select("wallet,token,side,t,sol").gte("t", dayAgo).not("sig", "like", "test-%").order("t", { ascending: false }).limit(300),
     ]);
@@ -4289,7 +4289,7 @@ function renderCopy() {
   const st = $("#copyStatus");
   const buys24 = copyState.signals.filter((s) => s.side === "buy").length, sells24 = copyState.signals.length - buys24;
   if (copyState.error) { st.className = "cpStatus err"; st.textContent = copyState.error; }
-  else { st.className = "cpStatus ok"; st.innerHTML = '<i></i>Živo · ' + copyState.cands.length + " sledenih denarnic · zadnjih 24 h " + plural(buys24, "nakup", "nakupa", "nakupi", "nakupov") + " in " + plural(sells24, "prodaja", "prodaji", "prodaje", "prodaj") + " · osvežitev na 30 s"; }
+  else { st.className = "cpStatus ok"; st.innerHTML = '<i></i>Živo · ' + copyState.cands.length + " sledenih denarnic · zadnjih 24 h " + plural(buys24, "nakup", "nakupa", "nakupi", "nakupov") + " in " + plural(sells24, "prodaja", "prodaji", "prodaje", "prodaj") + " · strežnik vodi posle na 6 s, zavihek se osveži na 30 s"; }
   // KPI
   const mir = copyStats("kopija-mirror"), hit = copyStats("kopija-hitri"), sled = copyStats("kopija-sled");
   const lagList = mir.all.filter((t) => t.note?.entry_src !== "signal").map((t) => t.lag_s).filter(Number.isFinite);
