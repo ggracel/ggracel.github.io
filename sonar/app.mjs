@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 663;
+const CLIENT_VERSION = 664;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -4415,7 +4415,8 @@ function copyCurve(mir, hit, sled) {
     const last = s.pts.at(-1);
     svg.append(mk("circle", { cx: X(t1), cy: Y(last.v), r: 4, fill: COPY_RULES[s.rule].color }));
   }
-  note.textContent = "Kumulativni neto rezultat v SOL po času zaključka, vložek 0,07 SOL na posel, po stroških. Od " + new Date(t0).toLocaleString("sl-SI", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) + ".";
+  const stake = copyState.trades.find((t) => t.stake_sol > 0)?.stake_sol;
+  note.textContent = "Kumulativni neto rezultat v SOL po času zaključka, vložek " + (stake ? stake.toLocaleString("sl-SI") : "-") + " SOL na posel (isti kot pri botu), po stroških. Od " + new Date(t0).toLocaleString("sl-SI", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) + ".";
 }
 $("#kopiranje").onclick = () => { navigate("copy", "live"); loadCopy(); };
 $("#copyPeriod").onchange = loadCopy;
