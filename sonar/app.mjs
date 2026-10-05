@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 652;
+const CLIENT_VERSION = 660;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -1525,7 +1525,8 @@ function navigate(v, m = mode) {
   $("#watching").hidden = v !== "watching";
   $("#dashboard").hidden = v !== "dashboard";
   $("#comparison").hidden = v !== "comparison";
-  for (const id of ["live", "history", "about", "watch", "overview", "compare"])
+  $("#copy").hidden = v !== "copy";
+  for (const id of ["live", "history", "about", "watch", "overview", "compare", "kopiranje"])
     $("#" + id).classList.toggle(
       "active",
       id ===
@@ -1539,7 +1540,9 @@ function navigate(v, m = mode) {
                 ? "about"
                 : v === "comparison"
                   ? "compare"
-                  : m),
+                  : v === "copy"
+                    ? "kopiranje"
+                    : m),
     );
   status();
   draw();
@@ -1552,6 +1555,7 @@ const MTABS = [
   { id: "overview", label: "Bilanca", icon: "M3 4h18v16H3z M7 14l3-3 3 2 4-5" },
   { id: "history", label: "Dnevnik", icon: "M5 4h14v16H5z M9 9h6 M9 13h6" },
   { id: "compare", label: "Lab", icon: "M9 3v6l-5 9a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-9V3" },
+  { id: "kopiranje", label: "Kopija", icon: "M8 8h12v12H8z M4 16V4h12" },
   { id: "more", label: "Več", icon: "M5 12h.01 M12 12h.01 M19 12h.01" },
 ];
 let mtabsEl = null, mmoreEl = null;
@@ -1594,7 +1598,7 @@ function toggleMore() {
 function closeMore() { if (mmoreEl) { mmoreEl.remove(); mmoreEl = null; } }
 function syncMobileTabs() {
   if (!mtabsEl) return;
-  const cur = view === "dashboard" ? "overview" : view === "watching" ? "watch" : view === "journal" ? "history" : view === "comparison" ? "compare" : view === "info" ? "more" : view === "market" ? "more" : "";
+  const cur = view === "dashboard" ? "overview" : view === "watching" ? "watch" : view === "journal" ? "history" : view === "comparison" ? "compare" : view === "copy" ? "kopiranje" : view === "info" ? "more" : view === "market" ? "more" : "";
   for (const b of mtabsEl.querySelectorAll(".mtab")) b.classList.toggle("on", b.dataset.id === cur);
   const n = trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && !t.practice).length;
   const badge = mtabsEl.querySelector(".mbadge");
@@ -3786,6 +3790,15 @@ function renderOpenTrades() {
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
   {
+    id: 26,
+    at: "2026-10-05T08:00:00Z",
+    date: "5. 10. 2026",
+    title: "Nov zavihek Kopiranje: senčno sledenje 8 denarnicam",
+    short: "<b>Nov zavihek Kopiranje</b>: Sonar sledi 8 izbranim denarnicam in v senci kopira njihove nakupe. Brez denarja.",
+    body:
+      "Sonar od 5. 10. sledi 8 denarnicam, ki so bile izbrane po merilih iz dvomesečne analize verige (držanje vsaj 5 min, malo hitrih prodaj, plus v 7 dneh tudi brez največjega posla). Ko katera od njih kupi kovanec, strežnik v nekaj sekundah odpre senčni posel po Jupitrovi ceni in ga vodi na dva načina: Zrcalo proda, ko proda denarnica, Hitri pa sam pri +10 % ali -5 %. Zavihek pokaže neto rezultat obeh, zamik v sekundah, ceno zamika (koliko dražje kupiva kot oni), lestvico denarnic in posle v živo. Vse je senca, brez vpliva na bilanco. Ni finančni nasvet, gre za demo.",
+  },
+  {
     id: 25,
     at: "2026-10-04T12:00:00Z",
     date: "4. 10. 2026",
@@ -4223,3 +4236,187 @@ for (const b of document.querySelectorAll("#profileButtons button"))
 renderProfile();
 
 // (Dvojček na strežniku, 25. do 27. 9. 2026, je od v51 ukinjen: bot sam teče na strežniku, glej syncServerTrades.)
+
+// ---------- Kopiranje (5. 10. 2026) ----------
+// Zavihek za senčno kopiranje denarnic. Podatke piše strežnik (funkciji kopija-zajem in kopija-senca) v tabele
+// copy_candidates (sledene denarnice), copy_signals (njihovi nakupi in prodaje) in copy_shadow_trades (senčni posli).
+// Dve pravili z istim vstopom: kopija-mirror (proda, ko proda denarnica) in kopija-hitri (+10 % / -5 % / 120 min).
+// Vse je senca: brez denarja, brez vpliva na bilanco. Osvežitev na 30 s, ko je zavihek odprt.
+const COPY_RULES = { "kopija-mirror": { name: "Zrcalo", color: "#46bec5" }, "kopija-hitri": { name: "Hitri", color: "#e2a93a" } };
+let copyState = { trades: [], cands: [], signals: [], error: "", loadedAt: 0 }, copyBusy = false;
+async function loadCopy() {
+  if (!db || copyBusy) return;
+  copyBusy = true;
+  try {
+    const days = $("#copyPeriod").value;
+    const since = days === "all" ? "2026-10-01T00:00:00Z" : new Date(Date.now() - Number(days) * 86400000).toISOString();
+    const dayAgo = new Date(Date.now() - 86400000).toISOString();
+    const [t, c, s] = await Promise.all([
+      db.from("copy_shadow_trades").select("id,rule,wallet,token,symbol,signal_id,signal_t,opened_at,lag_s,entry_usd,peak_usd,low_usd,last_usd,last_t,stake_sol,closed_at,exit_usd,exit_reason,pnl_pct,pnl_sol,wallet_price_sol,note").gte("opened_at", since).neq("rule", "test").order("opened_at", { ascending: false }).limit(600),
+      db.from("copy_candidates").select("wallet,label,status,stats").eq("status", "sledi"),
+      db.from("copy_signals").select("wallet,token,side,t,sol").gte("t", dayAgo).not("sig", "like", "test-%").order("t", { ascending: false }).limit(300),
+    ]);
+    if (t.error) throw t.error;
+    if (c.error) throw c.error;
+    copyState = { trades: t.data || [], cands: c.data || [], signals: s.data || [], error: "", loadedAt: Date.now() };
+  } catch (e) {
+    copyState.error = "Podatkov o kopiranju ni bilo mogoče naložiti: " + (e?.message || e);
+  } finally {
+    copyBusy = false;
+  }
+  renderCopy();
+}
+const copyLabel = (w) => copyState.cands.find((c) => c.wallet === w)?.label || w.slice(0, 4) + "…" + w.slice(-4);
+const copyAgo = (iso) => {
+  const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  return m < 1 ? "pravkar" : m < 60 ? "pred " + m + " min" : m < 1440 ? "pred " + Math.floor(m / 60) + " h" : "pred " + Math.floor(m / 1440) + " d";
+};
+const copyPct = (x, d = 1) => (Number.isFinite(x) ? (x > 0 ? "+" : "") + (x * 100).toLocaleString("sl-SI", { minimumFractionDigits: d, maximumFractionDigits: d }) + " %" : "-");
+const copySol = (x) => (Number.isFinite(x) ? (x > 0 ? "+" : "") + x.toLocaleString("sl-SI", { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + " SOL" : "-");
+const copyLive = (t) => (t.last_usd > 0 && t.entry_usd > 0 ? (t.last_usd / t.entry_usd) * (1 - 0.0035) / (1 + 0.0035) - 1 : null);
+const copyReason = { mirror: "denarnica prodala", cilj: "cilj +10 %", meja: "meja -5 %", cas: "časovna meja", "brez-cene": "brez cene", preskok: "preskok" };
+const copyMedian = (a) => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+function copyStats(rule) {
+  const all = copyState.trades.filter((t) => t.rule === rule);
+  const closed = all.filter((t) => t.closed_at && Number.isFinite(t.pnl_sol));
+  const open = all.filter((t) => !t.closed_at);
+  const net = closed.reduce((s, t) => s + t.pnl_sol, 0);
+  const wins = closed.filter((t) => t.pnl_sol > 0).length;
+  const unreal = open.reduce((s, t) => { const r = copyLive(t); return s + (r === null ? 0 : t.stake_sol * r); }, 0);
+  return { all, closed, open, net, wins, unreal, avg: closed.length ? closed.reduce((s, t) => s + t.pnl_pct, 0) / closed.length : null };
+}
+function renderCopy() {
+  if ($("#copy").hidden) return;
+  const st = $("#copyStatus");
+  const buys24 = copyState.signals.filter((s) => s.side === "buy").length, sells24 = copyState.signals.length - buys24;
+  if (copyState.error) { st.className = "cpStatus err"; st.textContent = copyState.error; }
+  else { st.className = "cpStatus ok"; st.innerHTML = '<i></i>Živo · ' + copyState.cands.length + " sledenih denarnic · zadnjih 24 h " + plural(buys24, "nakup", "nakupa", "nakupi", "nakupov") + " in " + plural(sells24, "prodaja", "prodaji", "prodaje", "prodaj") + " · osvežitev na 30 s"; }
+  // KPI
+  const mir = copyStats("kopija-mirror"), hit = copyStats("kopija-hitri");
+  const lagList = mir.all.filter((t) => t.note?.entry_src !== "signal").map((t) => t.lag_s).filter(Number.isFinite);
+  const slipList = mir.all.filter((t) => t.note?.entry_src === "jupiter" && t.note?.sol_usd > 0 && t.wallet_price_sol > 0).map((t) => t.entry_usd / (t.wallet_price_sol * t.note.sol_usd) - 1);
+  const kpi = (id, big, sub, cls) => { $(id + " strong").textContent = big; $(id + " p").textContent = sub; $(id).className = "cpKpi " + (cls || ""); };
+  kpi("#cpK1", copySol(mir.net), (mir.closed.length ? plural(mir.closed.length, "zaključen posel", "zaključena posla", "zaključeni posli", "zaključenih poslov") + " · " + Math.round((mir.wins / mir.closed.length) * 100) + " % dobitkov" : "še brez zaključenih poslov") + (mir.open.length ? " · odprto " + copySol(mir.unreal) : ""), tone(mir.net));
+  kpi("#cpK2", copySol(hit.net), (hit.closed.length ? plural(hit.closed.length, "zaključen posel", "zaključena posla", "zaključeni posli", "zaključenih poslov") + " · " + Math.round((hit.wins / hit.closed.length) * 100) + " % dobitkov" : "še brez zaključenih poslov") + (hit.open.length ? " · odprto " + copySol(hit.unreal) : ""), tone(hit.net));
+  const medLag = copyMedian(lagList);
+  kpi("#cpK3", medLag === null ? "-" : medLag < 60 ? Math.round(medLag) + " s" : (medLag / 60).toFixed(1) + " min", lagList.length ? "mediana od njihovega bloka do najinega vstopa · " + lagList.length + " vstopov" : "izmeri se ob prvem kopiranem nakupu");
+  const medSlip = copyMedian(slipList);
+  kpi("#cpK4", medSlip === null ? "-" : copyPct(medSlip), slipList.length ? "najina vstopna cena proti njihovi · mediana · " + slipList.length + " vstopov" : "koliko dražje kupiva zaradi zamika", medSlip === null ? "" : medSlip > 0.02 ? "negative" : "positive");
+  // krivulji
+  copyCurve(mir, hit);
+  // denarnice
+  const wl = $("#cpWallets");
+  wl.replaceChildren();
+  const rows = copyState.cands.map((c) => {
+    const mine = mir.all.filter((t) => t.wallet === c.wallet), closed = mine.filter((t) => t.closed_at && Number.isFinite(t.pnl_sol));
+    const sig = copyState.signals.filter((s) => s.wallet === c.wallet);
+    return { c, mine, closed, net: closed.reduce((s, t) => s + t.pnl_sol, 0), wins: closed.filter((t) => t.pnl_sol > 0).length, lag: copyMedian(mine.map((t) => t.lag_s).filter(Number.isFinite)), last: sig[0]?.t || mine[0]?.opened_at || null, open: mine.filter((t) => !t.closed_at).length };
+  }).sort((a, b) => b.net - a.net || b.mine.length - a.mine.length);
+  const maxAbs = Math.max(0.0001, ...rows.map((r) => Math.abs(r.net)));
+  for (const r of rows) {
+    const el = document.createElement("div");
+    el.className = "cpWallet";
+    el.innerHTML =
+      '<div class="cpWName"><b></b><small></small></div>' +
+      '<div class="cpWBar"><i></i></div>' +
+      '<div class="cpWNet"><strong></strong><small></small></div>';
+    el.querySelector("b").textContent = r.c.label || copyLabel(r.c.wallet);
+    el.querySelector(".cpWName small").textContent = (r.mine.length ? plural(r.mine.length, "posel", "posla", "posli", "poslov") + (r.open ? " · " + r.open + " odprt" : "") + (r.closed.length ? " · " + Math.round((r.wins / r.closed.length) * 100) + " % dobitkov" : "") : "še brez posla") + (r.last ? " · zadnji signal " + copyAgo(r.last) : "");
+    const bar = el.querySelector(".cpWBar i");
+    bar.style.width = Math.round((Math.abs(r.net) / maxAbs) * 100) + "%";
+    bar.className = tone(r.net);
+    el.querySelector("strong").textContent = r.closed.length ? copySol(r.net) : "-";
+    el.querySelector(".cpWNet strong").className = tone(r.net);
+    el.querySelector(".cpWNet small").textContent = r.lag === null ? "" : "zamik " + Math.round(r.lag) + " s";
+    el.title = r.c.wallet;
+    el.onclick = () => window.open("https://solscan.io/account/" + r.c.wallet, "_blank", "noreferrer");
+    wl.append(el);
+  }
+  // v živo
+  const feed = $("#cpFeed");
+  feed.replaceChildren();
+  const bySignal = new Map();
+  for (const t of copyState.trades) { const k = t.signal_id ? "s" + t.signal_id : t.wallet + "|" + t.token + "|" + t.signal_t; if (!bySignal.has(k)) bySignal.set(k, []); bySignal.get(k).push(t); }
+  const groups = [...bySignal.values()].sort((a, b) => new Date(b[0].opened_at) - new Date(a[0].opened_at)).slice(0, 40);
+  $("#cpFeedEmpty").hidden = groups.length > 0;
+  if (!groups.length) {
+    $("#cpFeedEmpty").innerHTML = "<b>Čakam na prvi nakup sledenih denarnic.</b> Ko katera od njih kupi kovanec, se tu v nekaj sekundah pojavi senčni posel. " +
+      "Nekatere denarnice trgujejo nekajkrat na dan, druge nekajkrat na teden.";
+  }
+  for (const g of groups) {
+    const t0 = g[0], skip = t0.rule === "kopija-preskok";
+    const el = document.createElement("div");
+    el.className = "cpEvent" + (skip ? " skip" : "");
+    const head = document.createElement("div"); head.className = "cpEHead";
+    const sym = document.createElement("b"); sym.textContent = t0.symbol || t0.token.slice(0, 6) + "…";
+    const who = document.createElement("span"); who.className = "cpWho"; who.textContent = copyLabel(t0.wallet) + " kupil" + (t0.note?.wallet_sol ? " za " + Number(t0.note.wallet_sol).toLocaleString("sl-SI", { maximumFractionDigits: 2 }) + " SOL" : "");
+    const when = document.createElement("small"); when.textContent = copyAgo(t0.signal_t) + " · " + new Date(t0.signal_t).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit" });
+    head.append(sym, who, when);
+    el.append(head);
+    if (skip) {
+      const p = document.createElement("p"); p.className = "cpSkip"; p.textContent = "Preskočeno: " + (t0.note?.skip || "neznan razlog");
+      el.append(p);
+    } else {
+      const meta = document.createElement("p"); meta.className = "cpMeta";
+      meta.textContent = "vstop " + (t0.note?.entry_src === "signal" ? "po njihovi ceni (Jupiter brez cene)" : "po Jupitru, zamik " + Math.round(t0.lag_s) + " s") + (t0.note?.source ? " · " + String(t0.note.source).toLowerCase().replace(/_/g, " ") : "");
+      el.append(meta);
+      const legs = document.createElement("div"); legs.className = "cpLegs";
+      for (const rule of Object.keys(COPY_RULES)) {
+        const t = g.find((x) => x.rule === rule); if (!t) continue;
+        const leg = document.createElement("div"); leg.className = "cpLeg";
+        const r = t.closed_at ? t.pnl_pct : copyLive(t);
+        leg.innerHTML = '<span class="cpRule" style="--c:' + COPY_RULES[rule].color + '"></span><em></em><strong></strong><small></small>';
+        leg.querySelector(".cpRule").textContent = COPY_RULES[rule].name;
+        leg.querySelector("em").textContent = t.closed_at ? copyReason[t.exit_reason] || t.exit_reason : "odprto · " + copyAgo(t.opened_at).replace("pred ", "");
+        leg.querySelector("strong").textContent = copyPct(r);
+        leg.querySelector("strong").className = tone(r ?? 0);
+        leg.querySelector("small").textContent = t.closed_at ? copySol(t.pnl_sol) : t.peak_usd > t.entry_usd ? "vrh " + copyPct(t.peak_usd / t.entry_usd - 1) : "";
+        legs.append(leg);
+      }
+      el.append(legs);
+    }
+    el.onclick = (e) => { if (!e.target.closest("a")) window.open("https://dexscreener.com/solana/" + t0.token, "_blank", "noreferrer"); };
+    feed.append(el);
+  }
+  $("#cpUpdated").textContent = copyState.loadedAt ? "Naloženo " + new Date(copyState.loadedAt).toLocaleTimeString("sl-SI") : "";
+}
+function copyCurve(mir, hit) {
+  const svg = $("#cpCurve");
+  svg.replaceChildren();
+  const NS = "http://www.w3.org/2000/svg";
+  const mk = (tag, attrs) => { const el = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v); return el; };
+  const series = [["kopija-mirror", mir], ["kopija-hitri", hit]].map(([rule, s]) => {
+    let cum = 0;
+    const pts = [...s.closed].sort((a, b) => new Date(a.closed_at) - new Date(b.closed_at)).map((t) => ({ t: new Date(t.closed_at).getTime(), v: (cum += t.pnl_sol) }));
+    return { rule, pts };
+  });
+  const all = series.flatMap((s) => s.pts);
+  const note = $("#cpCurveNote");
+  if (!all.length) {
+    note.textContent = "Krivulji se narišeta po prvem zaključenem senčnem poslu.";
+    const t = mk("text", { x: 350, y: 120, fill: "#5f7390", "font-size": 14, "text-anchor": "middle" }); t.textContent = "še ni zaključenih poslov"; svg.append(t);
+    return;
+  }
+  const t0 = Math.min(...all.map((p) => p.t)) - 60000, t1 = Math.max(Date.now(), ...all.map((p) => p.t));
+  const vals = [0, ...all.map((p) => p.v)], lo = Math.min(...vals), hi = Math.max(...vals), range = hi - lo || 0.001;
+  const X = (ms) => 30 + ((ms - t0) / (t1 - t0 || 1)) * 650, Y = (v) => 195 - ((v - lo) / range) * 165;
+  for (const v of [lo, 0, hi]) {
+    svg.append(mk("line", { x1: 30, x2: 680, y1: Y(v), y2: Y(v), stroke: "#1f3045", "stroke-dasharray": "3 6" }));
+    if (v === 0 && (Math.abs(Y(0) - Y(lo)) < 14 || Math.abs(Y(0) - Y(hi)) < 14)) continue; // oznaka 0 bi prekrila sosednjo
+    const lab = mk("text", { x: 32, y: Math.max(14, Y(v) - 5), fill: "#7f93ad", "font-size": 12 }); lab.textContent = copySol(v); svg.append(lab);
+  }
+  for (const s of series) {
+    if (!s.pts.length) continue;
+    let d = "M" + X(t0) + " " + Y(0);
+    let prev = 0;
+    for (const p of s.pts) { d += " L" + X(p.t) + " " + Y(prev) + " L" + X(p.t) + " " + Y(p.v); prev = p.v; }
+    d += " L" + X(t1) + " " + Y(prev);
+    svg.append(mk("path", { d, fill: "none", stroke: COPY_RULES[s.rule].color, "stroke-width": 2.5, "stroke-linejoin": "round" }));
+    const last = s.pts.at(-1);
+    svg.append(mk("circle", { cx: X(t1), cy: Y(last.v), r: 4, fill: COPY_RULES[s.rule].color }));
+  }
+  note.textContent = "Kumulativni neto rezultat v SOL po času zaključka, vložek 0,07 SOL na posel, po stroških. Od " + new Date(t0).toLocaleString("sl-SI", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) + ".";
+}
+$("#kopiranje").onclick = () => { navigate("copy", "live"); loadCopy(); };
+$("#copyPeriod").onchange = loadCopy;
+setInterval(() => { if (view === "copy" && !document.hidden) loadCopy(); }, 30000);
