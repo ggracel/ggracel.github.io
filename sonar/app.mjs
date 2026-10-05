@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 660;
+const CLIENT_VERSION = 661;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -1553,9 +1553,8 @@ function navigate(v, m = mode) {
 const MTABS = [
   { id: "watch", label: "Pozicije", icon: "M3 17l5-6 4 4 5-8 4 5" },
   { id: "overview", label: "Bilanca", icon: "M3 4h18v16H3z M7 14l3-3 3 2 4-5" },
-  { id: "history", label: "Dnevnik", icon: "M5 4h14v16H5z M9 9h6 M9 13h6" },
+  { id: "kopiranje", label: "Kopiranje", icon: "M8 8h12v12H8z M4 16V4h12" },
   { id: "compare", label: "Lab", icon: "M9 3v6l-5 9a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-9V3" },
-  { id: "kopiranje", label: "Kopija", icon: "M8 8h12v12H8z M4 16V4h12" },
   { id: "more", label: "Več", icon: "M5 12h.01 M12 12h.01 M19 12h.01" },
 ];
 let mtabsEl = null, mmoreEl = null;
@@ -1585,7 +1584,7 @@ function toggleMore() {
   if (mmoreEl) return closeMore();
   mmoreEl = document.createElement("div");
   mmoreEl.className = "mmore";
-  const items = [["Radar", () => $("#live").click()], ["Kako deluje", () => $("#about").click()], ["Nastavitve bota", () => $("#botPill").click()], ["Odjava", () => $("#logout").click()]];
+  const items = [["Dnevnik", () => $("#history").click()], ["Radar", () => $("#live").click()], ["Kako deluje", () => $("#about").click()], ["Nastavitve bota", () => $("#botPill").click()], ["Odjava", () => $("#logout").click()]];
   for (const [label, fn] of items) {
     const b = document.createElement("button");
     b.type = "button";
@@ -1598,7 +1597,7 @@ function toggleMore() {
 function closeMore() { if (mmoreEl) { mmoreEl.remove(); mmoreEl = null; } }
 function syncMobileTabs() {
   if (!mtabsEl) return;
-  const cur = view === "dashboard" ? "overview" : view === "watching" ? "watch" : view === "journal" ? "history" : view === "comparison" ? "compare" : view === "copy" ? "kopiranje" : view === "info" ? "more" : view === "market" ? "more" : "";
+  const cur = view === "dashboard" ? "overview" : view === "watching" ? "watch" : view === "journal" ? "more" : view === "comparison" ? "compare" : view === "copy" ? "kopiranje" : view === "info" ? "more" : view === "market" ? "more" : "";
   for (const b of mtabsEl.querySelectorAll(".mtab")) b.classList.toggle("on", b.dataset.id === cur);
   const n = trades.filter((t) => !t.deletedAt && !t.interrupted && !t.closed && !t.practice).length;
   const badge = mtabsEl.querySelector(".mbadge");
