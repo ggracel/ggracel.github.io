@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 691;
+const CLIENT_VERSION = 692;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -4353,10 +4353,13 @@ function renderCopy() {
   const mir = copyStats("kopija-mirror"), hit = copyStats("kopija-hitri"), sled = copyStats("kopija-sled");
   const lagList = mir.all.filter((t) => t.note?.entry_src !== "signal").map((t) => t.lag_s).filter(Number.isFinite);
   const slipList = mir.all.filter((t) => t.note?.entry_src === "jupiter" && t.note?.sol_usd > 0 && t.wallet_price_sol > 0).map((t) => t.entry_usd / (t.wallet_price_sol * t.note.sol_usd) - 1);
-  const kpi = (id, big, sub, cls) => { $(id + " strong").textContent = big; $(id + " p").textContent = sub; $(id).className = "cpKpi " + (cls || ""); };
-  kpi("#cpK1", copySol(mir.net), (mir.closed.length ? plural(mir.closed.length, "zaključen posel", "zaključena posla", "zaključeni posli", "zaključenih poslov") + " · " + Math.round((mir.wins / mir.closed.length) * 100) + " % dobitkov" : "še brez zaključenih poslov") + (mir.open.length ? " · odprto " + copySol(mir.unreal) : ""), tone(mir.net));
-  kpi("#cpK2", copySol(hit.net), (hit.closed.length ? plural(hit.closed.length, "zaključen posel", "zaključena posla", "zaključeni posli", "zaključenih poslov") + " · " + Math.round((hit.wins / hit.closed.length) * 100) + " % dobitkov" : "še brez zaključenih poslov") + (hit.open.length ? " · odprto " + copySol(hit.unreal) : ""), tone(hit.net));
-  kpi("#cpK5", copySol(sled.net), (sled.closed.length ? plural(sled.closed.length, "zaključen posel", "zaključena posla", "zaključeni posli", "zaključenih poslov") + " · " + Math.round((sled.wins / sled.closed.length) * 100) + " % dobitkov" : "še brez zaključenih poslov") + (sled.open.length ? " · odprto " + copySol(sled.unreal) : ""), tone(sled.net));
+  // 6. 10. 2026: pod neto SOL še vrednost v dolarjih po istem tečaju kot v Bilanci (Jupiter, sicer fiksen).
+  const cpRate = solUsd || SOL_USD_FIXED;
+  const cpUsd = (x) => { const v = x * cpRate, d = Math.abs(v) >= 10 ? 0 : 2; return "\u2248 " + (v > 0 ? "+" : "") + plainMinus(new Intl.NumberFormat("sl-SI", { style: "currency", currency: "USD", minimumFractionDigits: d, maximumFractionDigits: d }).format(v)); };
+  const kpi = (id, big, sub, cls, usdVal) => { $(id + " strong").textContent = big; $(id + " p").textContent = sub; $(id).className = "cpKpi " + (cls || ""); const em = $(id + " .cpUsd"); if (em) em.textContent = Number.isFinite(usdVal) ? cpUsd(usdVal) : ""; };
+  kpi("#cpK1", copySol(mir.net), (mir.closed.length ? plural(mir.closed.length, "zaključen posel", "zaključena posla", "zaključeni posli", "zaključenih poslov") + " · " + Math.round((mir.wins / mir.closed.length) * 100) + " % dobitkov" : "še brez zaključenih poslov") + (mir.open.length ? " · odprto " + copySol(mir.unreal) : ""), tone(mir.net), mir.net);
+  kpi("#cpK2", copySol(hit.net), (hit.closed.length ? plural(hit.closed.length, "zaključen posel", "zaključena posla", "zaključeni posli", "zaključenih poslov") + " · " + Math.round((hit.wins / hit.closed.length) * 100) + " % dobitkov" : "še brez zaključenih poslov") + (hit.open.length ? " · odprto " + copySol(hit.unreal) : ""), tone(hit.net), hit.net);
+  kpi("#cpK5", copySol(sled.net), (sled.closed.length ? plural(sled.closed.length, "zaključen posel", "zaključena posla", "zaključeni posli", "zaključenih poslov") + " · " + Math.round((sled.wins / sled.closed.length) * 100) + " % dobitkov" : "še brez zaključenih poslov") + (sled.open.length ? " · odprto " + copySol(sled.unreal) : ""), tone(sled.net), sled.net);
   const medLag = copyMedian(lagList);
   kpi("#cpK3", medLag === null ? "-" : medLag < 60 ? Math.round(medLag) + " s" : (medLag / 60).toFixed(1) + " min", lagList.length ? "mediana od njihovega bloka do najinega vstopa · " + lagList.length + " vstopov" : "izmeri se ob prvem kopiranem nakupu");
   const medSlip = copyMedian(slipList);
