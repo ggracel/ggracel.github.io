@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 693;
+const CLIENT_VERSION = 694;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -4410,42 +4410,65 @@ function renderCopy() {
   $("#cpUpdated").textContent = copyState.loadedAt ? "Naloženo " + new Date(copyState.loadedAt).toLocaleTimeString("sl-SI") : "";
 }
 function copyCurve(mir, hit, sled) {
+  // 6. 10. 2026 (6.9.4): urejen graf. Lepe oznake na osi y (desno poravnane v levem robu), ničla poudarjena,
+  // časovne oznake spodaj, mreža, legenda vodoravno s trenutnim neto po pravilih.
   const svg = $("#cpCurve");
   svg.replaceChildren();
   const NS = "http://www.w3.org/2000/svg";
-  const mk = (tag, attrs) => { const el = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v); return el; };
+  const mk = (tag, attrs, txt) => { const el = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v); if (txt !== undefined) el.textContent = txt; return el; };
   const series = [["kopija-mirror", mir], ["kopija-hitri", hit], ["kopija-sled", sled]].map(([rule, s]) => {
     let cum = 0;
     const pts = [...s.closed].sort((a, b) => new Date(a.closed_at) - new Date(b.closed_at)).map((t) => ({ t: new Date(t.closed_at).getTime(), v: (cum += t.pnl_sol) }));
-    return { rule, pts };
+    return { rule, pts, net: s.net };
   });
+  const leg = $("#cpLegend");
+  if (leg) leg.replaceChildren(...series.map((s) => { const b = document.createElement("b"); const i = document.createElement("i"); i.style.setProperty("--c", COPY_RULES[s.rule].color); const em = document.createElement("em"); em.className = tone(s.net); em.textContent = s.pts.length ? (s.net > 0 ? "+" : "") + plainMinus(s.net.toLocaleString("sl-SI", { minimumFractionDigits: 2, maximumFractionDigits: 2 })) : "-"; b.append(i, COPY_RULES[s.rule].name + " ", em); return b; }));
   const all = series.flatMap((s) => s.pts);
   const note = $("#cpCurveNote");
   if (!all.length) {
-    note.textContent = "Krivulji se narišeta po prvem zaključenem senčnem poslu.";
-    const t = mk("text", { x: 350, y: 120, fill: "#5f7390", "font-size": 14, "text-anchor": "middle" }); t.textContent = "še ni zaključenih poslov"; svg.append(t);
+    note.textContent = "Krivulje se narišejo po prvem zaključenem senčnem poslu.";
+    svg.append(mk("text", { x: 350, y: 120, fill: "#5f7390", "font-size": 14, "text-anchor": "middle" }, "še ni zaključenih poslov"));
     return;
   }
+  const W = 700, H = 230, L = 64, R = 16, T = 22, B = 28;
   const t0 = Math.min(...all.map((p) => p.t)) - 60000, t1 = Math.max(Date.now(), ...all.map((p) => p.t));
-  const vals = [0, ...all.map((p) => p.v)], lo = Math.min(...vals), hi = Math.max(...vals), range = hi - lo || 0.001;
-  const X = (ms) => 30 + ((ms - t0) / (t1 - t0 || 1)) * 650, Y = (v) => 195 - ((v - lo) / range) * 165;
-  for (const v of [lo, 0, hi]) {
-    svg.append(mk("line", { x1: 30, x2: 680, y1: Y(v), y2: Y(v), stroke: "#1f3045", "stroke-dasharray": "3 6" }));
-    if (v === 0 && (Math.abs(Y(0) - Y(lo)) < 14 || Math.abs(Y(0) - Y(hi)) < 14)) continue; // oznaka 0 bi prekrila sosednjo
-    const lab = mk("text", { x: 32, y: Math.max(14, Y(v) - 5), fill: "#7f93ad", "font-size": 12 }); lab.textContent = copySol(v); svg.append(lab);
+  // lepe oznake na osi y: 1, 2, 2.5, 5 x 10^n, da je 3 do 5 črt
+  const vals = [0, ...all.map((p) => p.v)];
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  if (hi - lo < 1e-6) { hi += 0.01; lo -= 0.01; }
+  const span = hi - lo, raw = span / 4, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => span / s <= 5) || 10 * mag;
+  lo = Math.floor(lo / step) * step; hi = Math.ceil(hi / step) * step;
+  const X = (ms) => L + ((ms - t0) / (t1 - t0 || 1)) * (W - L - R), Y = (v) => T + ((hi - v) / (hi - lo)) * (H - T - B);
+  const dec = step >= 1 ? 0 : step >= 0.1 ? 1 : step >= 0.01 ? 2 : 3;
+  for (let v = lo; v <= hi + step / 2; v += step) {
+    const zero = Math.abs(v) < step / 1000;
+    svg.append(mk("line", { x1: L, x2: W - R, y1: Y(v), y2: Y(v), stroke: zero ? "#3a5272" : "#16233a", "stroke-width": zero ? 1.2 : 1 }));
+    svg.append(mk("text", { x: L - 8, y: Y(v) + 4, fill: zero ? "#a7b7ca" : "#5f7390", "font-size": 11, "text-anchor": "end" }, (v > 0 ? "+" : "") + plainMinus(v.toLocaleString("sl-SI", { minimumFractionDigits: dec, maximumFractionDigits: dec }))));
+  }
+  svg.append(mk("text", { x: L - 8, y: 11, fill: "#5f7390", "font-size": 10, "text-anchor": "end" }, "SOL"));
+  // časovne oznake na polnih urah (korak 1, 2, 3, 6, 12 ali 24 h, da jih je 4 do 7), pri več kot 36 h z datumom
+  const hours = (t1 - t0) / 3600000;
+  const stepH = [1, 2, 3, 6, 12, 24, 48].find((s) => hours / s <= 7) || 48;
+  const first = new Date(t0); first.setMinutes(0, 0, 0); first.setHours(Math.ceil((t0 - first.getTime()) / 3600000) > 0 ? first.getHours() + 1 : first.getHours());
+  for (let ms = first.getTime(); ms <= t1; ms += stepH * 3600000) {
+    const d = new Date(ms);
+    if (X(ms) < L + 18 || X(ms) > W - R - 18) continue;
+    const lab = hours > 36 ? d.getDate() + ". " + (d.getMonth() + 1) + ". " + String(d.getHours()).padStart(2, "0") + ":00" : String(d.getHours()).padStart(2, "0") + ":00";
+    svg.append(mk("line", { x1: X(ms), x2: X(ms), y1: T, y2: H - B, stroke: "#16233a", "stroke-dasharray": "2 5" }));
+    svg.append(mk("text", { x: X(ms), y: H - 8, fill: "#5f7390", "font-size": 11, "text-anchor": "middle" }, lab));
   }
   for (const s of series) {
     if (!s.pts.length) continue;
-    let d = "M" + X(t0) + " " + Y(0);
+    let d = "M" + X(t0).toFixed(1) + " " + Y(0).toFixed(1);
     let prev = 0;
-    for (const p of s.pts) { d += " L" + X(p.t) + " " + Y(prev) + " L" + X(p.t) + " " + Y(p.v); prev = p.v; }
-    d += " L" + X(t1) + " " + Y(prev);
-    svg.append(mk("path", { d, fill: "none", stroke: COPY_RULES[s.rule].color, "stroke-width": 2.5, "stroke-linejoin": "round" }));
-    const last = s.pts.at(-1);
-    svg.append(mk("circle", { cx: X(t1), cy: Y(last.v), r: 4, fill: COPY_RULES[s.rule].color }));
+    for (const p of s.pts) { d += " L" + X(p.t).toFixed(1) + " " + Y(prev).toFixed(1) + " L" + X(p.t).toFixed(1) + " " + Y(p.v).toFixed(1); prev = p.v; }
+    d += " L" + X(t1).toFixed(1) + " " + Y(prev).toFixed(1);
+    svg.append(mk("path", { d, fill: "none", stroke: COPY_RULES[s.rule].color, "stroke-width": s.rule === "kopija-mirror" ? 2.4 : 1.8, "stroke-linejoin": "round", "stroke-linecap": "round", opacity: s.rule === "kopija-mirror" ? 1 : 0.9 }));
+    svg.append(mk("circle", { cx: X(t1), cy: Y(prev), r: 3.5, fill: COPY_RULES[s.rule].color, stroke: "#0a1320", "stroke-width": 1.5 }));
   }
   const stake = copyState.trades.find((t) => t.stake_sol > 0)?.stake_sol;
-  note.textContent = "Kumulativni neto rezultat v SOL po času zaključka, vložek " + (stake ? stake.toLocaleString("sl-SI") : "-") + " SOL na posel (isti kot pri botu), po stroških. Od " + new Date(t0).toLocaleString("sl-SI", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) + ".";
+  note.textContent = "Kumulativni neto rezultat po času zaključka, vložek " + (stake ? stake.toLocaleString("sl-SI") : "-") + " SOL na posel (isti kot pri botu), po stroških. Vsak lom je zaključen posel. Od " + new Date(t0).toLocaleString("sl-SI", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) + ".";
 }
 $("#kopiranje").onclick = () => { navigate("copy", "live"); loadCopy(); };
 $("#copyPeriod").onchange = loadCopy;
