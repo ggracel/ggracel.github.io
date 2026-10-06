@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 692;
+const CLIENT_VERSION = 693;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -4307,10 +4307,22 @@ async function loadCopy() {
     const since = days === "all" ? "2026-10-01T00:00:00Z" : days === "today" ? midnight(0) : days === "yesterday" ? midnight(-1) : new Date(Date.now() - Number(days) * 86400000).toISOString();
     const until = days === "yesterday" ? midnight(0) : null;
     const dayAgo = new Date(Date.now() - 86400000).toISOString();
-    let tq = db.from("copy_shadow_trades").select("id,rule,wallet,token,symbol,signal_id,signal_t,opened_at,lag_s,entry_usd,peak_usd,low_usd,last_usd,last_t,stake_sol,closed_at,exit_usd,exit_reason,pnl_pct,pnl_sol,wallet_price_sol,note").gte("opened_at", since).like("rule", "kopija-%");
-    if (until) tq = tq.lt("opened_at", until);
+    // 6. 10. 2026: branje po straneh. Prej največ 600 vrstic, kar je pri ~250 nakupih x 3 pravila + preskoki na dan
+    // pokazalo samo zadnjih pol dneva (včeraj je zato manjkal ves dopoldanski plus 7aaiiC). Zdaj do 12.000 vrstic.
+    const loadTrades = async () => {
+      const rows = [];
+      for (let page = 0; page < 12; page++) {
+        let q = db.from("copy_shadow_trades").select("id,rule,wallet,token,symbol,signal_id,signal_t,opened_at,lag_s,entry_usd,peak_usd,low_usd,last_usd,last_t,stake_sol,closed_at,exit_usd,exit_reason,pnl_pct,pnl_sol,wallet_price_sol,note").gte("opened_at", since).like("rule", "kopija-%");
+        if (until) q = q.lt("opened_at", until);
+        const r = await q.order("opened_at", { ascending: false }).order("id", { ascending: false }).range(page * 1000, page * 1000 + 999);
+        if (r.error) return r;
+        rows.push(...(r.data || []));
+        if (!r.data || r.data.length < 1000) break;
+      }
+      return { data: rows, error: null };
+    };
     const [t, c, s] = await Promise.all([
-      tq.order("opened_at", { ascending: false }).limit(600),
+      loadTrades(),
       db.from("copy_candidates").select("wallet,label,status,stats").eq("status", "sledi"),
       db.from("copy_signals").select("wallet,token,side,t,sol").gte("t", dayAgo).not("sig", "like", "test-%").order("t", { ascending: false }).limit(300),
     ]);
