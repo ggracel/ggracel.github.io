@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 700;
+const CLIENT_VERSION = 701;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -3825,6 +3825,15 @@ function renderOpenTrades() {
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
   {
+    id: 31,
+    at: "2026-10-08T19:00:00Z",
+    date: "8. 10. 2026",
+    title: "Kopiranje: še Hitri 40 v senci",
+    short: "<b>Hitri 40</b> (+40 % / -5 % / 120 min) teče ob Hitri 20 in Hitri 30 na istih vstopih. Zamik in cena zamika sta v eni kartici.",
+    body:
+      "Replay je meril cilje +10, +20, +30 in +50 %, ne pa +40 %. Ker je bil +50 % še boljši od +30 %, od 8. 10. zvečer teče v senci še Hitri 40 (cilj +40 %, meja -5 %, največ 120 min) na istih vstopih kot ostali. Na vrhu zavihka Kopiranje je dobil svojo kartico, zamik in cena zamika pa sta skupaj v eni. V krivulji, tabeli in jutranjem pregledu je Hitri 40 zraven. Čez teden primerjamo vse štiri hitre cilje na istih vstopih in obdržimo enega ali dva. Ni finančni nasvet.",
+  },
+  {
     id: 30,
     at: "2026-10-08T13:30:00Z",
     date: "8. 10. 2026",
@@ -4316,7 +4325,7 @@ renderProfile();
 // Vse je senca: brez denarja, brez vpliva na bilanco. Osvežitev na 30 s, ko je zavihek odprt.
 // 8. 10. 2026 (7.0.0, G): Hitri 20 in Hitri 30 namesto Hitri (+10) in Sled. Replay na copy_prices (1.211 nakupov, meja -5 %):
 // +10 % +0,92 SOL, +20 % +3,47, +30 % +4,10, vsak dan enako. Staro kopija-hitri teče naprej kot skrita kontrola, kopija-sled ne odpira novih.
-const COPY_RULES = { "kopija-mirror": { name: "Zrcalo", color: "#46bec5" }, "kopija-hitri20": { name: "Hitri 20", color: "#e2a93a", tp: 0.20 }, "kopija-hitri30": { name: "Hitri 30", color: "#c0eb75", tp: 0.30 } };
+const COPY_RULES = { "kopija-mirror": { name: "Zrcalo", color: "#46bec5" }, "kopija-hitri20": { name: "Hitri 20", color: "#e2a93a", tp: 0.20 }, "kopija-hitri30": { name: "Hitri 30", color: "#c0eb75", tp: 0.30 }, "kopija-hitri40": { name: "Hitri 40", color: "#ff9f9f", tp: 0.40 } };
 const COPY_OLD = { "kopija-hitri": { name: "Hitri 10", color: "#8ca4c5", tp: 0.10 }, "kopija-sled": { name: "Sled", color: "#8ca4c5" } };
 let copyState = { trades: [], cands: [], signals: [], error: "", loadedAt: 0 }, copyBusy = false;
 async function loadCopy() {
@@ -4384,7 +4393,7 @@ function renderCopy() {
   if (copyState.error) { st.className = "cpStatus err"; st.textContent = copyState.error; }
   else { st.className = "cpStatus ok"; st.innerHTML = '<i></i>Živo · ' + copyState.cands.length + " sledenih denarnic · zadnjih 24 h " + plural(buys24, "nakup", "nakupa", "nakupi", "nakupov") + " in " + plural(sells24, "prodaja", "prodaji", "prodaje", "prodaj") + " · strežnik vodi posle na 6 s, zavihek se osveži na 30 s"; }
   // KPI
-  const mir = copyStats("kopija-mirror"), hit = copyStats("kopija-hitri20"), sled = copyStats("kopija-hitri30");
+  const mir = copyStats("kopija-mirror"), hit = copyStats("kopija-hitri20"), sled = copyStats("kopija-hitri30"), h40 = copyStats("kopija-hitri40");
   const lagList = mir.all.filter((t) => t.note?.entry_src !== "signal").map((t) => t.lag_s).filter(Number.isFinite);
   const slipList = mir.all.filter((t) => t.note?.entry_src === "jupiter" && t.note?.sol_usd > 0 && t.wallet_price_sol > 0).map((t) => t.entry_usd / (t.wallet_price_sol * t.note.sol_usd) - 1);
   // 6. 10. 2026: pod neto SOL še vrednost v dolarjih po istem tečaju kot v Bilanci (Jupiter, sicer fiksen).
@@ -4394,12 +4403,18 @@ function renderCopy() {
   kpi("#cpK1", copySol(mir.net), (mir.closed.length ? plural(mir.closed.length, "zaključen posel", "zaključena posla", "zaključeni posli", "zaključenih poslov") + " · " + Math.round((mir.wins / mir.closed.length) * 100) + " % dobitkov" : "še brez zaključenih poslov") + (mir.open.length ? " · odprto " + copySol(mir.unreal) : ""), tone(mir.net), mir.net);
   kpi("#cpK2", copySol(hit.net), (hit.closed.length ? plural(hit.closed.length, "zaključen posel", "zaključena posla", "zaključeni posli", "zaključenih poslov") + " · " + Math.round((hit.wins / hit.closed.length) * 100) + " % dobitkov" : "še brez zaključenih poslov") + (hit.open.length ? " · odprto " + copySol(hit.unreal) : ""), tone(hit.net), hit.net);
   kpi("#cpK5", copySol(sled.net), (sled.closed.length ? plural(sled.closed.length, "zaključen posel", "zaključena posla", "zaključeni posli", "zaključenih poslov") + " · " + Math.round((sled.wins / sled.closed.length) * 100) + " % dobitkov" : "še brez zaključenih poslov") + (sled.open.length ? " · odprto " + copySol(sled.unreal) : ""), tone(sled.net), sled.net);
-  const medLag = copyMedian(lagList);
-  kpi("#cpK3", medLag === null ? "-" : medLag < 60 ? Math.round(medLag) + " s" : (medLag / 60).toFixed(1) + " min", lagList.length ? "mediana od njihovega bloka do najinega vstopa · " + lagList.length + " vstopov" : "izmeri se ob prvem kopiranem nakupu");
-  const medSlip = copyMedian(slipList);
-  kpi("#cpK4", medSlip === null ? "-" : copyPct(medSlip), slipList.length ? "najina vstopna cena proti njihovi · mediana · " + slipList.length + " vstopov" : "koliko dražje kupiva zaradi zamika", medSlip === null ? "" : medSlip > 0.02 ? "negative" : "positive");
-  // krivulji
-  copyCurve(mir, hit, sled);
+  kpi("#cpK6", copySol(h40.net), (h40.closed.length ? plural(h40.closed.length, "zaključen posel", "zaključena posla", "zaključeni posli", "zaključenih poslov") + " · " + Math.round((h40.wins / h40.closed.length) * 100) + " % dobitkov" : "še brez zaključenih poslov") + (h40.open.length ? " · odprto " + copySol(h40.unreal) : ""), tone(h40.net), h40.net);
+  // 8. 10. 2026 zvečer (7.0.1): zamik in cena zamika v eni kartici, da je prostor za Hitri 40
+  const medLag = copyMedian(lagList), medSlip = copyMedian(slipList);
+  const lagTxt = medLag === null ? "-" : medLag < 60 ? Math.round(medLag) + " s" : (medLag / 60).toFixed(1) + " min";
+  const k3 = $("#cpK3");
+  k3.querySelector("strong").textContent = lagTxt;
+  const k3em = k3.querySelector(".cpUsd");
+  if (k3em) { k3em.textContent = medSlip === null ? "" : "cena " + copyPct(medSlip); k3em.className = "cpUsd " + (medSlip === null ? "" : medSlip > 0.02 ? "negative" : "positive"); }
+  k3.querySelector("p").textContent = lagList.length ? "mediana od njihovega bloka do najinega vstopa in koliko dražje zato kupiva · " + lagList.length + " vstopov" : "izmeri se ob prvem kopiranem nakupu";
+  k3.className = "cpKpi";
+  // krivulje
+  copyCurve(mir, hit, sled, h40, copyStats("kopija-hitri"));
   // denarnice
   const wl = $("#cpWallets");
   wl.replaceChildren();
@@ -4431,20 +4446,20 @@ function renderCopy() {
   renderCopyFeed();
   $("#cpUpdated").textContent = copyState.loadedAt ? "Naloženo " + new Date(copyState.loadedAt).toLocaleTimeString("sl-SI") : "";
 }
-function copyCurve(mir, hit, sled) {
+function copyCurve(mir, hit, sled, h40, h10) {
   // 6. 10. 2026 (6.9.4): urejen graf. Lepe oznake na osi y (desno poravnane v levem robu), ničla poudarjena,
   // časovne oznake spodaj, mreža, legenda vodoravno s trenutnim neto po pravilih.
   const svg = $("#cpCurve");
   svg.replaceChildren();
   const NS = "http://www.w3.org/2000/svg";
   const mk = (tag, attrs, txt) => { const el = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v); if (txt !== undefined) el.textContent = txt; return el; };
-  const series = [["kopija-mirror", mir], ["kopija-hitri20", hit], ["kopija-hitri30", sled]].map(([rule, s]) => {
+  const series = [["kopija-mirror", mir], ["kopija-hitri20", hit], ["kopija-hitri30", sled], ["kopija-hitri40", h40], ["kopija-hitri", h10]].map(([rule, s]) => {
     let cum = 0;
     const pts = [...s.closed].sort((a, b) => new Date(a.closed_at) - new Date(b.closed_at)).map((t) => ({ t: new Date(t.closed_at).getTime(), v: (cum += t.pnl_sol) }));
-    return { rule, pts, net: s.net };
+    return { rule, pts, net: s.net, old: !COPY_RULES[rule], def: COPY_RULES[rule] || COPY_OLD[rule] };
   });
   const leg = $("#cpLegend");
-  if (leg) leg.replaceChildren(...series.map((s) => { const b = document.createElement("b"); const i = document.createElement("i"); i.style.setProperty("--c", COPY_RULES[s.rule].color); const em = document.createElement("em"); em.className = tone(s.net); em.textContent = s.pts.length ? (s.net > 0 ? "+" : "") + plainMinus(s.net.toLocaleString("sl-SI", { minimumFractionDigits: 2, maximumFractionDigits: 2 })) : "-"; b.append(i, COPY_RULES[s.rule].name + " ", em); return b; }));
+  if (leg) leg.replaceChildren(...series.map((s) => { const b = document.createElement("b"); if (s.old) { b.className = "old"; b.title = "staro pravilo, do 8. 10. (teče naprej samo kot skrita kontrola)"; } const i = document.createElement("i"); i.style.setProperty("--c", s.def.color); if (s.old) i.classList.add("old"); const em = document.createElement("em"); em.className = tone(s.net); em.textContent = s.pts.length ? (s.net > 0 ? "+" : "") + plainMinus(s.net.toLocaleString("sl-SI", { minimumFractionDigits: 2, maximumFractionDigits: 2 })) : "-"; b.append(i, s.def.name + (s.old ? " · staro " : " "), em); return b; }));
   const all = series.flatMap((s) => s.pts);
   const note = $("#cpCurveNote");
   if (!all.length) {
@@ -4486,8 +4501,8 @@ function copyCurve(mir, hit, sled) {
     let prev = 0;
     for (const p of s.pts) { d += " L" + X(p.t).toFixed(1) + " " + Y(prev).toFixed(1) + " L" + X(p.t).toFixed(1) + " " + Y(p.v).toFixed(1); prev = p.v; }
     d += " L" + X(t1).toFixed(1) + " " + Y(prev).toFixed(1);
-    svg.append(mk("path", { d, fill: "none", stroke: COPY_RULES[s.rule].color, "stroke-width": s.rule === "kopija-mirror" ? 2.4 : 1.8, "stroke-linejoin": "round", "stroke-linecap": "round", opacity: s.rule === "kopija-mirror" ? 1 : 0.9 }));
-    svg.append(mk("circle", { cx: X(t1), cy: Y(prev), r: 3.5, fill: COPY_RULES[s.rule].color, stroke: "#0a1320", "stroke-width": 1.5 }));
+    svg.append(mk("path", { d, fill: "none", stroke: s.def.color, "stroke-width": s.old ? 1.2 : s.rule === "kopija-mirror" ? 2.4 : 1.8, "stroke-dasharray": s.old ? "3 4" : "none", "stroke-linejoin": "round", "stroke-linecap": "round", opacity: s.old ? 0.5 : s.rule === "kopija-mirror" ? 1 : 0.9 }));
+    svg.append(mk("circle", { cx: X(t1), cy: Y(prev), r: s.old ? 2.5 : 3.5, fill: s.def.color, stroke: "#0a1320", "stroke-width": 1.5, opacity: s.old ? 0.5 : 1 }));
   }
   const stake = copyState.trades.find((t) => t.stake_sol > 0)?.stake_sol;
   note.textContent = "Kumulativni neto rezultat po času zaključka, vložek " + (stake ? stake.toLocaleString("sl-SI") : "-") + " SOL na posel (isti kot pri botu), po stroških. Vsak lom je zaključen posel. Od " + new Date(t0).toLocaleString("sl-SI", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) + ".";
@@ -4549,7 +4564,7 @@ function renderCopyFeed() {
   const openN = real.filter((x) => x.g.some((t) => !t.closed_at)).length;
   const lags = real.map((x) => x.t0.lag_s).filter(Number.isFinite), medLag = copyMedian(lags);
   sum.replaceChildren();
-  for (const [lab, val, cls] of [["Kopiranih nakupov", String(real.length), ""], ["Še odprtih", String(openN), ""], ["Zrcalo neto", copySol(net("kopija-mirror")), tone(net("kopija-mirror"))], ["Hitri 20 neto", copySol(net("kopija-hitri20")), tone(net("kopija-hitri20"))], ["Hitri 30 neto", copySol(net("kopija-hitri30")), tone(net("kopija-hitri30"))], ["Zamik, mediana", medLag === null ? "-" : Math.round(medLag) + " s", ""]]) {
+  for (const [lab, val, cls] of [["Kopiranih nakupov", String(real.length), ""], ["Še odprtih", String(openN), ""], ["Zrcalo neto", copySol(net("kopija-mirror")), tone(net("kopija-mirror"))], ["Hitri 20 neto", copySol(net("kopija-hitri20")), tone(net("kopija-hitri20"))], ["Hitri 30 neto", copySol(net("kopija-hitri30")), tone(net("kopija-hitri30"))], ["Hitri 40 neto", copySol(net("kopija-hitri40")), tone(net("kopija-hitri40"))], ["Zamik, mediana", medLag === null ? "-" : Math.round(medLag) + " s", ""]]) {
     const d = document.createElement("div"); d.innerHTML = "<span></span><b></b>"; d.querySelector("span").textContent = lab; d.querySelector("b").textContent = val; d.querySelector("b").className = cls; sum.append(d);
   }
   $("#cpSkips").textContent = (copyUI.skips ? "Skrij preskoke" : "Pokaži preskoke") + " (" + skips.length + ")";
@@ -4650,7 +4665,7 @@ async function copyLoadPath(x, svg, note) {
   const vals = pts.map((p) => p[1]); const lo = Math.min(-0.06, ...vals), hi = Math.max(0.12, ...vals);
   const X = (m) => 36 + (m / maxM) * (w - 50), Y = (v) => 20 + (1 - (v - lo) / (hi - lo)) * (h - 38);
   svg.append(mk("line", { x1: 36, x2: w - 14, y1: Y(0), y2: Y(0), stroke: "#4a5d78" }), mk("text", { x: 4, y: Y(0) + 4, fill: "#8ca4c5", "font-size": 10 }, "vstop"));
-  for (const [v, c, lab] of [[0.20, COPY_RULES["kopija-hitri20"].color, "+20"], [0.30, COPY_RULES["kopija-hitri30"].color, "+30"], [-0.05, COPY_RULES["kopija-hitri20"].color, "-5"]]) {
+  for (const [v, c, lab] of [[0.20, COPY_RULES["kopija-hitri20"].color, "+20"], [0.30, COPY_RULES["kopija-hitri30"].color, "+30"], [0.40, COPY_RULES["kopija-hitri40"].color, "+40"], [-0.05, COPY_RULES["kopija-hitri20"].color, "-5"]]) {
     if (v <= lo || v >= hi) continue;
     svg.append(mk("line", { x1: 36, x2: w - 14, y1: Y(v), y2: Y(v), stroke: c, "stroke-dasharray": "3 5", opacity: .5 }), mk("text", { x: w - 12, y: Y(v) + 4, fill: c, "font-size": 10, "text-anchor": "end" }, lab));
   }
@@ -4661,10 +4676,11 @@ async function copyLoadPath(x, svg, note) {
   for (const t of x.g) {
     if (t.rule === "kopija-hitri20" && t.closed_at) mark(t.closed_at, COPY_RULES[t.rule].color, "H20");
     if (t.rule === "kopija-hitri30" && t.closed_at) mark(t.closed_at, COPY_RULES[t.rule].color, "H30");
+    if (t.rule === "kopija-hitri40" && t.closed_at) mark(t.closed_at, COPY_RULES[t.rule].color, "H40");
     if (t.rule === "kopija-mirror" && t.closed_at) mark(t.closed_at, COPY_RULES[t.rule].color, "Z");
   }
   svg.append(mk("text", { x: 36, y: h - 2, fill: "#6f8299", "font-size": 10 }, "0 min"), mk("text", { x: w - 14, y: h - 2, fill: "#6f8299", "font-size": 10, "text-anchor": "end" }, copyMinText(maxM)));
-  note.textContent = "Cena od najinega vstopa (Jupiter, na 6 s). Z = denarnica prodala · H20 = Hitri 20 izstopil · H30 = Hitri 30 izstopil. Črtkane črte so meje pravil." + (pts.length >= 3000 ? " Prikazanih prvih 5 h." : "");
+  note.textContent = "Cena od najinega vstopa (Jupiter, na 6 s). Z = denarnica prodala · H20 = Hitri 20 izstopil · H30 = Hitri 30 izstopil · H40 = Hitri 40 izstopil. Črtkane črte so meje pravil." + (pts.length >= 3000 ? " Prikazanih prvih 5 h." : "");
 }
 $("#cpRows").addEventListener("click", (e) => {
   const tr = e.target.closest("tr.cpSig"); if (!tr || e.target.closest("a")) return;
@@ -4775,8 +4791,9 @@ function pgCopyCol(r) {
   const d = r.data, k = d.kpi || {};
   const tocke = d.zakljucek?.tocke?.length ? `<ul class="pgTocke">${d.zakljucek.tocke.map((t) => `<li>${t}</li>`).join("")}</ul>` : "";
   const h20 = k.hitri20Neto !== undefined ? k.hitri20Neto : k.hitriNeto, h30 = k.hitri30Neto !== undefined ? k.hitri30Neto : k.sledNeto;
-  const hsLab = k.hitri20Neto !== undefined ? "Hitri 20 / 30" : "Hitri / Sled";
-  const hs = `<span class="${pgTone(h20)}">${pgS(h20, 2)}</span> / <span class="${pgTone(h30)}">${pgS(h30, 2)}</span>`;
+  const h40 = k.hitri40Neto;
+  const hsLab = k.hitri20Neto !== undefined ? (h40 !== undefined ? "Hitri 20 / 30 / 40" : "Hitri 20 / 30") : "Hitri / Sled";
+  const hs = `<span class="${pgTone(h20)}">${pgS(h20, 2)}</span> / <span class="${pgTone(h30)}">${pgS(h30, 2)}</span>` + (h40 !== undefined ? ` / <span class="${pgTone(h40)}">${pgS(h40, 2)}</span>` : "");
   return `<div class="pgCol"><div class="pgCh"><i class="pgDot" style="--c:#c0eb75"></i><b>Kopiranje</b><span class="muted">${pgEsc(d.znacka || "8 denarnic · senca")}</span></div>
     <div class="pgKs">
       ${pgKpi("Zrcalo neto", pgS(k.zrcaloNeto, 4), "SOL", "PnL " + pgS(k.zrcaloPnl, 2) + " %" + (k.prejZrcaloNeto !== undefined ? ", dan prej " + pgS(k.prejZrcaloNeto, 4) : ""), pgTone(k.zrcaloNeto))}
@@ -4810,7 +4827,7 @@ function renderPregledi() {
   const bd = b?.data || {}, cd = c?.data || {};
   // podrobnosti
   const potek = `<div class="pgTwo"><div><small class="pgSub">Bot</small>${pgCurve([{ pts: bd.krivulja, color: "#46bec5" }], { oznake: bd.oznake, vrzel: bd.vrzel })}${bd.krivuljaOpomba ? `<p class="muted">${pgEsc(bd.krivuljaOpomba)}</p>` : ""}</div>
-    <div><small class="pgSub">Kopiranje <span class="cpLegend"><i style="--c:#46bec5"></i>Zrcalo <i style="--c:#e2a93a"></i>${cd.krivulje?.["Hitri 20"] ? "Hitri 20" : "Hitri"} <i style="--c:#c0eb75"></i>${cd.krivulje?.["Hitri 30"] ? "Hitri 30" : "Sled"}</span></small>${pgCurve([{ pts: cd.krivulje?.Zrcalo, color: "#46bec5" }, { pts: cd.krivulje?.["Hitri 20"] || cd.krivulje?.Hitri, color: "#e2a93a", width: 1.5 }, { pts: cd.krivulje?.["Hitri 30"] || cd.krivulje?.Sled, color: "#c0eb75", width: 1.5 }])}${cd.krivuljeOpomba ? `<p class="muted">${pgEsc(cd.krivuljeOpomba)}</p>` : ""}</div></div>`;
+    <div><small class="pgSub">Kopiranje <span class="cpLegend"><i style="--c:#46bec5"></i>Zrcalo <i style="--c:#e2a93a"></i>${cd.krivulje?.["Hitri 20"] ? "Hitri 20" : "Hitri"} <i style="--c:#c0eb75"></i>${cd.krivulje?.["Hitri 30"] ? "Hitri 30" : "Sled"}${cd.krivulje?.["Hitri 40"] ? ' <i style="--c:#ff9f9f"></i>Hitri 40' : ""}</span></small>${pgCurve([{ pts: cd.krivulje?.Zrcalo, color: "#46bec5" }, { pts: cd.krivulje?.["Hitri 20"] || cd.krivulje?.Hitri, color: "#e2a93a", width: 1.5 }, { pts: cd.krivulje?.["Hitri 30"] || cd.krivulje?.Sled, color: "#c0eb75", width: 1.5 }].concat(cd.krivulje?.["Hitri 40"] ? [{ pts: cd.krivulje["Hitri 40"], color: "#ff9f9f", width: 1.5 }] : []))}${cd.krivuljeOpomba ? `<p class="muted">${pgEsc(cd.krivuljeOpomba)}</p>` : ""}</div></div>`;
   const blokFmt = (v, j) => (j === 0 ? pgCell(pgEsc(v)) : j === 1 ? pgPlain(v) : j === 2 ? pgSolCell(v, 3) : j === 3 ? pgPctCell(v, 2) : pgPctCell(v, 0).replace("+", ""));
   const ure = `<div class="pgTwo"><div><small class="pgSub">Ta dan</small>${pgTable(["Del dneva", "Poslov", "Neto", "PnL", "V plusu"], bd.bloki, blokFmt)}</div><div><small class="pgSub">Zadnjih 7 dni</small>${pgTable(["Del dneva", "Poslov", "Neto", "PnL", "V plusu"], bd.bloki7, blokFmt)}</div></div>${bd.ureOpomba ? `<p class="muted">${pgEsc(bd.ureOpomba)}</p>` : ""}`;
   const best7 = bd.bloki7?.length ? [...bd.bloki7].sort((p, q) => q[3] - p[3])[0] : null;
