@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 701;
+const CLIENT_VERSION = 702;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -1972,6 +1972,8 @@ async function checkHealth() {
       msgs.push("Čuvaj strežnika se ni oglasil od " + hm(h.posnetki.updated_at) + ". Baza je morda preobremenjena.");
     } else {
       if (old(h.posnetki)) msgs.push("Strežnik ne zbira posnetkov" + (h.posnetki?.last_ok ? " od " + hm(h.posnetki.last_ok) + " (pred " + ago(h.posnetki.last_ok) + " min)" : "") + ". Bot ta čas ne vstopa.");
+      // 9. 10. 2026 (7.0.2): čuvaj zapiše razlago (vrstica tik), npr. da baza ne doseže funkcij in pomaga Restart project
+      if (old(h.posnetki) && h.tik?.last_err) msgs.push(String(h.tik.last_err).slice(0, 220));
       if (old(h.cene)) msgs.push("Jupitrove cene stojijo" + (h.cene?.last_ok ? " od " + hm(h.cene.last_ok) : "") + ".");
     }
     const c = h.collect;
@@ -3824,6 +3826,15 @@ function renderOpenTrades() {
 // Po tem ostane vnos samo se v dnevniku sprememb v zavihku Kako deluje.
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
+  {
+    id: 32,
+    at: "2026-10-09T09:00:00Z",
+    date: "9. 10. 2026",
+    title: "Strežnik: en klic na minuto namesto devetih, čuvaj pove, kaj klikniti",
+    short: "<b>Po izpadu 9. 10.</b> (09:15 do 10:07) baza sproži Sonarjeve funkcije z enim klicem na minuto. Če se ponovi, rdeča vrstica pove, kaj klikniti.",
+    body:
+      "9. 10. med 09:15 in 10:07 strežnik ni zbiral posnetkov in bot ni vstopal. Funkcije so bile zdrave, baza pa jih pod obremenitvijo ni več dosegla (klici so padali na čakanju) in to je popravil šele ponoven zagon projekta. Od zdaj baza enkrat na minuto pokliče eno funkcijo (tik), ta pa sama zažene zbiranje in bota ob :00 in :30, Jupitrove cene, značilke in kopiranje. Tik je še vedno vsakih 30 s, klicev iz baze pa je 2 na minuto namesto 9. Čuvaj vsaki 2 minuti preveri, ali posnetki stojijo, in v rdečo vrstico zapiše razlog in kaj narediti. Pravila bota se niso spremenila. Ni finančni nasvet.",
+  },
   {
     id: 31,
     at: "2026-10-08T19:00:00Z",
