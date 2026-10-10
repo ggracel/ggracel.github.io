@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 703;
+const CLIENT_VERSION = 710;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -1869,7 +1869,7 @@ const APP_VERSION = CLIENT_VERSION;
 // 3. 10. 2026 (G): drobni popravki dobijo tretjo številko. Od 6.5 naprej je interno trimestno: 651 = 6.5.1, 660 = 6.6.
 // Številka se mora vseeno povečati ob vsaki objavi, sicer se odprti zavihki in telefon ne osvežijo sami.
 const verLabel = (v) => (v >= 100 ? Math.floor(v / 100) + "." + (Math.floor(v / 10) % 10) + (v % 10 ? "." + (v % 10) : "") : (v / 10).toFixed(1));
-if ($("#appVer")) $("#appVer").textContent = " · v" + verLabel(APP_VERSION);
+if ($("#appVer")) $("#appVer").textContent = "v" + verLabel(APP_VERSION);
 async function checkVersion() {
   try {
     const r = await fetch("./version.json?t=" + Date.now(), { cache: "no-store" });
@@ -3826,6 +3826,15 @@ function renderOpenTrades() {
 // Po tem ostane vnos samo se v dnevniku sprememb v zavihku Kako deluje.
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
+  {
+    id: 34,
+    at: "2026-10-10T20:00:00Z",
+    date: "10. 10. 2026",
+    title: "Nov pogled: Pravi denar",
+    short: "<b>Desno zgoraj je stikalo Demo | Pravi denar.</b> Demo ostane tak kot doslej. Pravi denar kaže denarnico bota, denarnice za kopiranje in varovala. Trgovanje še ni vklopljeno.",
+    body:
+      "Sonar se pripravlja na trgovanje s pravim denarjem. Stikalo desno zgoraj preklopi med Demo (vse kot doslej) in Pravi denar. V Pravem denarju so štirje zavihki: Pregled (stanje denarnice bota, danes, dnevna meja, stanje sistema), Denarnice (katere denarnice gredo v živo, katere ostanejo v senci in katere so izločene, z rezultati sence zadnjih 7 dni), Posli (pravi posli, ko bodo) in Varovala (vložek, dnevna meja izgube, največ hkrati, zdrs, isto ime) z dnevnikom sprememb. Spreminja lahko samo lastnik, vsako večjo spremembo pa mora potrditi z natipkano besedo. Ostali vidijo vse, samo za branje. Bot s pravim denarjem še ne trguje: izvrševanje nakupov in prodaj je naslednji korak. Ni finančni nasvet.",
+  },
   {
     id: 33,
     at: "2026-10-10T09:00:00Z",
