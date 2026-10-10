@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 702;
+const CLIENT_VERSION = 703;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -3827,6 +3827,15 @@ function renderOpenTrades() {
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
   {
+    id: 33,
+    at: "2026-10-10T09:00:00Z",
+    date: "10. 10. 2026",
+    title: "Kopiranje: PH izločen, novo varovalo za kopije kovancev",
+    short: "<b>PH je ponoči kupil 93 kopij kovanca FUCKCHAIR</b> (Zrcalo -6,45 SOL). PH ne sledimo več, nakup drugega kovanca z istim imenom v 24 h se preskoči.",
+    body:
+      "10. 10. med 01:27 in 05:37 je denarnica PH kupila 132-krat FUCKCHAIR, a to je bilo 93 različnih kovancev z istim imenom, svežih s pump.fun. Prodajal je po približno 40 s, sam z mediano -78 %. Zrcalo je na tem izgubilo 6,45 SOL, Hitri 20 2,43 SOL. PH ne sledimo več. Novo varovalo: če je ista denarnica v zadnjih 24 h že kupila drug kovanec z enakim imenom, se nakup preskoči. Na celi zgodovini bi Zrcalo s tem varovalom imelo +2,31 namesto -3,93 SOL. Omejitev 5 nakupov na uro smo preverili in zavrnili, ker bi pobrala večino plusa denarnice Yami. Posli PH ostanejo v rezultatih; PH je v seznamu denarnic označen kot izločena, dokler ima posle v izbranem obdobju. Ni finančni nasvet.",
+  },
+  {
     id: 32,
     at: "2026-10-09T09:00:00Z",
     date: "9. 10. 2026",
@@ -4365,7 +4374,7 @@ async function loadCopy() {
     };
     const [t, c, s] = await Promise.all([
       loadTrades(),
-      db.from("copy_candidates").select("wallet,label,status,stats").eq("status", "sledi"),
+      db.from("copy_candidates").select("wallet,label,status,stats").in("status", ["sledi", "izlocen"]),
       db.from("copy_signals").select("wallet,token,side,t,sol").gte("t", dayAgo).not("sig", "like", "test-%").order("t", { ascending: false }).limit(300),
     ]);
     if (t.error) throw t.error;
@@ -4379,6 +4388,8 @@ async function loadCopy() {
   renderCopy();
 }
 const copyLabel = (w) => copyState.cands.find((c) => c.wallet === w)?.label || w.slice(0, 4) + "…" + w.slice(-4);
+// 10. 10. 2026 (7.0.3): izločene denarnice (npr. PH) ostanejo vidne, dokler imajo posle v izbranem obdobju, da se vidi, od kod je rezultat
+const copyShown = () => copyState.cands.filter((c) => c.status === "sledi" || copyState.trades.some((t) => t.wallet === c.wallet));
 const copyAgo = (iso) => {
   const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
   return m < 1 ? "pravkar" : m < 60 ? "pred " + m + " min" : m < 1440 ? "pred " + Math.floor(m / 60) + " h" : "pred " + Math.floor(m / 1440) + " d";
@@ -4402,7 +4413,7 @@ function renderCopy() {
   const st = $("#copyStatus");
   const buys24 = copyState.signals.filter((s) => s.side === "buy").length, sells24 = copyState.signals.length - buys24;
   if (copyState.error) { st.className = "cpStatus err"; st.textContent = copyState.error; }
-  else { st.className = "cpStatus ok"; st.innerHTML = '<i></i>Živo · ' + copyState.cands.length + " sledenih denarnic · zadnjih 24 h " + plural(buys24, "nakup", "nakupa", "nakupi", "nakupov") + " in " + plural(sells24, "prodaja", "prodaji", "prodaje", "prodaj") + " · strežnik vodi posle na 6 s, zavihek se osveži na 30 s"; }
+  else { st.className = "cpStatus ok"; st.innerHTML = '<i></i>Živo · ' + copyState.cands.filter((c) => c.status === "sledi").length + " sledenih denarnic · zadnjih 24 h " + plural(buys24, "nakup", "nakupa", "nakupi", "nakupov") + " in " + plural(sells24, "prodaja", "prodaji", "prodaje", "prodaj") + " · strežnik vodi posle na 6 s, zavihek se osveži na 30 s"; }
   // KPI
   const mir = copyStats("kopija-mirror"), hit = copyStats("kopija-hitri20"), sled = copyStats("kopija-hitri30"), h40 = copyStats("kopija-hitri40");
   const lagList = mir.all.filter((t) => t.note?.entry_src !== "signal").map((t) => t.lag_s).filter(Number.isFinite);
@@ -4429,7 +4440,7 @@ function renderCopy() {
   // denarnice
   const wl = $("#cpWallets");
   wl.replaceChildren();
-  const rows = copyState.cands.map((c) => {
+  const rows = copyShown().map((c) => {
     const mine = mir.all.filter((t) => t.wallet === c.wallet), closed = mine.filter((t) => t.closed_at && Number.isFinite(t.pnl_sol));
     const sig = copyState.signals.filter((s) => s.wallet === c.wallet);
     return { c, mine, closed, net: closed.reduce((s, t) => s + t.pnl_sol, 0), wins: closed.filter((t) => t.pnl_sol > 0).length, lag: copyMedian(mine.map((t) => t.lag_s).filter(Number.isFinite)), last: sig[0]?.t || mine[0]?.opened_at || null, open: mine.filter((t) => !t.closed_at).length };
@@ -4442,7 +4453,8 @@ function renderCopy() {
       '<div class="cpWName"><b></b><small></small></div>' +
       '<div class="cpWBar"><i></i></div>' +
       '<div class="cpWNet"><strong></strong><small></small></div>';
-    el.querySelector("b").textContent = r.c.label || copyLabel(r.c.wallet);
+    el.querySelector("b").textContent = (r.c.label || copyLabel(r.c.wallet)) + (r.c.status === "izlocen" ? " · izločena" : "");
+    if (r.c.status === "izlocen") el.style.opacity = "0.7";
     el.querySelector(".cpWName small").textContent = (r.mine.length ? plural(r.mine.length, "posel", "posla", "posli", "poslov") + (r.open ? " · " + r.open + " odprt" : "") + (r.closed.length ? " · " + Math.round((r.wins / r.closed.length) * 100) + " % dobitkov" : "") : "še brez posla") + (r.last ? " · zadnji signal " + copyAgo(r.last) : "");
     const bar = el.querySelector(".cpWBar i");
     bar.style.width = Math.round((Math.abs(r.net) / maxAbs) * 100) + "%";
@@ -4561,7 +4573,7 @@ function renderCopyFeed() {
   const sel = $("#cpWallet");
   const cur = sel.value;
   sel.replaceChildren(new Option("Vse denarnice", ""));
-  for (const c of copyState.cands) sel.append(new Option(c.label || copyLabel(c.wallet), c.wallet));
+  for (const c of copyShown()) sel.append(new Option((c.label || copyLabel(c.wallet)) + (c.status === "izlocen" ? " (izločena)" : ""), c.wallet));
   sel.value = cur;
   const q = normQ(copyUI.q);
   const match = (x) => (!copyUI.wallet || x.t0.wallet === copyUI.wallet) && (!q || [x.t0.symbol, x.t0.token].some((v) => v && String(v).toLowerCase().includes(q)));
