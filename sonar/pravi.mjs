@@ -1,4 +1,4 @@
-// foqs.sonar · Pravi denar (7.1.0, 10. 10. 2026)
+// foqs.sonar · Pravi denar (7.1.1, 11. 10. 2026: kartica in tabela Suhi tek iz live_suhi)
 // Drugi pogled v isti aplikaciji. Stikalo Demo | Pravi denar je desno v glavi (G izbral mockup A). Demo pogled ostane
 // nespremenjen; pravi pogled ima svoje zavihke: Pregled, Denarnice, Posli, Varovala. Bere tabele live_settings,
 // live_settings_log, live_trades in RPC live_wallets_view; piše samo prek RPC (live_set_settings, live_set_on,
@@ -187,13 +187,14 @@ async function load() {
   if (!db) return;
   const set = S.settings?.pravilo || "kopija-hitri20";
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const [own, st, wv, tr, lg, he] = await Promise.all([
+  const [own, st, wv, tr, lg, he, su] = await Promise.all([
     db.rpc("sonar_is_owner").then((r) => r.data === true, () => false),
     db.from("live_settings").select("*").eq("id", 1).maybeSingle(),
     db.rpc("live_wallets_view", { p_rule: set, p_days: 7 }),
     db.from("live_trades").select("*").order("opened_at", { ascending: false }).limit(200),
     db.from("live_settings_log").select("*").order("t", { ascending: false }).limit(30),
     db.from("memecoin_health").select("key,last_ok,last_err,updated_at"),
+    db.from("live_suhi").select("id,wallet,symbol,token,status,stake_sol,buy_at,buy_lag_s,entry_gap_pct,exit_gap_pct,sell_at,fees_sol,pnl_sol,pnl_pct,shadow_pnl_pct,exit_reason").order("buy_at", { ascending: false }).limit(1000),
   ]);
   S.owner = own;
   S.settings = st.data || S.settings;
@@ -201,6 +202,7 @@ async function load() {
   S.trades = tr.data || [];
   S.log = lg.data || [];
   S.health = he.data || [];
+  S.suhi = su.data || [];
   S.loaded = true;
   if (S.settings && S.settings.pravilo !== set) { const r = await db.rpc("live_wallets_view", { p_rule: S.settings.pravilo, p_days: 7 }); S.wallets = r.data || S.wallets; }
   render();
@@ -246,6 +248,7 @@ function vPregled() {
   const hrow = (name, t, okMs) => `<span>${name}</span><span class="${t && Date.now() - new Date(t).getTime() < okMs ? "ok" : "bad"}">${ago(t)}</span>`;
   return `<div class="pd-kpis" id="pdKpis"></div>
   <div class="pd-card"><h3>Odprte pozicije</h3>${open.length ? open.map((t) => `<div style="display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--pd-line);padding-top:8px"><span><b>${esc(t.symbol || short(t.token))}</b> <span class="pd-addr">${esc(labelOf(t.wallet))} · ${nf(t.stake_sol, 3)} SOL · ${ago(t.opened_at)}</span></span><span class="pd-addr">${t.tx_buy ? `<a href="https://solscan.io/tx/${esc(t.tx_buy)}" target="_blank" rel="noreferrer">tx</a>` : ""}</span></div>`).join("") : `<p class="pd-empty">Ni odprtih pozicij. Ko bot kupi s pravim denarjem, se pozicija pokaže tu.</p>`}</div>
+  ${vSuhiCard()}
   <div class="pd-card"><h3>Stanje sistema</h3><div class="pd-health">
     <span>Trgovanje s pravim denarjem</span><span class="${s?.live_on ? "ok" : "off"}">${s?.live_on ? "vklopljeno" : "izklopljeno"}</span>
     <span>Denarnice v živo</span><span class="off">${lw.length ? esc(lw.join(", ")) : "nobena"}</span>
@@ -253,8 +256,32 @@ function vPregled() {
     ${hrow("Zbiralec", h("collect")?.last_ok || h("collect")?.updated_at, 180000)}
     ${hrow("Cene Jupiter", h("cene")?.last_ok || h("cene")?.updated_at, 120000)}
     <span>Zadnji nakup sledenih denarnic</span><span class="off">${ago(S.wallets.filter((w) => w.status === "sledi").map((w) => w.last_buy).filter(Boolean).sort().pop())}</span>
-    <span>Izvrševanje (izvrsi)</span><span class="off">ključ preverjen, trgovanje še ni zgrajeno (faza 2)</span>
+    <span>Izvrševanje (izvrsi)</span><span class="off">ključ preverjen, teče suhi tek (prave ponudbe, nič se ne pošlje)</span>
   </div><p class="pd-note">Denarnica <span class="pd-addr">${ADDR}</span> · <a href="https://solscan.io/account/${ADDR}" target="_blank" rel="noreferrer">Solscan</a></p></div>`;
+}
+// ---------- suhi tek (11. 10.): prave ponudbe Jupitra, nič se ne pošlje; tabela live_suhi ----------
+const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
+function suhiSum(rows) {
+  const z = rows.filter((r) => r.status === "zaprto");
+  const num = (k, f = 1) => z.map((r) => r[k]).filter((v) => v != null).map((v) => Number(v) * f);
+  return {
+    n: rows.length, zaprto: z.length, odprto: rows.filter((r) => r.status === "odprto").length,
+    preskok: rows.filter((r) => r.status === "preskok").length, napaka: rows.filter((r) => r.status === "napaka").length,
+    pnl: z.reduce((a, r) => a + (Number(r.pnl_sol) || 0), 0), fees: z.reduce((a, r) => a + (Number(r.fees_sol) || 0), 0),
+    pct: avg(num("pnl_pct")), senca: avg(num("shadow_pnl_pct", 100)),
+    vstop: avg(num("entry_gap_pct")), izstop: avg(num("exit_gap_pct")), zamik: avg(rows.map((r) => r.buy_lag_s).filter((v) => v != null).map(Number)),
+    plus: z.filter((r) => Number(r.pnl_sol) > 0).length,
+  };
+}
+function vSuhiCard() {
+  const all = S.suhi || [];
+  const d0 = new Date(); d0.setHours(0, 0, 0, 0);
+  const day = all.filter((r) => new Date(r.buy_at) >= d0);
+  const row = (name, s) => `<tr><td>${name}</td><td class="n">${s.zaprto}</td><td class="n">${s.odprto}</td><td class="n ${cls(s.pnl)}">${s.zaprto ? sgn(s.pnl) : "-"}</td><td class="n ${cls(s.pct)}">${s.pct == null ? "-" : sgn(s.pct, 1) + " %"}</td><td class="n ${cls(s.senca)}">${s.senca == null ? "-" : sgn(s.senca, 1) + " %"}</td><td class="n">${s.vstop == null ? "-" : sgn(s.vstop, 1) + " %"}</td><td class="n">${s.izstop == null ? "-" : sgn(s.izstop, 1) + " %"}</td><td class="n">${s.preskok} / ${s.napaka}</td></tr>`;
+  return `<div class="pd-card"><h3>Suhi tek <span class="pd-addr">brez denarja, od 11. 10.</span></h3>
+  <p class="pd-note">Za vsak nakup denarnic v živo bot vzame pravo ponudbo Jupitra za ${nf(S.settings?.vlozek, 2)} SOL in ob izstopu pravo ponudbo za prodajo. Nič se ne podpiše in nič ne pošlje. Rezultat je po provizijah omrežja; najemnina za račun kovanca (~0,002 SOL) se vrne ob zaprtju in ni všteta.</p>
+  ${all.length ? `<div class="pd-tbox"><table><thead><tr><th></th><th class="n">Zaprtih</th><th class="n">Odprtih</th><th class="n">SOL</th><th class="n">Na posel</th><th class="n">Senca isti posli</th><th class="n">Vstop proti senci</th><th class="n">Izstop proti senci</th><th class="n">Preskok / napaka</th></tr></thead><tbody>${row("Danes", suhiSum(day))}${row("Skupaj", suhiSum(all))}</tbody></table></div>
+  <p class="pd-note">Vstop proti senci: koliko dražje kupiva po pravi ponudbi kot senca (več je slabše). Izstop proti senci: koliko dobiva pri prodaji glede na senco (manj je slabše).</p>` : `<p class="pd-empty">Še ni signalov denarnic v živo. Prvi se pokaže, ko ena od njih kupi.</p>`}</div>`;
 }
 function renderKpis() {
   const box = $("#pdKpis"); if (!box) return;
@@ -307,7 +334,10 @@ function vPosli() {
   return `<div class="pd-sum"><span>Danes <b>${day.length} poslov</b></span><span>Zaprtih skupaj <b>${closed.length}</b></span><span>Rezultat skupaj <b class="${cls(closed.reduce((a, t) => a + (+t.pnl_sol || 0), 0))}">${sgn(closed.reduce((a, t) => a + (+t.pnl_sol || 0), 0))} SOL</b></span></div>
   ${S.trades.length ? `<div class="pd-tbox"><table><thead><tr><th>Čas</th><th>Kovanec</th><th>Denarnica</th><th class="n">Vložek</th><th class="n">Rezultat</th><th class="n">SOL</th><th>Izhod</th><th>Tx</th></tr></thead><tbody>
   ${S.trades.map((t) => `<tr><td>${hm(t.opened_at)}</td><td>${esc(t.symbol || short(t.token))}</td><td>${esc(labelOf(t.wallet))}</td><td class="n">${nf(t.stake_sol, 3)}</td><td class="n ${cls(t.pnl_pct)}">${t.pnl_pct == null ? "odprto" : sgn(t.pnl_pct, 1) + " %"}</td><td class="n ${cls(t.pnl_sol)}">${t.pnl_sol == null ? "-" : sgn(+t.pnl_sol)}</td><td>${esc(t.exit_reason || "")}</td><td>${t.tx_buy ? `<a href="https://solscan.io/tx/${esc(t.tx_buy)}" target="_blank" rel="noreferrer">nakup</a>` : ""} ${t.tx_sell ? `<a href="https://solscan.io/tx/${esc(t.tx_sell)}" target="_blank" rel="noreferrer">prodaja</a>` : ""}</td></tr>`).join("")}
-  </tbody></table></div>` : `<div class="pd-card"><p class="pd-empty">Še ni pravih poslov. Ko bo trgovanje zgrajeno in vklopljeno, bo tu vsak pravi posel z zraven senčnim poslom na istem signalu in povezavo na transakcijo.</p></div>`}`;
+  </tbody></table></div>` : `<div class="pd-card"><p class="pd-empty">Še ni pravih poslov. Ko bo trgovanje zgrajeno in vklopljeno, bo tu vsak pravi posel z zraven senčnim poslom na istem signalu in povezavo na transakcijo.</p></div>`}
+  ${(S.suhi || []).length ? `<div class="pd-card"><h3>Suhi tek, zadnjih 100 <span class="pd-addr">nič se ni poslalo</span></h3><div class="pd-tbox"><table><thead><tr><th>Čas</th><th>Kovanec</th><th>Denarnica</th><th class="n">Zamik</th><th class="n">Vstop</th><th class="n">Izstop</th><th class="n">Rezultat</th><th class="n">Senca</th><th>Stanje</th></tr></thead><tbody>
+  ${S.suhi.slice(0, 100).map((r) => `<tr><td>${hm(r.buy_at)}</td><td>${esc(r.symbol || short(r.token))}</td><td>${esc(labelOf(r.wallet))}</td><td class="n">${r.buy_lag_s == null ? "-" : nf(r.buy_lag_s, 1) + " s"}</td><td class="n">${r.entry_gap_pct == null ? "-" : sgn(r.entry_gap_pct, 1) + " %"}</td><td class="n">${r.exit_gap_pct == null ? "-" : sgn(r.exit_gap_pct, 1) + " %"}</td><td class="n ${cls(r.pnl_pct)}">${r.pnl_pct == null ? "-" : sgn(r.pnl_pct, 1) + " %"}</td><td class="n ${cls(r.shadow_pnl_pct)}">${r.shadow_pnl_pct == null ? "-" : sgn(r.shadow_pnl_pct * 100, 1) + " %"}</td><td>${esc(r.status === "zaprto" ? r.exit_reason || "zaprto" : r.status === "preskok" || r.status === "napaka" ? r.exit_reason || r.status : "odprto")}</td></tr>`).join("")}
+  </tbody></table></div></div>` : ""}`;
 }
 const R = [
   { k: "pravilo", l: "Pravilo izstopa", h: "katero senčno pravilo gre v živo", type: "sel", opts: Object.entries(RULES) },
