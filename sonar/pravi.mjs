@@ -1,4 +1,4 @@
-// foqs.sonar · Pravi denar (7.1.1, 11. 10. 2026: kartica in tabela Suhi tek iz live_suhi)
+// foqs.sonar · Pravi denar (7.1.2, 11. 10. 2026: pravo izvrševanje v izvrsi v6, stanja poslov, opozorilo ob zataknjenem poslu)
 // Drugi pogled v isti aplikaciji. Stikalo Demo | Pravi denar je desno v glavi (G izbral mockup A). Demo pogled ostane
 // nespremenjen; pravi pogled ima svoje zavihke: Pregled, Denarnice, Posli, Varovala. Bere tabele live_settings,
 // live_settings_log, live_trades in RPC live_wallets_view; piše samo prek RPC (live_set_settings, live_set_on,
@@ -193,7 +193,7 @@ async function load() {
     db.rpc("live_wallets_view", { p_rule: set, p_days: 7 }),
     db.from("live_trades").select("*").order("opened_at", { ascending: false }).limit(200),
     db.from("live_settings_log").select("*").order("t", { ascending: false }).limit(30),
-    db.from("memecoin_health").select("key,last_ok,last_err,updated_at"),
+    db.from("memecoin_health").select("key,last_ok,last_err,last_err_at,updated_at"),
     db.from("live_suhi").select("id,wallet,symbol,token,status,stake_sol,buy_at,buy_lag_s,entry_gap_pct,exit_gap_pct,sell_at,fees_sol,pnl_sol,pnl_pct,shadow_pnl_pct,exit_reason").order("buy_at", { ascending: false }).limit(1000),
   ]);
   S.owner = own;
@@ -239,14 +239,19 @@ function render() {
   if (S.tab === "denarnice") bindWallets();
   if (S.tab === "varovala") bindRules();
 }
+const LIVE_OPEN = ["open", "kupujem", "prodajam"];
+const ST_LBL = { open: "odprto", kupujem: "kupujem ...", prodajam: "prodajam ...", zataknjen: "ZATAKNJEN", neznano: "NEPOTRJEN", neuspel: "nakup ni uspel" };
+const isOpenT = (t) => LIVE_OPEN.includes(t.status);
 const dayTrades = () => { const d0 = new Date(); d0.setHours(0, 0, 0, 0); return S.trades.filter((t) => new Date(t.opened_at) >= d0); };
 function vPregled() {
   const s = S.settings;
   const lw = S.wallets.filter((w) => w.status === "sledi" && w.live).map((w) => w.label);
-  const open = S.trades.filter((t) => t.status === "open");
+  const open = S.trades.filter(isOpenT);
+  const stuck = S.trades.filter((t) => t.status === "zataknjen" || t.status === "neznano");
   const h = (k) => S.health.find((x) => x.key === k);
   const hrow = (name, t, okMs) => `<span>${name}</span><span class="${t && Date.now() - new Date(t).getTime() < okMs ? "ok" : "bad"}">${ago(t)}</span>`;
-  return `<div class="pd-kpis" id="pdKpis"></div>
+  return `${stuck.length ? `<div class="pd-card" style="border-color:#ff6b6b"><h3 style="color:#ff6b6b">Pozor: ${stuck.length} ${stuck.length === 1 ? "posel potrebuje" : "posli potrebujejo"} pregled</h3><p class="pd-note">Dokler je tak posel odprt, bot ne kupuje novih. Preveri transakcijo na Solscanu; kovanec po potrebi prodaš ročno v Phantomu, potem mi javi, da ga zaprem.</p>${stuck.map((t) => `<div class="pd-addr">${esc(t.symbol || short(t.token))} · ${esc(ST_LBL[t.status])} · ${esc(t.exit_reason || "")} · <a href="https://solscan.io/account/${ADDR}" target="_blank" rel="noreferrer">Solscan</a></div>`).join("")}</div>` : ""}
+  <div class="pd-kpis" id="pdKpis"></div>
   <div class="pd-card"><h3>Odprte pozicije</h3>${open.length ? open.map((t) => `<div style="display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--pd-line);padding-top:8px"><span><b>${esc(t.symbol || short(t.token))}</b> <span class="pd-addr">${esc(labelOf(t.wallet))} · ${nf(t.stake_sol, 3)} SOL · ${ago(t.opened_at)}</span></span><span class="pd-addr">${t.tx_buy ? `<a href="https://solscan.io/tx/${esc(t.tx_buy)}" target="_blank" rel="noreferrer">tx</a>` : ""}</span></div>`).join("") : `<p class="pd-empty">Ni odprtih pozicij. Ko bot kupi s pravim denarjem, se pozicija pokaže tu.</p>`}</div>
   ${vSuhiCard()}
   <div class="pd-card"><h3>Stanje sistema</h3><div class="pd-health">
@@ -256,7 +261,9 @@ function vPregled() {
     ${hrow("Zbiralec", h("collect")?.last_ok || h("collect")?.updated_at, 180000)}
     ${hrow("Cene Jupiter", h("cene")?.last_ok || h("cene")?.updated_at, 120000)}
     <span>Zadnji nakup sledenih denarnic</span><span class="off">${ago(S.wallets.filter((w) => w.status === "sledi").map((w) => w.last_buy).filter(Boolean).sort().pop())}</span>
-    <span>Izvrševanje (izvrsi)</span><span class="off">ključ preverjen, teče suhi tek (prave ponudbe, nič se ne pošlje)</span>
+    <span>Pravo izvrševanje</span><span class="${s?.live_on ? "ok" : "off"}">${s?.live_on ? "vklopljeno: bot kupuje s pravim denarjem" : "zgrajeno, izklopljeno (pošilja samo ob vklopu)"}</span>
+    <span>Zadnja napaka izvrševanja</span><span class="${h("zivo")?.last_err && (!h("zivo")?.last_ok || h("zivo").last_err_at > h("zivo").last_ok) ? "bad" : "off"}">${h("zivo")?.last_err ? esc(String(h("zivo").last_err).slice(0, 140)) + " (" + ago(h("zivo").last_err_at) + ")" : "ni napak"}</span>
+    <span>Suhi tek</span><span class="off">teče (prave ponudbe, nič se ne pošlje)</span>
   </div><p class="pd-note">Denarnica <span class="pd-addr">${ADDR}</span> · <a href="https://solscan.io/account/${ADDR}" target="_blank" rel="noreferrer">Solscan</a></p></div>`;
 }
 // ---------- suhi tek (11. 10.): prave ponudbe Jupitra, nič se ne pošlje; tabela live_suhi ----------
@@ -285,10 +292,10 @@ function vSuhiCard() {
 }
 function renderKpis() {
   const box = $("#pdKpis"); if (!box) return;
-  const s = S.settings || {}, day = dayTrades(), closed = day.filter((t) => t.status !== "open");
+  const s = S.settings || {}, day = dayTrades(), closed = day.filter((t) => t.status === "closed");
   const realized = closed.reduce((a, t) => a + (Number(t.pnl_sol) || 0), 0);
   const loss = Math.max(0, -realized), meja = Number(s.meja) || 0.1;
-  const open = S.trades.filter((t) => t.status === "open");
+  const open = S.trades.filter(isOpenT);
   box.innerHTML = `
   <div class="pd-kpi"><small>Stanje denarnice</small><b>${S.bal == null ? (S.balErr ? "-" : "...") : nf(S.bal, 4) + " SOL"}</b><span>${S.balErr ? "ni podatka: " + esc(S.balErr) : short(ADDR)}</span></div>
   <div class="pd-kpi"><small>Danes zaprto</small><b class="${cls(realized)}">${closed.length ? sgn(realized) : "0"}</b><span>${closed.length} poslov, ${closed.filter((t) => t.pnl_sol > 0).length} v plusu</span></div>
@@ -330,10 +337,10 @@ function bindWallets() {
   };
 }
 function vPosli() {
-  const day = dayTrades(), closed = S.trades.filter((t) => t.status !== "open");
+  const day = dayTrades(), closed = S.trades.filter((t) => t.status === "closed");
   return `<div class="pd-sum"><span>Danes <b>${day.length} poslov</b></span><span>Zaprtih skupaj <b>${closed.length}</b></span><span>Rezultat skupaj <b class="${cls(closed.reduce((a, t) => a + (+t.pnl_sol || 0), 0))}">${sgn(closed.reduce((a, t) => a + (+t.pnl_sol || 0), 0))} SOL</b></span></div>
   ${S.trades.length ? `<div class="pd-tbox"><table><thead><tr><th>Čas</th><th>Kovanec</th><th>Denarnica</th><th class="n">Vložek</th><th class="n">Rezultat</th><th class="n">SOL</th><th>Izhod</th><th>Tx</th></tr></thead><tbody>
-  ${S.trades.map((t) => `<tr><td>${hm(t.opened_at)}</td><td>${esc(t.symbol || short(t.token))}</td><td>${esc(labelOf(t.wallet))}</td><td class="n">${nf(t.stake_sol, 3)}</td><td class="n ${cls(t.pnl_pct)}">${t.pnl_pct == null ? "odprto" : sgn(t.pnl_pct, 1) + " %"}</td><td class="n ${cls(t.pnl_sol)}">${t.pnl_sol == null ? "-" : sgn(+t.pnl_sol)}</td><td>${esc(t.exit_reason || "")}</td><td>${t.tx_buy ? `<a href="https://solscan.io/tx/${esc(t.tx_buy)}" target="_blank" rel="noreferrer">nakup</a>` : ""} ${t.tx_sell ? `<a href="https://solscan.io/tx/${esc(t.tx_sell)}" target="_blank" rel="noreferrer">prodaja</a>` : ""}</td></tr>`).join("")}
+  ${S.trades.map((t) => `<tr><td>${hm(t.opened_at)}</td><td>${esc(t.symbol || short(t.token))}</td><td>${esc(labelOf(t.wallet))}</td><td class="n">${nf(t.stake_sol, 3)}</td><td class="n ${cls(t.pnl_pct)}">${t.status !== "closed" || t.pnl_pct == null ? esc(ST_LBL[t.status] || t.status) : sgn(t.pnl_pct, 1) + " %"}</td><td class="n ${cls(t.pnl_sol)}">${t.pnl_sol == null ? "-" : sgn(+t.pnl_sol)}</td><td>${esc(t.exit_reason || "")}</td><td>${t.tx_buy ? `<a href="https://solscan.io/tx/${esc(t.tx_buy)}" target="_blank" rel="noreferrer">nakup</a>` : ""} ${t.tx_sell ? `<a href="https://solscan.io/tx/${esc(t.tx_sell)}" target="_blank" rel="noreferrer">prodaja</a>` : ""}</td></tr>`).join("")}
   </tbody></table></div>` : `<div class="pd-card"><p class="pd-empty">Še ni pravih poslov. Ko bo trgovanje zgrajeno in vklopljeno, bo tu vsak pravi posel z zraven senčnim poslom na istem signalu in povezavo na transakcijo.</p></div>`}
   ${(S.suhi || []).length ? `<div class="pd-card"><h3>Suhi tek, zadnjih 100 <span class="pd-addr">nič se ni poslalo</span></h3><div class="pd-tbox"><table><thead><tr><th>Čas</th><th>Kovanec</th><th>Denarnica</th><th class="n">Zamik</th><th class="n">Vstop</th><th class="n">Izstop</th><th class="n">Rezultat</th><th class="n">Senca</th><th>Stanje</th></tr></thead><tbody>
   ${S.suhi.slice(0, 100).map((r) => `<tr><td>${hm(r.buy_at)}</td><td>${esc(r.symbol || short(r.token))}</td><td>${esc(labelOf(r.wallet))}</td><td class="n">${r.buy_lag_s == null ? "-" : nf(r.buy_lag_s, 1) + " s"}</td><td class="n">${r.entry_gap_pct == null ? "-" : sgn(r.entry_gap_pct, 1) + " %"}</td><td class="n">${r.exit_gap_pct == null ? "-" : sgn(r.exit_gap_pct, 1) + " %"}</td><td class="n ${cls(r.pnl_pct)}">${r.pnl_pct == null ? "-" : sgn(r.pnl_pct, 1) + " %"}</td><td class="n ${cls(r.shadow_pnl_pct)}">${r.shadow_pnl_pct == null ? "-" : sgn(r.shadow_pnl_pct * 100, 1) + " %"}</td><td>${esc(r.status === "zaprto" ? r.exit_reason || "zaprto" : r.status === "preskok" || r.status === "napaka" ? r.exit_reason || r.status : "odprto")}</td></tr>`).join("")}
@@ -423,11 +430,11 @@ $("#pdLive").onclick = () => {
     `Pravilo <b>${RULES[s.pravilo]}</b>, vložek <b>${nf(s.vlozek, 2)} SOL</b> na posel`,
     `Dnevna meja izgube <b>${nf(s.meja, 2)} SOL</b>, največ hkrati <b>${s.hkrati}</b>`,
     `Stanje denarnice: <b>${S.bal == null ? "ni podatka" : nf(S.bal, 4) + " SOL"}</b>`,
-    "V tej verziji trgovanje še ni zgrajeno: stikalo se zapiše, bot pa ne kupuje, dokler ni končana faza 2.",
+    "<b>Bot bo od naslednjega signala RES kupoval s pravim denarjem</b> (podpiše in pošlje transakcijo). Brez SOL na denarnici nakupi samo preskočijo.",
   ], () => rpc("live_set_on", { p_on: true }), "high", "VKLOPI", "Vklopi trgovanje");
 };
 $("#pdSell").onclick = () => {
-  const n = S.trades.filter((t) => t.status === "open").length;
+  const n = S.trades.filter(isOpenT).length;
   ask("Prodaj vse zdaj", [`Vse odprte pozicije (${n}) se prodajo takoj po trenutni ceni, zdrs do ${nf(S.settings?.zdrs_pro, 0)} %.`, "Trgovanje se izklopi.", "Tega ni mogoče razveljaviti."], () => rpc("live_sell_all", {}), "danger", "PRODAJ", "Prodaj vse");
 };
 
