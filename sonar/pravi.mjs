@@ -18,6 +18,9 @@ const ADDR = "BGxhRHabFRC2qZg4pWT9jZS3P1rSFNxcx3zG8snu9xte";
 const RULES = { "kopija-hitri": "Hitri 10", "kopija-hitri20": "Hitri 20", "kopija-hitri30": "Hitri 30", "kopija-hitri40": "Hitri 40", "kopija-mirror": "Zrcalo" };
 const MODE_KEY = "sonar-mode-v1";
 
+// 7.1.4 (13. 10.): izločene denarnice so v pogledu Denarnice privzeto skrite (gumb "Skrij izločene"), v zgodovini poslov ostanejo.
+let hideIzl = true;
+try { hideIzl = localStorage.getItem("pd-hide-izl") !== "0"; } catch {}
 const S = { owner: false, settings: null, wallets: [], trades: [], log: [], bal: null, balErr: "", health: [], tab: "pregled", draft: {}, wdraft: {}, loaded: false };
 
 // ---------- CSS (samo za ta pogled) ----------
@@ -79,6 +82,8 @@ body:not(.m-live) #pravi,body:not(.m-live) .ptabs{display:none!important}
 #pravi .pd-seg button:disabled{cursor:default}
 #pravi .pd-sum{display:flex;gap:8px 18px;flex-wrap:wrap;font-size:13.5px;color:var(--pd-muted)}
 #pravi .pd-sum b{color:#eef3fb}
+#pravi .pd-chk{margin-left:auto;display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--pd-muted)}
+#pravi .pd-chk input{accent-color:#46BEC5;width:15px;height:15px;margin:0}
 #pravi .pd-rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
 #pravi .pd-rule{background:var(--pd-surf);border:1px solid var(--pd-line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
 #pravi .pd-rule.ch{border-color:var(--pd-gold)}
@@ -310,9 +315,10 @@ function vDenarnice() {
   const c = (k) => st.filter((x) => x === k).length;
   const changed = Object.keys(S.wdraft).length;
   const rule = RULES[S.settings?.pravilo] || "";
-  return `<div class="pd-sum"><span>V živo <b class="pd-gold">${c("live")}</b></span><span>Senca <b>${c("senca")}</b></span><span>Izločene <b>${c("izlocen")}</b></span>${changed ? `<span class="pd-gold">${changed} neshranjenih sprememb</span>` : ""}</div>
+  const shown = S.wallets.filter((w) => !hideIzl || wStatus(w) !== "izlocen" || S.wdraft[w.wallet]);
+  return `<div class="pd-sum"><span>V živo <b class="pd-gold">${c("live")}</b></span><span>Senca <b>${c("senca")}</b></span><span>Izločene <b>${c("izlocen")}</b></span>${changed ? `<span class="pd-gold">${changed} neshranjenih sprememb</span>` : ""}<label class="pd-chk"><input type="checkbox" id="pdHideIzl" ${hideIzl ? "checked" : ""}> Skrij izločene</label></div>
   <div class="pd-tbox"><table><thead><tr><th>Denarnica</th><th class="n">Senca 7 dni (${esc(rule)})</th><th class="n">Poslov</th><th class="n">V plusu</th><th class="n">Zamik</th><th class="n">Zadnji nakup</th><th>Status</th></tr></thead><tbody>
-  ${S.wallets.map((w) => { const s = S.wdraft[w.wallet] || wStatus(w); return `<tr class="${s === "izlocen" ? "izl" : ""}"><td><b>${esc(w.label)}</b><br><span class="pd-addr">${short(w.wallet)}</span></td>
+  ${shown.map((w) => { const s = S.wdraft[w.wallet] || wStatus(w); return `<tr class="${s === "izlocen" ? "izl" : ""}"><td><b>${esc(w.label)}</b><br><span class="pd-addr">${short(w.wallet)}</span></td>
   <td class="n ${cls(w.sol)}">${sgn(Number(w.sol), 2)} SOL</td><td class="n">${w.n}</td><td class="n">${w.n ? nf(w.win, 0) + " %" : "-"}</td><td class="n">${w.lag != null ? nf(w.lag, 1) + " s" : "-"}</td><td class="n">${ago(w.last_buy)}</td>
   <td><div class="pd-seg" role="group" aria-label="Status ${esc(w.label)}">${[["live", "V živo"], ["senca", "Senca"], ["izlocen", "Izločena"]].map(([v, l]) => `<button type="button" data-w="${w.wallet}" data-v="${v}" aria-pressed="${s === v}" ${S.owner ? "" : "disabled"}>${l}</button>`).join("")}</div></td></tr>`; }).join("")}
   </tbody></table></div>
@@ -320,6 +326,8 @@ function vDenarnice() {
   ${S.owner ? `<div><button class="pd-btn gold" id="pdSaveW" type="button" ${changed ? "" : "disabled"}>Shrani spremembe</button> <button class="pd-btn" id="pdResetW" type="button" ${changed ? "" : "disabled"}>Razveljavi</button></div>` : ""}`;
 }
 function bindWallets() {
+  const hz = $("#pdHideIzl");
+  if (hz) hz.onchange = () => { hideIzl = hz.checked; try { localStorage.setItem("pd-hide-izl", hideIzl ? "1" : "0"); } catch {} render(); };
   root.querySelectorAll(".pd-seg button[data-w]").forEach((b) => (b.onclick = () => {
     const w = S.wallets.find((x) => x.wallet === b.dataset.w);
     if (b.dataset.v === wStatus(w)) delete S.wdraft[w.wallet]; else S.wdraft[w.wallet] = b.dataset.v;

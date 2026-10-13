@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 713;
+const CLIENT_VERSION = 714;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -4408,6 +4408,9 @@ async function loadCopy() {
 const copyLabel = (w) => copyState.cands.find((c) => c.wallet === w)?.label || w.slice(0, 4) + "…" + w.slice(-4);
 // 10. 10. 2026 (7.0.3): izločene denarnice (npr. PH) ostanejo vidne, dokler imajo posle v izbranem obdobju, da se vidi, od kod je rezultat
 const copyShown = () => copyState.cands.filter((c) => c.status === "sledi" || copyState.trades.some((t) => t.wallet === c.wallet));
+// 7.1.4 (13. 10.): v seznamu Denarnice so izločene privzeto skrite (gumb "Skrij izločene"); KPI, krivulje in tabela poslov jih še vedno štejejo.
+let copyHideIzl = true;
+try { copyHideIzl = localStorage.getItem("cp-hide-izl") !== "0"; } catch {}
 const copyAgo = (iso) => {
   const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
   return m < 1 ? "pravkar" : m < 60 ? "pred " + m + " min" : m < 1440 ? "pred " + Math.floor(m / 60) + " h" : "pred " + Math.floor(m / 1440) + " d";
@@ -4458,7 +4461,10 @@ function renderCopy() {
   // denarnice
   const wl = $("#cpWallets");
   wl.replaceChildren();
-  const rows = copyShown().map((c) => {
+  const hz = $("#cpHideIzl");
+  if (hz && !hz.dataset.bound) { hz.dataset.bound = "1"; hz.onchange = () => { copyHideIzl = hz.checked; try { localStorage.setItem("cp-hide-izl", copyHideIzl ? "1" : "0"); } catch {} renderCopy(); }; }
+  if (hz) hz.checked = copyHideIzl;
+  const rows = copyShown().filter((c) => !copyHideIzl || c.status !== "izlocen").map((c) => {
     const mine = mir.all.filter((t) => t.wallet === c.wallet), closed = mine.filter((t) => t.closed_at && Number.isFinite(t.pnl_sol));
     const sig = copyState.signals.filter((s) => s.wallet === c.wallet);
     return { c, mine, closed, net: closed.reduce((s, t) => s + t.pnl_sol, 0), wins: closed.filter((t) => t.pnl_sol > 0).length, lag: copyMedian(mine.map((t) => t.lag_s).filter(Number.isFinite)), last: sig[0]?.t || mine[0]?.opened_at || null, open: mine.filter((t) => !t.closed_at).length };
