@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 712;
+const CLIENT_VERSION = 713;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -3826,6 +3826,15 @@ function renderOpenTrades() {
 // Po tem ostane vnos samo se v dnevniku sprememb v zavihku Kako deluje.
 const NEWS_BAR_HOURS = 24;
 const NEWS = [
+  {
+    id: 35,
+    at: "2026-10-13T09:00:00Z",
+    date: "13. 10. 2026",
+    title: "Bot od danes izstopa po profilu Hitri",
+    short: "<b>Bot zdaj proda pri +10 % ali -5 %.</b> Na istih vstopih je bil ta izstop boljši od Srednjega 7 dni od 8. Vstopi ostanejo enaki.",
+    body:
+      "Od 13. 10. 2026 bot izstopa po profilu Hitri: cilj +10 %, trda meja -5 %, brez polovične prodaje in brez sledilne meje. Do zdaj je izstopal po profilu Srednje (pol pri +20 %, sledilna meja 15 %, trda meja -12 %, cilj +50 %). Razlog: senčno pravilo z istimi vstopi in izstopom Hitri je bilo od 5. do 12. 10. boljše 7 dni od 8, uparjeno od 9. do 12. 10. za 3,3 odstotne točke na posel (110 istih vstopov). Kako bot vstopa, se ni spremenilo. Staro pravilo teče naprej v senci (v1.2-cilj50-jup-bot) kot kontrola. Posli, odprti pred preklopom, se zaprejo po starem profilu. Hkrati je popravljeno zapisovanje signalov vzorca (od 11. 10. se je izgubil del tikov), kar na trgovanje ne vpliva.",
+  },
   {
     id: 34,
     at: "2026-10-10T20:00:00Z",
