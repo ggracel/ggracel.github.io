@@ -163,6 +163,45 @@ body.reveal[data-view="login"] .view[data-view="hub"]{transform:none;filter:none
 .is-live .hb-week i:nth-child(5){transition-delay:.22s}
 .hb-week i:nth-child(6),.hb-week i:nth-child(7){opacity:.5}
 
+/* ura: goal ring with a pace notch, and a month that fills from the bottom */
+.ur2{display:flex;align-items:center;gap:14px;height:82px}
+.ur2-ring{width:82px;height:82px;flex:0 0 auto;overflow:visible}
+.ur2-track{fill:none;stroke:var(--ink4);stroke-width:7}
+.ur2-arc{fill:none;stroke:var(--teal);stroke-width:7;stroke-linecap:round;stroke-dasharray:48 100;transform:rotate(-90deg);transform-origin:42px 42px;transition:stroke-dasharray .7s cubic-bezier(.2,.8,.2,1)}
+.is-live .ur2-arc{stroke-dasharray:56 100}
+.ur2-tick{stroke:var(--fg);stroke-width:2.4;stroke-linecap:round}
+.ur2-pct{font-family:var(--poppins);font-weight:700;font-size:16px;fill:var(--fg);text-anchor:middle;letter-spacing:-.02em}
+.ur2-sub{font-family:var(--mono);font-size:7px;fill:var(--mute);text-anchor:middle;letter-spacing:.12em;text-transform:uppercase}
+.ur2-cal{flex:1;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(4,1fr);gap:3px;height:76px}
+.ur2-cal i{position:relative;border-radius:3px;background:var(--ink4);overflow:hidden}
+.ur2-cal i.f{background:transparent;border:1px dashed var(--line2)}
+.ur2-cal i.t{box-shadow:inset 0 0 0 1.5px var(--teal)}
+.ur2-cal b{position:absolute;left:0;right:0;bottom:0;height:var(--h);background:linear-gradient(180deg,var(--teal),var(--teal-d));transform:scaleY(.45);transform-origin:bottom;transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+.is-live .ur2-cal b{transform:none}
+.is-live .ur2-cal i:nth-child(7n+2) b{transition-delay:.03s}
+.is-live .ur2-cal i:nth-child(7n+3) b{transition-delay:.06s}
+.is-live .ur2-cal i:nth-child(7n+4) b{transition-delay:.09s}
+.is-live .ur2-cal i:nth-child(7n+5) b{transition-delay:.12s}
+.is-live .ur2-cal i:nth-child(7n+6) b{transition-delay:.15s}
+
+/* changelog under the modules */
+.d-log{position:relative;margin:0 0 54px;background:rgba(26,22,23,.78);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(8px);overflow:hidden}
+.d-log-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--mute);text-transform:uppercase}
+.d-log-head b{color:var(--teal);font-weight:700}
+.d-log ol{list-style:none;margin:0;padding:0}
+.d-log li{display:grid;grid-template-columns:62px 98px 1fr;gap:16px;align-items:baseline;padding:12px 18px;border-top:1px solid var(--line);transition:background .2s}
+.d-log li:first-child{border-top:0}
+.d-log li:hover{background:rgba(70,190,197,.05)}
+.d-log time{font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:.06em;text-transform:uppercase}
+.d-log .tag{justify-self:start;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);border:1px solid rgba(70,190,197,.35);background:rgba(70,190,197,.07);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.d-log .tag.ur{color:var(--dim);border-color:var(--line2);background:transparent}
+.d-log li p{color:var(--dim);font-size:14px;line-height:1.5;margin:0}
+@media(max-width:640px){.d-log li{grid-template-columns:auto 1fr;gap:6px 10px}.d-log li p{grid-column:1/-1}.d-log{margin-bottom:40px}}
+/* changelog only for signed-in accounts; guests keep the old spacing under the cards */
+body.guest .d-log{display:none}
+body.guest .d-grid{padding-bottom:54px}
+@media(max-width:640px){body.guest .d-grid{padding-bottom:40px}}
+
 /* ura */
 .ur-cal{display:flex;gap:7px;align-items:flex-end;height:82px}
 .ur-cal span{flex:1;background:linear-gradient(180deg,var(--teal),var(--teal-d));border-radius:5px 5px 2px 2px;transform-origin:bottom;transition:height .45s cubic-bezier(.2,.8,.2,1)}
@@ -242,8 +281,8 @@ body.reveal[data-view="login"] .view[data-view="hub"]{transform:none;filter:none
   border:1px solid rgba(70,190,197,.32);background:rgba(70,190,197,.07);border-radius:999px;padding:6px 15px}
 .d-eyebrow i{width:6px;height:6px;border-radius:50%;background:var(--pos);animation:blip 2.4s ease-in-out infinite}
 .d-intro h1{font-size:clamp(33px,5.2vw,56px);font-weight:800;margin:18px 0 14px}
-.d-intro p{color:var(--dim);font-size:16.5px;max-width:48ch;margin-inline:auto}
-.d-grid{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:18px;padding-bottom:54px}
+.d-intro p{color:var(--dim);font-size:16.5px;max-width:64ch;margin-inline:auto;text-wrap:balance}
+.d-grid{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:18px;padding-bottom:30px}
 @media(max-width:900px){.d-grid{grid-template-columns:1fr}}
 .d-mod{position:relative;display:flex;flex-direction:column;background:rgba(26,22,23,.78);border:1px solid var(--line);border-radius:14px;overflow:hidden;backdrop-filter:blur(8px);
   transition:transform .3s cubic-bezier(.2,.8,.2,1),border-color .3s,box-shadow .3s,opacity .3s}
@@ -359,7 +398,7 @@ body.guest .lg-close{display:flex}
       <div class="d-intro">
         <span class="d-eyebrow"><i></i>Hub · all apps online</span>
         <h1>Three apps. One login.</h1>
-        <p>Small tools built for my own work, now all in one place.</p>
+        <p>Small tools built for my own work, now all in one place and on your phone.</p>
       </div>
       <div class="d-grid">
         <a class="d-mod" href="/habit">
@@ -367,7 +406,7 @@ body.guest .lg-close{display:flex}
           <span class="b-scan"></span>
           <div class="d-head"><span>MOD <b>HAB-01</b></span><span class="b-led"><i></i>ready</span></div>
           <div class="d-body">
-            <h2>foqs.<b>habit</b><i>.</i><span class="inst" title="Add to home screen"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M7 10l5 5 5-5M4 21h16"/></svg>Installable</span></h2>
+            <h2>foqs.<b>habit</b><i>.</i><span class="inst" title="Installs on your phone home screen"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>Phone app</span></h2>
             <p>Win the day. Daily non-negotiables, a streak that hurts to break, and a week you can read in one look.</p>
             <div class="prev">
               <div class="prev-top"><small>Today</small><span class="prev-dot"></span></div>
@@ -390,17 +429,26 @@ body.guest .lg-close{display:flex}
           <span class="b-scan"></span>
           <div class="d-head"><span>MOD <b>URA-02</b></span><span class="b-led"><i></i>ready</span></div>
           <div class="d-body">
-            <h2><b>Ura</b><i>+</i></h2>
-            <p>Hours into money. Log the work as it happens, see what the week is actually worth before you invoice it.</p>
+            <h2><b>Ura</b><i>+</i><span class="inst" title="Installs on your phone home screen"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>Phone app</span></h2>
+            <p>Hours into money. A goal ring with a pace marker, a calendar that fills with every hour, and shifts you log in one tap.</p>
             <div class="prev">
-              <div class="prev-top"><small>This week</small><span class="prev-dot"></span></div>
-              <div class="ur-cal"><span></span><span></span><span></span><span></span><span></span></div>
-              <div class="ur-foot"><b>Week total</b><span class="ur-chip">hours into money</span></div>
+              <div class="prev-top"><small>This month</small><span class="prev-dot"></span></div>
+              <div class="ur2" aria-hidden="true">
+                <svg class="ur2-ring" viewBox="0 0 84 84">
+                  <circle class="ur2-track" cx="42" cy="42" r="34"/>
+                  <circle class="ur2-arc" cx="42" cy="42" r="34" pathLength="100"/>
+                  <line class="ur2-tick" x1="42" y1="3" x2="42" y2="15" transform="rotate(166 42 42)"/>
+                  <text class="ur2-pct" x="42" y="45">52%</text>
+                  <text class="ur2-sub" x="42" y="57">of goal</text>
+                </svg>
+                <div class="ur2-cal"><i><b style="--h:78%"></b></i><i><b style="--h:62%"></b></i><i><b style="--h:92%"></b></i><i><b style="--h:40%"></b></i><i><b style="--h:84%"></b></i><i></i><i></i><i><b style="--h:88%"></b></i><i><b style="--h:70%"></b></i><i></i><i><b style="--h:96%"></b></i><i><b style="--h:66%"></b></i><i><b style="--h:22%"></b></i><i></i><i><b style="--h:60%"></b></i><i><b style="--h:90%"></b></i><i><b style="--h:74%"></b></i><i><b style="--h:82%"></b></i><i><b style="--h:56%"></b></i><i></i><i></i><i><b style="--h:72%"></b></i><i><b style="--h:48%"></b></i><i class="t"><b style="--h:34%"></b></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></div>
+              </div>
+              <div class="ur-foot"><b>Ahead of pace</b><span class="ur-chip">+86 &euro;</span></div>
             </div>
             <div class="b-read">
-              <div><span>Tracks</span><span>Hours and rates</span></div>
-              <div><span>Output</span><span>Weekly total</span></div>
-              <div><span>Runs</span><span>In the browser</span></div>
+              <div><span>Goal</span><span>Monthly, with pace</span></div>
+              <div><span>Entry</span><span>Number pad or shifts</span></div>
+              <div><span>Runs</span><span>Phone &middot; desktop dashboard</span></div>
             </div>
             <div class="d-go"><span>Open Ura+</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></div>
           </div>
@@ -410,26 +458,36 @@ body.guest .lg-close{display:flex}
           <span class="b-scan"></span>
           <div class="d-head"><span>MOD <b>SNR-03</b></span><span class="b-led"><i></i>live feed</span></div>
           <div class="d-body">
-            <h2>foqs.<b>sonar</b><i>.</i></h2>
-            <p>Reads the Solana memecoin market on 30 second snapshots, marks the entry and keeps the demo journal honest.</p>
+            <h2>foqs.<b>sonar</b><i>.</i><span class="inst" title="Installs on your phone home screen"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>Phone app</span></h2>
+            <p>Reads the Solana memecoin market, runs a demo bot around the clock and shadows a shortlist of wallets. Invite only.</p>
             <div class="prev">
-              <div class="prev-top"><small>Live · 30s</small><span class="prev-dot"></span></div>
+              <div class="prev-top"><small>Live · 6s prices</small><span class="prev-dot"></span></div>
               <svg class="sn-chart" viewBox="0 0 240 82" preserveAspectRatio="none" role="img" aria-label="Market cap snapshots">
                 <path class="sn-area" d="M4 62 L34 55 L64 66 L94 40 L124 48 L154 26 L184 33 L214 14 L236 20 L236 82 L4 82 Z"/>
                 <path class="sn-line" d="M4 62 L34 55 L64 66 L94 40 L124 48 L154 26 L184 33 L214 14 L236 20"/>
                 <circle class="sn-end-ring" cx="236" cy="20" r="3.4"/><circle class="sn-end" cx="236" cy="20" r="3.4"/>
               </svg>
-              <div class="sn-foot"><span class="up">+25% target</span><span>0,1 SOL</span><span>30s snapshots</span></div>
+              <div class="sn-foot"><span class="up">24/7 on server</span><span>Copy trading</span><span>Daily review</span></div>
             </div>
             <div class="b-read">
               <div><span>Market</span><span>Solana memecoins</span></div>
-              <div><span>Refresh</span><span>Every 30 seconds</span></div>
-              <div><span>Wallet</span><span>None, demo only</span></div>
+              <div><span>Bot</span><span>24/7 on the server</span></div>
+              <div><span>Access</span><span>Invite only</span></div>
             </div>
             <div class="d-go"><span>Open sonar</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></div>
           </div>
         </a>
       </div>
+      <section class="d-log" aria-label="Latest updates">
+        <div class="d-log-head"><span>Changelog &middot; <b>latest updates</b></span><span class="b-led"><i></i>10 Oct 2026</span></div>
+        <ol>
+          <li><time>10 Oct</time><span class="tag">sonar 7.1</span><p>A live view next to the demo bot, with its own guard rails and a confirm step before anything trades.</p></li>
+          <li><time>05 Oct</time><span class="tag">sonar 6.9</span><p>Copy tab follows a shortlist of wallets in shadow. The morning review now lives inside the app.</p></li>
+          <li><time>04 Oct</time><span class="tag ur">Ura+</span><p>Pace marker on the goal ring. You see in euros whether you are ahead or behind your month.</p></li>
+          <li><time>29 Sep</time><span class="tag">sonar 5.7</span><p>Phone app with its own icon and bottom tabs.</p></li>
+          <li><time>27 Sep</time><span class="tag ur">Ura+</span><p>New phone design: goal ring, a calendar that fills with your hours, number pad entry.</p></li>
+        </ol>
+      </section>
       <div class="foot"><span>foqs. <b>Advertising &amp; Performance Consulting</b></span><span>One account for every foqs. app</span></div>
     </div>
   </div>
