@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 714;
+const CLIENT_VERSION = 715;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -4392,12 +4392,13 @@ async function loadCopy() {
     };
     const [t, c, s] = await Promise.all([
       loadTrades(),
-      db.from("copy_candidates").select("wallet,label,status,stats").in("status", ["sledi", "izlocen"]),
+      db.from("copy_candidates").select("wallet,label,status,stats,skupina").in("status", ["sledi", "izlocen"]),
       db.from("copy_signals").select("wallet,token,side,t,sol").gte("t", dayAgo).not("sig", "like", "test-%").order("t", { ascending: false }).limit(300),
     ]);
     if (t.error) throw t.error;
     if (c.error) throw c.error;
-    copyState = { trades: t.data || [], cands: c.data || [], signals: s.data || [], error: "", loadedAt: Date.now() };
+    // 7.1.5: skupina "likvidne" (Dolgoročno) ima svoj pogled, v Hitro je ni
+    copyState = { trades: (t.data || []).filter((x) => !isLongTrade(x)), cands: (c.data || []).filter((x) => x.skupina !== "likvidne"), signals: s.data || [], error: "", loadedAt: Date.now() };
   } catch (e) {
     copyState.error = "Podatkov o kopiranju ni bilo mogoče naložiti: " + (e?.message || e);
   } finally {
@@ -4554,9 +4555,176 @@ function copyCurve(mir, hit, sled, h40, h10) {
   const stake = copyState.trades.find((t) => t.stake_sol > 0)?.stake_sol;
   note.textContent = "Kumulativni neto rezultat po času zaključka, vložek " + (stake ? stake.toLocaleString("sl-SI") : "-") + " SOL na posel (isti kot pri botu), po stroških. Vsak lom je zaključen posel. Od " + new Date(t0).toLocaleString("sl-SI", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) + ".";
 }
-$("#kopiranje").onclick = () => { navigate("copy", "live"); loadCopy(); };
+
+// ---------- Kopiranje · Dolgoročno (7.1.5, 17. 10. 2026, G: varianta B mockupa kopiranje-dolgorocno) ----------
+// Skupina "likvidne" (copy_candidates.skupina): denarnice na uveljavljenih kovancih, senčno pravilo kopija-zrcalo-likv
+// (izstop, ko proda denarnica, najkasneje po 7 dneh; samo kovanci z 250 k$+ likvidnosti, stari vsaj 7 dni).
+// Pogled simulira račun s 1.000 € od 17. 10.: vsak posel 100 € (10 % začetnega računa), samo če je dovolj prostega denarja;
+// rezultat zaprtega posla se prišteje ali odšteje od računa. Donos posla: suhi tek (prava ponudba Jupitra, live_suhi_vsa),
+// dokler ga ni, senca. Vse je simulacija, brez pravega denarja.
+const LONG_RULE = "kopija-zrcalo-likv", LONG_START = "2026-10-17T00:00:00Z", LONG_EUR = 1000, LONG_NEED = 30;
+// 7.1.5 (G): izbirnik vložka na posel: 100 € (10 %, privzeto), 50 € (5 %) ali 0,2 SOL (kot bot in Hitro; v evrih po ceni SOL
+// in okvirnem tečaju USD -> EUR, zato "približno"). Izbira se zapomni v brskalniku. Vpliva samo na prikaz, ne na senco ali suhi tek.
+const LONG_USD_EUR = 0.86;
+let longStakeSel = "100";
+try { const v = localStorage.getItem("cp-long-stake"); if (v === "50" || v === "sol" || v === "100") longStakeSel = v; } catch {}
+const longStake = () => (longStakeSel === "50" ? 50 : longStakeSel === "sol" ? 0.2 * (solUsd || SOL_USD_FIXED) * LONG_USD_EUR : 100);
+let copyView = "hitro";
+try { copyView = localStorage.getItem("cp-view") === "dolgo" ? "dolgo" : "hitro"; } catch {}
+let longState = { trades: [], skips: [], suhi: [], cands: [], error: "", loadedAt: 0 }, longBusy = false;
+const isLongTrade = (t) => t.rule === LONG_RULE || (t.rule === "kopija-preskok" && t.note?.skupina === "likvidne");
+const lgEsc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const lgEur = (x, sign = false) => (Number.isFinite(x) ? (sign && x > 0 ? "+" : "") + plainMinus(new Intl.NumberFormat("sl-SI", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(x)) : "-");
+const lgTone = (x) => (x > 0 ? "lgPos" : x < 0 ? "lgNeg" : "");
+const lgDur = (ms) => { const m = ms / 60000; return m < 90 ? Math.round(m) + " min" : m < 2160 ? (m / 60).toLocaleString("sl-SI", { maximumFractionDigits: 1 }) + " h" : (m / 1440).toLocaleString("sl-SI", { maximumFractionDigits: 1 }) + " dni"; };
+const lgWhen = (iso) => new Date(iso).toLocaleString("sl-SI", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" });
+const lgLabel = (w) => longState.cands.find((c) => c.wallet === w)?.label || w.slice(0, 4) + "…" + w.slice(-4);
+
+async function loadCopyLong() {
+  if (!db || longBusy) return;
+  longBusy = true;
+  try {
+    const [t, k, s, c] = await Promise.all([
+      db.from("copy_shadow_trades").select("id,rule,wallet,token,symbol,signal_t,opened_at,entry_usd,peak_usd,low_usd,last_usd,closed_at,exit_reason,pnl_pct,note").eq("rule", LONG_RULE).gte("opened_at", LONG_START).order("opened_at").limit(2000),
+      db.from("copy_shadow_trades").select("id,wallet,token,symbol,signal_t,note").eq("rule", "kopija-preskok").eq("note->>skupina", "likvidne").gte("signal_t", LONG_START).order("signal_t", { ascending: false }).limit(200),
+      db.from("live_suhi_vsa").select("shadow_id,status,pnl_pct,entry_gap_pct,exit_gap_pct,buy_lag_s").eq("rule", LONG_RULE).limit(2000),
+      db.from("copy_candidates").select("wallet,label,status,skupina").eq("skupina", "likvidne"),
+    ]);
+    if (t.error) throw t.error;
+    longState = { trades: t.data || [], skips: k.error ? [] : k.data || [], suhi: s.error ? [] : s.data || [], cands: c.data || [], error: "", loadedAt: Date.now() };
+  } catch (e) {
+    longState.error = "Podatkov o dolgoročnem kopiranju ni bilo mogoče naložiti: " + (e?.message || e);
+  } finally {
+    longBusy = false;
+  }
+  renderCopyLong();
+}
+
+// simulacija računa: odpiranja in zapiranja po času, vsak posel longStake() €, samo s prostim denarjem
+function longAccount() {
+  const S = longStake();
+  const suhi = new Map(longState.suhi.map((r) => [Number(r.shadow_id), r]));
+  const ev = [];
+  for (const t of longState.trades) {
+    ev.push({ at: new Date(t.opened_at).getTime(), k: 1, t });
+    if (t.closed_at) ev.push({ at: new Date(t.closed_at).getTime(), k: 0, t });
+  }
+  ev.sort((a, b) => a.at - b.at || a.k - b.k); // ob istem času najprej zapiranja
+  let cash = LONG_EUR, bal = LONG_EUR, noCash = 0;
+  const rows = new Map(), curve = [{ at: new Date(LONG_START).getTime(), bal }];
+  for (const e of ev) {
+    if (e.k === 1) {
+      if (cash < S - 1e-9) { noCash++; rows.set(e.t.id, { t: e.t, taken: false }); continue; }
+      cash -= S;
+      rows.set(e.t.id, { t: e.t, taken: true, stake: S, suhi: suhi.get(Number(e.t.id)) || null });
+    } else {
+      const r = rows.get(e.t.id);
+      if (!r?.taken) continue;
+      const sr = r.suhi;
+      const real = sr?.status === "zaprto" && Number.isFinite(Number(sr.pnl_pct));
+      r.pct = real ? Number(sr.pnl_pct) / 100 : Number.isFinite(Number(e.t.pnl_pct)) ? Number(e.t.pnl_pct) : 0;
+      r.src = real ? "suhi tek" : "senca";
+      r.eur = r.stake * r.pct;
+      cash += r.stake + r.eur; bal += r.eur;
+      curve.push({ at: e.at, bal });
+    }
+  }
+  const all = [...rows.values()];
+  const open = all.filter((r) => r.taken && !r.t.closed_at).map((r) => { const p = copyLive(r.t); return { ...r, pct: p, eur: p === null ? 0 : r.stake * p }; });
+  const closed = all.filter((r) => r.taken && r.t.closed_at).sort((a, b) => new Date(b.t.closed_at) - new Date(a.t.closed_at));
+  const unreal = open.reduce((s, r) => s + r.eur, 0);
+  return { cash, bal, equity: bal + unreal, inPos: open.length * S, stake: S, unreal, open, closed, noCash, curve, wins: closed.filter((r) => r.eur > 0).length };
+}
+
+function longCurveSvg(curve) {
+  const w = 700, h = 200;
+  const pts = curve.length > 1 ? curve : [...curve, { at: Date.now(), bal: curve[0].bal }];
+  const vals = pts.map((p) => p.bal);
+  const lo = Math.min(LONG_EUR * 0.98, ...vals), hi = Math.max(LONG_EUR * 1.02, ...vals);
+  const t0 = pts[0].at, t1 = Math.max(pts[pts.length - 1].at, t0 + 1);
+  const X = (t) => 56 + ((t - t0) / (t1 - t0)) * (w - 76), Y = (v) => 14 + (1 - (v - lo) / (hi - lo)) * (h - 40);
+  let d = "";
+  pts.forEach((p, i) => { d += (i ? " H" + X(p.at).toFixed(1) + " V" : "M" + X(p.at).toFixed(1) + " ") + Y(p.bal).toFixed(1); });
+  const last = pts[pts.length - 1].bal;
+  const col = last >= LONG_EUR ? "#46bec5" : "#ff858e";
+  const fmt = (v) => Math.round(v).toLocaleString("sl-SI") + " €";
+  return `<line x1="56" x2="${w - 20}" y1="${Y(LONG_EUR)}" y2="${Y(LONG_EUR)}" stroke="#4a5d78" stroke-dasharray="3 5"/>` +
+    `<text x="50" y="${Y(LONG_EUR) + 4}" fill="#8ca4c5" font-size="11" text-anchor="end">${fmt(LONG_EUR)}</text>` +
+    `<text x="50" y="${Y(hi) + 4}" fill="#6f8299" font-size="10" text-anchor="end">${fmt(hi)}</text><text x="50" y="${Y(lo) + 4}" fill="#6f8299" font-size="10" text-anchor="end">${fmt(lo)}</text>` +
+    `<path d="${d}" fill="none" stroke="${col}" stroke-width="2.4" stroke-linejoin="round"/>` +
+    `<text x="${w - 20}" y="${Math.max(12, Y(last) - 8)}" fill="${col}" font-size="12" font-weight="700" text-anchor="end">${fmt(last)}</text>` +
+    `<text x="56" y="${h - 4}" fill="#6f8299" font-size="10">${new Date(t0).toLocaleDateString("sl-SI")}</text><text x="${w - 20}" y="${h - 4}" fill="#6f8299" font-size="10" text-anchor="end">zdaj</text>`;
+}
+
+function renderCopyLong() {
+  const box = $("#cpLong");
+  if (!box || $("#copy").hidden || copyView !== "dolgo") return;
+  if (longState.error) { box.innerHTML = `<div class="cpStatus err">${lgEsc(longState.error)}</div>`; return; }
+  const a = longAccount();
+  const n = a.closed.length, sumPct = a.equity / LONG_EUR - 1;
+  const avgPct = n ? a.closed.reduce((s, r) => s + r.pct, 0) / n : null;
+  const kpi = (lab, big, sub, cls = "", extra = "") => `<article class="cpKpi"><small>${lab}</small><strong class="${cls}">${big}</strong><p>${sub}</p>${extra}</article>`;
+  const kpis = kpi("STANJE RAČUNA", lgEur(a.equity), `začetek ${lgEur(LONG_EUR)} · <span class="${lgTone(sumPct)}">${copyPct(sumPct)}</span>`, lgTone(sumPct)) +
+    kpi("PROSTO · V POZICIJAH", lgEur(a.cash), `v ${a.open.length} pozicijah ${lgEur(a.inPos)} · odprto ${lgEur(a.unreal, true)}`) +
+    kpi("ZAPRTO", lgEur(a.bal - LONG_EUR, true), n ? `${plural(n, "zaprt posel", "zaprta posla", "zaprti posli", "zaprtih poslov")} · povprečno ${copyPct(avgPct)}` : "še brez zaprtih poslov", lgTone(a.bal - LONG_EUR)) +
+    kpi("DO ODLOČITVE", `${n} / ${LONG_NEED}`, n ? `${Math.round((a.wins / n) * 100)} % v plusu` : "zaprti posli do merila za pravi denar", "", `<div class="lgProg"><i style="width:${Math.min(100, (n / LONG_NEED) * 100)}%"></i></div>`) +
+    kpi("PRESKOČENO", String(longState.skips.length + a.noCash), `${longState.skips.length} svežih ali premalo likvidnih${a.noCash ? " · " + a.noCash + " brez prostega denarja" : ""}`);
+  const openHtml = a.open.length ? a.open.sort((x, y) => new Date(x.t.opened_at) - new Date(y.t.opened_at)).map((r) => {
+    const t = r.t, e = t.entry_usd;
+    const lowP = t.low_usd && e ? t.low_usd / e - 1 : 0, peakP = t.peak_usd && e ? t.peak_usd / e - 1 : 0, nowP = r.pct ?? 0;
+    const lo = Math.min(-0.05, lowP), hi = Math.max(0.1, peakP), X = (v) => ((v - lo) / (hi - lo)) * 100;
+    const liq = t.note?.liq_usd ? (t.note.liq_usd >= 1e6 ? (t.note.liq_usd / 1e6).toLocaleString("sl-SI", { maximumFractionDigits: 1 }) + " M$" : Math.round(t.note.liq_usd / 1000) + " k$") : "-";
+    return `<div class="lgCard"><div class="lgR1"><b>${lgEsc(t.symbol || t.token.slice(0, 6))}</b><span class="lgBig ${lgTone(r.eur)}">${lgEur(r.eur, true)}</span></div>
+      <div class="lgMeta">${lgEsc(lgLabel(t.wallet))} · teče ${lgDur(Date.now() - new Date(t.opened_at).getTime())} · ${lgEur(r.stake)} · likvidnost ${liq}</div>
+      <div class="lgBar"><i style="left:${X(lowP)}%;width:${Math.max(1, X(peakP) - X(lowP))}%;background:#1f3550"></i><i style="left:${X(0)}%;width:2px;background:#8ca4c5"></i><i style="left:${Math.max(0, X(nowP) - 1.5)}%;width:3%;background:${nowP >= 0 ? "#62e4b3" : "#ff858e"}"></i></div>
+      <div class="lgMeta">zdaj <span class="${lgTone(nowP)}">${copyPct(nowP)}</span> · najnižje ${copyPct(lowP)} · vrh ${copyPct(peakP)} · zapre se, ko proda denarnica (najkasneje 7 dni)</div></div>`;
+  }).join("") : `<p class="cpEmpty"><b>Ni odprtih pozicij</b>Ko katera od denarnic kupi uveljavljen kovanec, se tu odpre posel za ${lgEur(a.stake)}.</p>`;
+  const wl = longState.cands.filter((c) => c.status === "sledi").map((c) => {
+    const mine = a.closed.filter((r) => r.t.wallet === c.wallet), op = a.open.filter((r) => r.t.wallet === c.wallet).length;
+    const lastT = [...longState.trades.filter((t) => t.wallet === c.wallet).map((t) => t.signal_t), ...longState.skips.filter((s) => s.wallet === c.wallet).map((s) => s.signal_t)].sort().pop();
+    const eur = mine.reduce((s, r) => s + r.eur, 0);
+    return `<div class="lgW"><div class="lgR1"><b>${lgEsc(c.label || lgLabel(c.wallet))}</b><span class="lgTag${mine.length < 3 ? " wait" : ""}">${mine.length < 3 ? "zbira" : "senca"}</span></div>
+      <div class="lgMeta">${mine.length} zaprtih${op ? " · " + op + " odprtih" : ""} · ${lastT ? "zadnji nakup " + copyAgo(lastT) : "še brez nakupa"}</div>
+      <div class="${lgTone(eur)}" style="font-weight:700;font-variant-numeric:tabular-nums">${mine.length ? lgEur(eur, true) : "-"}</div></div>`;
+  }).join("");
+  const closedHtml = a.closed.length ? a.closed.slice(0, 100).map((r) => {
+    const t = r.t, sh = Number(t.pnl_pct), su = r.suhi?.status === "zaprto" ? Number(r.suhi.pnl_pct) / 100 : null;
+    return `<tr><td><b>${lgEsc(t.symbol || t.token.slice(0, 6))}</b></td><td>${lgEsc(lgLabel(t.wallet))}</td><td>${lgWhen(t.opened_at)}</td><td class="lgNum">${lgDur(new Date(t.closed_at) - new Date(t.opened_at))}</td>
+      <td class="lgNum ${lgTone(sh)}">${copyPct(sh)}</td><td class="lgNum ${lgTone(su)}">${su === null ? "-" : copyPct(su)}</td><td class="lgNum ${lgTone(r.eur)}"><b>${lgEur(r.eur, true)}</b></td><td class="muted">${lgEsc(copyReason[t.exit_reason] || t.exit_reason || "")}</td></tr>`;
+  }).join("") : `<tr><td colspan="8" class="muted">Še ni zaprtih poslov.</td></tr>`;
+  const skipHtml = longState.skips.slice(0, 60).map((s) => `<tr><td>${lgEsc(s.symbol || s.token.slice(0, 6))}</td><td>${lgEsc(lgLabel(s.wallet))}</td><td class="muted">${lgEsc(s.note?.skip || "")}</td><td>${lgWhen(s.signal_t)}</td></tr>`).join("");
+  box.innerHTML = `
+    <div class="lgTop"><label class="lgStake">Vložek na posel <select id="lgStakeSel"><option value="100">100 € · 10 % računa</option><option value="50">50 € · 5 % računa</option><option value="sol">0,2 SOL ≈ ${lgEur(0.2 * (solUsd || SOL_USD_FIXED) * LONG_USD_EUR)} · kot bot</option></select></label></div>
+    <p class="lgNote">Simulacija računa s <b>${lgEur(LONG_EUR)}</b> od 17. 10.: vsak kopiran nakup je posel za <b>${lgEur(a.stake)}</b> (${(a.stake / LONG_EUR * 100).toLocaleString("sl-SI", { maximumFractionDigits: 1 })} % začetnega računa${longStakeSel === "sol" ? ", 0,2 SOL po trenutni ceni in okvirnem tečaju" : ""}), samo če je dovolj prostega denarja. Donos je iz suhega teka (prave ponudbe Jupitra z zdrsom in provizijami), kjer ga še ni, iz sence. Brez pravega denarja.</p>
+    <div class="cpKpis">${kpis}</div>
+    <article class="cpCard"><div class="cpCardHead"><h3>Odprte pozicije</h3><span class="muted">Zrcalo likv · izstop, ko proda denarnica</span></div><div class="lgCards">${openHtml}</div></article>
+    <div class="cpGrid">
+      <article class="cpCard"><div class="cpCardHead"><h3>Stanje računa</h3><span class="muted">po zaprtih poslih</span></div><svg class="cpChart" viewBox="0 0 700 200" role="img" aria-label="Stanje simuliranega računa">${longCurveSvg(a.curve)}</svg></article>
+      <article class="cpCard"><div class="cpCardHead"><h3>Denarnice v skupini</h3><span class="muted">senca · pravi denar izklopljen</span></div><div class="lgWl">${wl || '<p class="muted">Ni denarnic v skupini.</p>'}</div></article>
+    </div>
+    <article class="cpCard"><div class="cpCardHead"><h3>Zaprti posli</h3><span class="muted">najnovejši zgoraj · ${lgEur(a.stake)} na posel</span></div>
+      <div class="scroll cpScroll"><table class="cpTbl"><thead><tr><th>Kovanec</th><th>Denarnica</th><th>Odprto</th><th class="lgNum">Držanje</th><th class="lgNum">Senca</th><th class="lgNum">Suhi tek</th><th class="lgNum">Račun</th><th>Zakaj zaprto</th></tr></thead><tbody>${closedHtml}</tbody></table></div>
+      ${longState.skips.length ? `<details class="lgSkips"><summary>Preskočeni nakupi (${longState.skips.length}): sveži memecoini in premalo likvidni kovanci</summary><div class="scroll cpScroll"><table class="cpTbl"><tbody>${skipHtml}</tbody></table></div></details>` : ""}
+    </article>
+    <p class="muted" style="font-size:12px">Naloženo ${new Date(longState.loadedAt).toLocaleTimeString("sl-SI")}</p>`;
+  const ss = $("#lgStakeSel");
+  if (ss) { ss.value = longStakeSel; ss.onchange = () => { longStakeSel = ss.value; try { localStorage.setItem("cp-long-stake", longStakeSel); } catch {} renderCopyLong(); }; }
+}
+
+function setCopyView(v, load = true) {
+  copyView = v === "dolgo" ? "dolgo" : "hitro";
+  try { localStorage.setItem("cp-view", copyView); } catch {}
+  $("#copy .cpPage").classList.toggle("long", copyView === "dolgo");
+  for (const b of document.querySelectorAll("#cpSeg button")) b.classList.toggle("on", b.dataset.cpv === copyView);
+  $("#cpLong").hidden = copyView !== "dolgo";
+  if (!load) return;
+  if (copyView === "dolgo") { renderCopyLong(); loadCopyLong(); } else loadCopy();
+}
+for (const b of document.querySelectorAll("#cpSeg button")) b.onclick = () => setCopyView(b.dataset.cpv);
+setCopyView(copyView, false);
+$("#kopiranje").onclick = () => { navigate("copy", "live"); if (copyView === "dolgo") loadCopyLong(); else loadCopy(); };
 $("#copyPeriod").onchange = loadCopy;
-setInterval(() => { if (view === "copy" && !document.hidden) loadCopy(); }, 30000);
+setInterval(() => { if (view === "copy" && !document.hidden) { if (copyView === "dolgo") loadCopyLong(); else loadCopy(); } }, 30000);
 // ---------- Kopiranje: sekcija V živo kot tabela (6.7.0, 5. 10. 2026, G izbral mockup B) ----------
 // Ena vrstica na kopiran nakup, trije stolpci za tri pravila. Klik na vrstico odpre pot cene (copy_prices, 6 s) z oznakami
 // izstopov in razlago v navadnem jeziku. Preskoki (dokupi, prestar signal) so skriti, gumb jih pokaže kot sive vrstice.
