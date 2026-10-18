@@ -3,7 +3,7 @@
 const HISTORY_MIN = 60;
 // Različica kode. Vsako pisanje v profil jo pošlje skupaj z novim naključnim žetonom; baza (sprožilec na memecoin_state)
 // zavrne pisanje brez njiju. Tako star, pozabljen zavihek s staro kodo ne more več trgovati na račun (27. 9. 2026).
-const CLIENT_VERSION = 715;
+const CLIENT_VERSION = 716;
 const newNonce = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now());
 // Tečaj SOL za prikaz v USD: sproti z Jupitra (funkcija cene ga zapiše v memecoin_prices_now), sicer fiksen tečaj z 22. 9. 2026.
 const SOL_MINT = "So11111111111111111111111111111111111111112",
@@ -4487,8 +4487,13 @@ function renderCopy() {
     el.querySelector("strong").textContent = r.closed.length ? copySol(r.net) : "-";
     el.querySelector(".cpWNet strong").className = tone(r.net);
     el.querySelector(".cpWNet small").textContent = r.lag === null ? "" : "zamik " + Math.round(r.lag) + " s";
-    el.title = r.c.wallet;
-    el.onclick = () => window.open("https://solscan.io/account/" + r.c.wallet, "_blank", "noreferrer");
+    // 7.1.6: klik filtrira tabelo V živo po tej denarnici (ponovni klik počisti); Solscan je na puščici ob imenu
+    el.title = r.c.wallet + " · klik: samo posli te denarnice";
+    el.classList.toggle("on", copyUI.wallet === r.c.wallet);
+    const sl = document.createElement("a"); sl.href = "https://solscan.io/account/" + r.c.wallet; sl.target = "_blank"; sl.rel = "noreferrer"; sl.textContent = " ↗"; sl.className = "cpSolscan"; sl.title = "Odpri na Solscanu";
+    sl.onclick = (e) => e.stopPropagation();
+    el.querySelector(".cpWName b").append(sl);
+    el.onclick = () => { copyUI.wallet = copyUI.wallet === r.c.wallet ? "" : r.c.wallet; $("#cpWallet").value = copyUI.wallet; renderCopy(); $("#cpRows")?.closest(".cpCard")?.scrollIntoView({ behavior: "smooth", block: "start" }); };
     wl.append(el);
   }
   renderCopyFeed();
@@ -4728,7 +4733,8 @@ setInterval(() => { if (view === "copy" && !document.hidden) { if (copyView === 
 // ---------- Kopiranje: sekcija V živo kot tabela (6.7.0, 5. 10. 2026, G izbral mockup B) ----------
 // Ena vrstica na kopiran nakup, trije stolpci za tri pravila. Klik na vrstico odpre pot cene (copy_prices, 6 s) z oznakami
 // izstopov in razlago v navadnem jeziku. Preskoki (dokupi, prestar signal) so skriti, gumb jih pokaže kot sive vrstice.
-const copyUI = { wallet: "", state: "all", q: "", skips: false, open: new Set(), prices: new Map() };
+// 7.1.6 (18. 10., G): rule = poudarjeno pravilo (klik na kartico neto), sort = razvrščanje tabele (klik na glavo stolpca)
+const copyUI = { wallet: "", state: "all", q: "", skips: false, open: new Set(), prices: new Map(), rule: null, sort: { k: "time", dir: -1 } };
 const copyMin = (a, b) => (new Date(b).getTime() - new Date(a).getTime()) / 60000;
 const copyMinText = (m) => (m < 1 ? "pod 1 min" : m < 60 ? Math.round(m) + " min" : (m / 60).toFixed(1) + " h");
 const copyWalletPct = (t) => (t.note?.wallet_sell_price_sol > 0 && t.wallet_price_sol > 0 ? t.note.wallet_sell_price_sol / t.wallet_price_sol - 1 : null);
@@ -4782,6 +4788,28 @@ function renderCopyFeed() {
   for (const [lab, val, cls] of [["Kopiranih nakupov", String(real.length), ""], ["Še odprtih", String(openN), ""], ["Zrcalo neto", copySol(net("kopija-mirror")), tone(net("kopija-mirror"))], ["Hitri 20 neto", copySol(net("kopija-hitri20")), tone(net("kopija-hitri20"))], ["Hitri 30 neto", copySol(net("kopija-hitri30")), tone(net("kopija-hitri30"))], ["Hitri 40 neto", copySol(net("kopija-hitri40")), tone(net("kopija-hitri40"))], ["Zamik, mediana", medLag === null ? "-" : Math.round(medLag) + " s", ""]]) {
     const d = document.createElement("div"); d.innerHTML = "<span></span><b></b>"; d.querySelector("span").textContent = lab; d.querySelector("b").textContent = val; d.querySelector("b").className = cls; sum.append(d);
   }
+  // 7.1.6: kartice so gumbi. Kopiranih nakupov = počisti filtre, Še odprtih = samo odprti, pravilo = poudari stolpec in razvrsti po njem.
+  const tiles = sum.children, rk = Object.keys(COPY_RULES);
+  tiles[0].classList.add("cpSumBtn"); tiles[0].title = "Počisti filtre in razvrščanje";
+  tiles[0].onclick = () => { copyUI.state = "all"; copyUI.wallet = ""; copyUI.rule = null; copyUI.sort = { k: "time", dir: -1 }; $("#cpStateSel").value = "all"; $("#cpWallet").value = ""; renderCopyFeed(); };
+  tiles[1].classList.add("cpSumBtn"); tiles[1].classList.toggle("on", copyUI.state === "open"); tiles[1].title = "Pokaži samo odprte";
+  tiles[1].onclick = () => { copyUI.state = copyUI.state === "open" ? "all" : "open"; $("#cpStateSel").value = copyUI.state; renderCopyFeed(); };
+  rk.forEach((r, i) => {
+    const el = tiles[2 + i]; if (!el) return;
+    el.classList.add("cpSumBtn"); el.classList.toggle("on", copyUI.rule === r); el.title = "Pokaži samo " + COPY_RULES[r].name + ", razvrščeno po rezultatu";
+    el.onclick = () => { copyUI.rule = copyUI.rule === r ? null : r; copyUI.sort = copyUI.rule ? { k: r, dir: -1 } : { k: "time", dir: -1 }; renderCopyFeed(); };
+  });
+  // glave stolpcev: klik razvrsti (Kdaj, Zdaj, pravila), ponovni klik obrne smer; pri poudarjenem pravilu so ostala pravila skrita
+  const ths = document.querySelectorAll(".cpTbl thead th"), sortKeys = [null, "time", "now", ...rk];
+  ths.forEach((th, i) => {
+    const k = sortKeys[i]; if (!k) return;
+    th.classList.add("cpSortTh");
+    if (i >= 3) th.hidden = !!copyUI.rule && copyUI.rule !== k;
+    let ic = th.querySelector(".cpSortI"); if (!ic) { ic = document.createElement("i"); ic.className = "cpSortI"; th.append(ic); }
+    ic.textContent = copyUI.sort.k === k ? (copyUI.sort.dir === -1 ? " ↓" : " ↑") : "";
+    th.title = "Razvrsti po tem stolpcu";
+    th.onclick = () => { copyUI.sort = copyUI.sort.k === k ? { k, dir: -copyUI.sort.dir } : { k, dir: -1 }; renderCopyFeed(); };
+  });
   $("#cpSkips").textContent = (copyUI.skips ? "Skrij preskoke" : "Pokaži preskoke") + " (" + skips.length + ")";
   // tabela
   const rows = $("#cpRows");
@@ -4793,7 +4821,17 @@ function renderCopyFeed() {
       : "<b>Čakam na prvi nakup sledenih denarnic.</b> Ko katera od njih kupi kovanec, se tu v nekaj sekundah pojavi senčni posel. Nekatere denarnice trgujejo nekajkrat na dan, druge nekajkrat na teden.";
   }
   // vrstice: pravi nakupi in (po želji) preskoki, vse po času
-  const list = copyUI.skips ? [...real, ...skips].sort((a, b) => new Date(b.t0.signal_t) - new Date(a.t0.signal_t)) : real;
+  // 7.1.6: razvrščanje. Vrednost: čas signala, zdaj (po zrcalu) ali rezultat pravila (zaprt = končni, odprt = trenutni); brez vrednosti na dno
+  const sv = (x) => {
+    const k = copyUI.sort.k;
+    if (k === "time") return new Date(x.t0.signal_t).getTime();
+    const t = k === "now" ? x.g.find((y) => y.rule === "kopija-mirror") || x.t0 : x.g.find((y) => y.rule === k);
+    if (!t) return null;
+    const v = k !== "now" && t.closed_at ? t.pnl_pct : copyLive(t);
+    return Number.isFinite(v) ? v : null;
+  };
+  const sorted = copyUI.sort.k === "time" && copyUI.sort.dir === -1 ? real : [...real].sort((p, q2) => { const va = sv(p), vb = sv(q2); if (va === null && vb === null) return 0; if (va === null) return 1; if (vb === null) return -1; return (va - vb) * copyUI.sort.dir; });
+  const list = copyUI.skips && copyUI.sort.k === "time" ? [...sorted, ...skips].sort((p, q2) => (new Date(p.t0.signal_t) - new Date(q2.t0.signal_t)) * copyUI.sort.dir) : sorted;
   let lastSkipKey = null;
   for (const x of list.slice(0, 80)) {
     const t0 = x.t0;
@@ -4803,7 +4841,7 @@ function renderCopyFeed() {
       if (k === lastSkipKey) { const prev = rows.lastElementChild; prev.dataset.n = Number(prev.dataset.n) + 1; prev.firstElementChild.textContent = copySkipText(t0, Number(prev.dataset.n)); continue; }
       lastSkipKey = k;
       const tr = document.createElement("tr"); tr.className = "cpSkipRow"; tr.dataset.n = 1;
-      const td = document.createElement("td"); td.colSpan = 6; td.textContent = copySkipText(t0, 1); tr.append(td); rows.append(tr);
+      const td = document.createElement("td"); td.colSpan = 7; td.textContent = copySkipText(t0, 1); tr.append(td); rows.append(tr);
       continue;
     }
     lastSkipKey = null;
@@ -4828,11 +4866,15 @@ function renderCopyFeed() {
     tds[2].querySelector("small").textContent = peak === null ? "" : "vrh " + copyPct(peak);
     Object.keys(COPY_RULES).forEach((rule, i) => {
       const t = x.g.find((y) => y.rule === rule), td = tds[3 + i];
+      if (copyUI.rule && copyUI.rule !== rule) td.hidden = true;
       if (!t) { td.querySelector("b").textContent = "-"; return; }
       const r = t.closed_at ? t.pnl_pct : copyLive(t);
       td.querySelector("b").textContent = copyPct(r); td.querySelector("b").className = tone(r ?? 0);
       td.querySelector("small").textContent = t.closed_at ? (copyReason[t.exit_reason] || t.exit_reason) + " · " + copyMinText(copyMin(t.opened_at, t.closed_at)) : rule === "kopija-sled" && t.note?.half_usd ? "pol prodano " + copyPct(t.note.half_usd / t.entry_usd - 1) + " · teče" : "teče";
     });
+    // 7.1.6: klik na denarnico pod kovancem filtrira tabelo po tej denarnici (ponovni klik počisti)
+    const wsm = tr.querySelector(".cpCoin small"); wsm.classList.add("cpWLink"); wsm.title = "Klik: samo posli te denarnice";
+    wsm.onclick = (e) => { e.stopPropagation(); copyUI.wallet = copyUI.wallet === t0.wallet ? "" : t0.wallet; $("#cpWallet").value = copyUI.wallet; renderCopyFeed(); };
     rows.append(tr);
     if (copyUI.open.has(x.key)) rows.append(copyDetailRow(x));
   }
