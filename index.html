@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>foqs. - Advertising &amp; Performance Consulting</title>
-<meta name="description" content="foqs. - Google Ads, TikTok Ads and websites. Sign in to the foqs. hub for habit, Ura+ and sonar.">
+<meta name="description" content="foqs. - Google Ads, TikTok Ads and websites. Sign in to the foqs. hub for habit, Ura+ and flow.">
 <meta name="theme-color" content="#141112">
 <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png">
@@ -372,6 +372,72 @@ body.guest .lg-close{display:flex}
 .d-mod.locked .b-led i{background:var(--mute)}
 .d-mod.locked .d-go{color:var(--mute)}
 .d-mod.locked .b-scan{display:none}
+
+/* ===== flow in the hub ===== */
+.fl{display:flex;align-items:flex-end;gap:14px;height:62px;margin-bottom:11px}
+.fl-num{display:flex;flex-direction:column;flex:0 0 auto}
+.fl-num b{font-family:var(--poppins);font-size:21px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;transition:color .35s}
+.fl-num small{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.is-live .fl-num b{color:var(--pos)}
+.fl-bars{flex:1;display:flex;gap:6px;align-items:flex-end;height:100%;min-width:0}
+.fl-bars i{flex:1;display:flex;gap:2px;align-items:flex-end;height:100%}
+.fl-bars b{flex:1;height:var(--h);border-radius:3px 3px 1px 1px;transform:scaleY(.55);transform-origin:bottom;transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+.fl-bars b.in{background:linear-gradient(180deg,var(--teal),var(--teal-d))}
+.fl-bars b.out{background:var(--line2)}
+.is-live .fl-bars b{transform:none}
+.is-live .fl-bars i:nth-child(2) b{transition-delay:.04s}.is-live .fl-bars i:nth-child(3) b{transition-delay:.08s}.is-live .fl-bars i:nth-child(4) b{transition-delay:.12s}.is-live .fl-bars i:nth-child(5) b{transition-delay:.16s}.is-live .fl-bars i:nth-child(6) b{transition-delay:.2s}
+.fl-list{border-top:1px solid var(--line);padding-top:8px}
+.fl-row{display:flex;align-items:center;gap:9px;padding:4px 0}
+.fl-row em{font-style:normal;font-family:var(--mono);font-size:10px;color:var(--mute);flex:0 0 auto}
+.fl-row:nth-child(2) .hb-txt{max-width:62%}.fl-row:nth-child(3) .hb-txt{max-width:74%}
+.fl-row .hb-txt{margin-right:auto}
+/* izpostavljena kartica */
+.d-grid.two{grid-template-columns:repeat(2,1fr)}
+.d-feat{grid-column:1/-1}
+.d-feat .d-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:26px;align-items:center;padding:24px 22px}
+.ft-l{display:flex;flex-direction:column;gap:15px;min-width:0}
+.ft-new{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--teal);border:1px solid rgba(70,190,197,.32);background:rgba(70,190,197,.07);border-radius:999px;padding:5px 12px}
+.ft-new i{width:6px;height:6px;border-radius:50%;background:var(--pos);animation:blip 2.4s ease-in-out infinite}
+.d-feat h2{font-size:clamp(26px,3.2vw,36px)}
+.d-feat .ft-l>p{color:var(--mute);font-size:15.5px;line-height:1.55;max-width:46ch}
+.ft-cta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:2px}
+.ft-btn{display:inline-flex;align-items:center;gap:9px;background:var(--teal);color:#0d2c2e;border-radius:10px;padding:11px 18px;font-family:var(--mono);font-weight:700;font-size:12.5px;letter-spacing:.13em;text-transform:uppercase;transition:background .2s,transform .2s,box-shadow .3s}
+.ft-btn svg{transition:transform .25s}
+.d-feat.is-on .ft-btn{background:#5fcdd3;transform:translateY(-1px);box-shadow:0 10px 26px rgba(70,190,197,.28)}
+.d-feat.is-on .ft-btn svg{transform:translateX(4px)}
+.ft-cta small{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--mute)}
+.d-feat .b-read div{opacity:1;transform:none}
+.fx{padding:16px}
+.fx .prev-top{gap:10px}.fx .prev-top small{margin-right:auto}
+.fx-note{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:var(--warn);opacity:0;animation:fxnote 9s ease-in-out infinite}
+.fx-note i{width:5px;height:5px;border-radius:50%;background:var(--warn)}
+.fx-main{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1.1fr);gap:16px;align-items:center;margin-bottom:12px}
+.fx-ring{width:84px;height:84px;display:block}
+.fx-arc{fill:none;stroke:var(--teal);stroke-width:7;stroke-linecap:round;stroke-dasharray:0 100;transform:rotate(-90deg);transform-origin:center;animation:fxarc 9s cubic-bezier(.2,.8,.2,1) infinite}
+.fx-num{display:flex;flex-direction:column;gap:2px;min-width:0}
+.fx-num small{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.fx-num b{font-family:var(--poppins);font-size:clamp(22px,2.6vw,30px);font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fx-num span{display:flex;gap:10px;font-family:var(--mono);font-size:10px}
+.fx-num em{font-style:normal}.fx-num em.in{color:var(--teal)}.fx-num em.out{color:var(--mute)}
+.fx-bars{height:74px;flex:none}
+.fx-bars b{transform:scaleY(0);animation:fxbar 9s cubic-bezier(.2,.8,.2,1) infinite}
+.fx-bars i:nth-child(2) b{animation-delay:.07s}.fx-bars i:nth-child(3) b{animation-delay:.14s}.fx-bars i:nth-child(4) b{animation-delay:.21s}.fx-bars i:nth-child(5) b{animation-delay:.28s}.fx-bars i:nth-child(6) b{animation-delay:.35s}
+.fx-list{border-top:1px solid var(--line);padding-top:8px}
+.fx-name{font-size:12.5px;color:var(--dim);margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;animation:fxname 9s ease infinite}
+.fx-list .hb-box{animation:fxbox 9s ease infinite}
+.fx-list .hb-box::after{animation:fxtick 9s cubic-bezier(.2,1.4,.4,1) infinite}
+.fx-list .fl-row:nth-child(1) .hb-box,.fx-list .fl-row:nth-child(1) .hb-box::after,.fx-list .fl-row:nth-child(1) .fx-name{animation-delay:1.3s}
+.fx-list .fl-row:nth-child(2) .hb-box,.fx-list .fl-row:nth-child(2) .hb-box::after,.fx-list .fl-row:nth-child(2) .fx-name{animation-delay:2.2s}
+.fx-list .fl-row:nth-child(3) .hb-box,.fx-list .fl-row:nth-child(3) .hb-box::after,.fx-list .fl-row:nth-child(3) .fx-name{animation-delay:3.1s}
+.fx-list .fl-row:nth-child(4) .hb-box,.fx-list .fl-row:nth-child(4) .hb-box::after,.fx-list .fl-row:nth-child(4) .fx-name{animation-delay:4s}
+@keyframes fxarc{0%{stroke-dasharray:0 100}18%,90%{stroke-dasharray:68 100}100%{stroke-dasharray:0 100}}
+@keyframes fxbar{0%{transform:scaleY(0)}14%,90%{transform:scaleY(1)}100%{transform:scaleY(0)}}
+@keyframes fxbox{0%,1%{background:transparent;border-color:var(--line2)}4%,50%{background:var(--teal);border-color:var(--teal)}56%,100%{background:transparent;border-color:var(--line2)}}
+@keyframes fxtick{0%,1%{transform:rotate(45deg) scale(0)}5%,50%{transform:rotate(45deg) scale(1)}56%,100%{transform:rotate(45deg) scale(0)}}
+@keyframes fxname{0%,1%{color:var(--dim)}4%,50%{color:var(--mute)}56%,100%{color:var(--dim)}}
+@keyframes fxnote{0%,8%{opacity:0;transform:translateY(3px)}14%,86%{opacity:1;transform:none}94%,100%{opacity:0}}
+@media(max-width:900px){.d-grid.two{grid-template-columns:1fr}.d-feat .d-body{grid-template-columns:1fr;gap:18px;padding:16px 14px}.fx-main{grid-template-columns:auto minmax(0,1fr)}.fx-bars{grid-column:1/-1;height:56px}}
+@media(prefers-reduced-motion:reduce){.fx-arc{animation:none;stroke-dasharray:68 100}.fx-bars b{animation:none;transform:none}.fx-list .hb-box,.fx-list .hb-box::after,.fx-name,.fx-note{animation:none}.fx-note{opacity:1}}
 </style>
 <script defer src="/track.js?v=2"></script>
 </head>
@@ -396,11 +462,44 @@ body.guest .lg-close{display:flex}
         </div>
       </div>
       <div class="d-intro">
-        <span class="d-eyebrow"><i></i>Hub · all apps online</span>
+        <span class="d-eyebrow"><i></i>New · foqs.flow is live</span>
         <h1>Three apps. One login.</h1>
         <p>Small tools built for my own work, now all in one place and on your phone.</p>
       </div>
-      <div class="d-grid">
+      <div class="d-grid two">
+        <a class="d-mod d-feat" id="modFlow" href="/flow">
+          <span class="b-cor tl"></span><span class="b-cor tr"></span><span class="b-cor bl"></span><span class="b-cor br"></span>
+          <span class="b-scan"></span>
+          <div class="d-head"><span>MOD <b>FLW-03</b> &middot; featured</span><span class="b-led"><i></i>new</span></div>
+          <div class="d-body">
+            <div class="ft-l">
+              <span class="ft-new"><i></i>New in the hub</span>
+              <h2>foqs.<b>flow</b><i>.</i><span class="inst" title="Installs on your phone home screen"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>Phone app</span></h2>
+              <p>Money in, money out. Your monthly costs as a checklist you tick off, income per client, and one number for what is left.</p>
+              <div class="b-read">
+                <div><span>Costs</span><span>Monthly checklist, paid or waiting</span></div>
+                <div><span>Income</span><span>Per client, with open invoices</span></div>
+                <div><span>Runs</span><span>Phone &middot; desktop, same data</span></div>
+              </div>
+              <div class="ft-cta"><span class="ft-btn">Open flow <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span><small>Uses your foqs. login</small></div>
+            </div>
+            <div class="prev fx" aria-hidden="true">
+              <div class="prev-top"><small>&lsaquo; October &rsaquo;</small><span class="fx-note"><i></i>2 invoices waiting</span><span class="prev-dot"></span></div>
+              <div class="fx-main">
+                <svg class="fx-ring" viewBox="0 0 84 84"><circle class="ur2-track" cx="42" cy="42" r="34"/><circle class="fx-arc" cx="42" cy="42" r="34" pathLength="100"/><text class="ur2-pct" x="42" y="45">68%</text><text class="ur2-sub" x="42" y="57">spent</text></svg>
+                <div class="fx-num"><small>Left this month</small><b id="fxNum">1.240 &euro;</b><span><em class="in">+ 3.890</em><em class="out">- 2.650</em></span></div>
+                <div class="fl-bars fx-bars"><i><b class="in" style="--h:72%"></b><b class="out" style="--h:48%"></b></i><i><b class="in" style="--h:70%"></b><b class="out" style="--h:46%"></b></i><i><b class="in" style="--h:74%"></b><b class="out" style="--h:92%"></b></i><i><b class="in" style="--h:71%"></b><b class="out" style="--h:50%"></b></i><i><b class="in" style="--h:86%"></b><b class="out" style="--h:60%"></b></i><i><b class="in" style="--h:100%"></b><b class="out" style="--h:62%"></b></i></div>
+              </div>
+              <div class="fx-list">
+                <div class="fl-row"><span class="hb-box"></span><span class="fx-name">Rent</span><em>600 &euro;</em></div>
+                <div class="fl-row"><span class="hb-box"></span><span class="fx-name">Car lease</span><em>268 &euro;</em></div>
+                <div class="fl-row"><span class="hb-box"></span><span class="fx-name">Phone + internet</span><em>79 &euro;</em></div>
+                <div class="fl-row"><span class="hb-box"></span><span class="fx-name">Electricity</span><em>53 &euro;</em></div>
+              </div>
+              <div class="sn-foot"><span class="up" id="fxPaid">0 / 4 paid</span><span>Income per client</span><span>Monthly recap</span></div>
+            </div>
+          </div>
+        </a>
         <a class="d-mod" href="/habit">
           <span class="b-cor tl"></span><span class="b-cor tr"></span><span class="b-cor bl"></span><span class="b-cor br"></span>
           <span class="b-scan"></span>
@@ -453,34 +552,11 @@ body.guest .lg-close{display:flex}
             <div class="d-go"><span>Open Ura+</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></div>
           </div>
         </a>
-        <a class="d-mod" id="modSonar" href="/sonar">
-          <span class="b-cor tl"></span><span class="b-cor tr"></span><span class="b-cor bl"></span><span class="b-cor br"></span>
-          <span class="b-scan"></span>
-          <div class="d-head"><span>MOD <b>SNR-03</b></span><span class="b-led"><i></i>live feed</span></div>
-          <div class="d-body">
-            <h2>foqs.<b>sonar</b><i>.</i><span class="inst" title="Installs on your phone home screen"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>Phone app</span></h2>
-            <p>Reads the Solana memecoin market, runs a demo bot around the clock and shadows a shortlist of wallets. Invite only.</p>
-            <div class="prev">
-              <div class="prev-top"><small>Live · 6s prices</small><span class="prev-dot"></span></div>
-              <svg class="sn-chart" viewBox="0 0 240 82" preserveAspectRatio="none" role="img" aria-label="Market cap snapshots">
-                <path class="sn-area" d="M4 62 L34 55 L64 66 L94 40 L124 48 L154 26 L184 33 L214 14 L236 20 L236 82 L4 82 Z"/>
-                <path class="sn-line" d="M4 62 L34 55 L64 66 L94 40 L124 48 L154 26 L184 33 L214 14 L236 20"/>
-                <circle class="sn-end-ring" cx="236" cy="20" r="3.4"/><circle class="sn-end" cx="236" cy="20" r="3.4"/>
-              </svg>
-              <div class="sn-foot"><span class="up">24/7 on server</span><span>Copy trading</span><span>Daily review</span></div>
             </div>
-            <div class="b-read">
-              <div><span>Market</span><span>Solana memecoins</span></div>
-              <div><span>Bot</span><span>24/7 on the server</span></div>
-              <div><span>Access</span><span>Invite only</span></div>
-            </div>
-            <div class="d-go"><span>Open sonar</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></div>
-          </div>
-        </a>
-      </div>
       <section class="d-log" aria-label="Latest updates">
-        <div class="d-log-head"><span>Changelog &middot; <b>latest updates</b></span><span class="b-led"><i></i>10 Oct 2026</span></div>
+        <div class="d-log-head"><span>Changelog &middot; <b>latest updates</b></span><span class="b-led"><i></i>21 Nov 2026</span></div>
         <ol>
+          <li><time>21 Nov</time><span class="tag">flow 1.0</span><p>New app. Monthly costs as a checklist, income per client with open invoices, and what is left, on phone and desktop.</p></li>
           <li><time>10 Oct</time><span class="tag">sonar 7.1</span><p>A live view next to the demo bot, with its own guard rails and a confirm step before anything trades.</p></li>
           <li><time>05 Oct</time><span class="tag">sonar 6.9</span><p>Copy tab follows a shortlist of wallets in shadow. The morning review now lives inside the app.</p></li>
           <li><time>04 Oct</time><span class="tag ur">Ura+</span><p>Pace marker on the goal ring. You see in euros whether you are ahead or behind your month.</p></li>
@@ -537,7 +613,7 @@ body.guest .lg-close{display:flex}
         <span class="lg-peek-lab">Inside</span>
         <span class="lg-peek-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><b>foqs.habit</b><i>Win the day</i></span>
         <span class="lg-peek-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><b>Ura+</b><i>Hours into money</i></span>
-        <span class="lg-peek-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><b>foqs.sonar</b><i>Reads the market</i></span>
+        <span class="lg-peek-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><b>foqs.flow</b><i>Money in, money out</i></span>
       </div></div></div>
   </div>
 </section>
@@ -827,5 +903,8 @@ sb.auth.onAuthStateChange(function(event){
   paint();
 })();
 </script>
-</body>
+<script>/* stevec in "x / 4 paid" tecejo v istem 9 s ritmu kot animacija */
+(function(){var n=document.getElementById('fxNum'),p=document.getElementById('fxPaid');if(!n)return;var fmt=function(v){return Math.round(v).toLocaleString('de-DE')+' \u20ac'};
+function run(){var t0=performance.now();(function f(t){var s=(t-t0)/1000;if(s>9){run();return}var k=s<1.6?1-Math.pow(1-Math.min(1,s/1.6),4):s>8.2?Math.max(0,1-(s-8.2)/.8):1;n.textContent=fmt(1240*k);var c=0;[1.3,2.2,3.1,4].forEach(function(d){var q=s-d;if(q>.3&&q<4.7)c++});p.textContent=c+' / 4 paid';requestAnimationFrame(f)})(t0)}
+if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches){p.textContent='3 / 4 paid';return}run()})();</script></body>
 </html>
