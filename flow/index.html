@@ -336,6 +336,25 @@ body.framed .app{width:400px;height:min(840px,calc(100vh - 36px));border-radius:
 .mobile .ov{align-items:flex-end}.mobile #view .chips.fl{flex:1 1 100%!important;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}.mobile #view .chips.fl::-webkit-scrollbar{display:none}.mobile #view .chips.fl .chip{flex:none}.mobile #view .seg{flex:1}.mobile #view .seg button{flex:1}.mobile .toast{bottom:150px}
 .mobile .sheet{width:100%;border-radius:26px 26px 0 0;transform:translateY(100%)}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
+
+/* opomnik za neplacan racun */
+.remw{flex:none;display:flex;align-items:center}
+.li.paid .remw{display:none}
+.rem{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;border:1px dashed var(--line);background:transparent;color:var(--mu);font-size:11px;font-weight:500;white-space:nowrap;opacity:.55;transition:opacity .25s,color .25s,border-color .25s,background .25s,transform .2s}
+.li:hover .rem,.rem:focus-visible{opacity:1}
+.rem:hover{color:var(--warn);border-color:rgba(232,208,107,.5)}
+.rem.on{opacity:1;border-style:solid;border-color:rgba(232,208,107,.3);background:rgba(232,208,107,.12);color:var(--warn)}
+.rem.pop{animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
+.rem.pop svg{animation:ring .7s ease .05s}
+@keyframes ring{0%,100%{transform:rotate(0)}20%{transform:rotate(-16deg)}45%{transform:rotate(13deg)}70%{transform:rotate(-7deg)}}
+.remed{display:inline-flex;align-items:center;gap:6px}
+.pe.rd{width:auto;min-width:132px;font-size:12px;padding:5px 8px;text-align:left;color-scheme:dark}
+.remx{width:26px;height:26px;border-radius:50%;background:var(--s3);color:var(--mu);font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;transition:color .2s,background .2s}
+.remx:hover{color:var(--out);background:rgba(240,128,106,.16)}
+.mobile .li:has(.remw){flex-wrap:wrap}
+.mobile .remw{order:9;flex:0 0 100%;padding-left:70px;margin-top:-4px}
+.mobile .li.paid:has(.remw){flex-wrap:nowrap}
+.mobile .rem{opacity:1}
 </style>
 </head>
 <body>
@@ -412,7 +431,7 @@ const DEF=ymAdd(CUR,-1),MINYM='2024-01',MAXYM=ymAdd(CUR,1);
 const mi=ym=>+ym.slice(5)-1,yr=ym=>ym.slice(0,4);
 const mName=ym=>MN[mi(ym)],mLow=ym=>MN[mi(ym)].toLowerCase(),mGen=ym=>MG[mi(ym)],mShort=ym=>MN[mi(ym)].slice(0,3);
 /* ---------- podatki ---------- */
-const DSET={acc:0,compact:0,calm:0,w:{chart:1,split:1,cats:1,clients:1,ins:1},recap:1,redni:0,goals:[],cats:[],obEnd:{}};
+const DSET={acc:0,compact:0,calm:0,w:{chart:1,split:1,cats:1,clients:1,ins:1},recap:0,redni:0,goals:[],cats:[],obEnd:{}};
 let D={months:{},set:JSON.parse(JSON.stringify(DSET))};
 const S={ym:DEF,view:0,filter:'vse',grp:0,story:0,sdir:1,ft:'out',fc:'poraba',fty:'var',fob:0,edit:null};
 const Mo=ym=>D.months[ym]||{items:[],inc:[]};
@@ -426,6 +445,10 @@ const has=ym=>Mo(ym).items.length>0||Mo(ym).inc.length>0;
 const pay=ym=>{const it=Mo(ym).items,p=it.filter(x=>x.paid);return{n:it.length,pn:p.length,pa:p.reduce((s,i)=>s+i.a,0),rest:it.filter(x=>!x.paid).reduce((s,i)=>s+i.a,0)}};
 const ipaid=c=>c.paid!==false;
 const incStat=ym=>{const a=Mo(ym).inc.filter(c=>c.a>0),p=a.filter(ipaid);return{n:a.length,pn:p.length,pa:p.reduce((s,c)=>s+c.a,0),rest:a.filter(c=>!ipaid(c)).reduce((s,c)=>s+c.a,0)}};
+const tdy=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const dS=s=>{const p=String(s).split('-');return +p[2]+'. '+(+p[1])+'.'+(p[0]!==String(new Date().getFullYear())?' '+p[0]:'')};
+const BELL='<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7 2.5 7h-17S6 15 6 9"/><path d="M10 20a2.2 2.2 0 0 0 4 0"/></svg>';
+const remBtn=(c,k)=>`<button class="rem ${c.rem?'on':''}" data-irem="${c.id}" ${k?`data-pym="${k}"`:''} title="${c.rem?'Opomnik poslan '+dS(c.rem)+'. Klikni za spremembo datuma ali odstranitev.':'Klikni, ko pošlješ opomnik. Zapiše se današnji datum.'}">${BELL}<span>${c.rem?'Opomnik poslan '+dS(c.rem):'Opomnik'}</span></button>`;
 const unpaidInv=()=>Object.keys(D.months).sort().flatMap(k=>D.months[k].inc.filter(c=>c.a>0&&!ipaid(c)).map(c=>({ym:k,c})));
 const recentClients=ym=>{const seen=new Set(Mo(ym).inc.map(c=>c.n.trim().toLowerCase())),out=[];Object.keys(D.months).filter(k=>k<ym).sort().reverse().slice(0,4).forEach(k=>D.months[k].inc.forEach(c=>{const key=c.n.trim().toLowerCase();if(c.a>0&&!seen.has(key)&&key!=='prihodki skupaj'){seen.add(key);out.push(c.n.trim())}}));return out.slice(0,8)};
 const sumBy=(arr,f)=>arr.reduce((o,i)=>(o[f(i)]=(o[f(i)]||0)+i.a,o),{});
@@ -521,11 +544,11 @@ function payUpd(){const q=pay(S.ym);if(!$('#payc'))return;$('#payc').innerHTML=`
 function vPrihodki(){const ym=S.ym,i=inc(ym),cl=[...Mo(ym).inc].sort((a,b)=>b.a-a.a),mx=cl.length?cl[0].a||1:1,pos=cl.filter(c=>c.a>0),pm=ymAdd(ym,-1),q=incStat(ym),rc=recentClients(ym),est=pos.some(c=>c.est);
  const ms=win().filter(k=>inc(k)>0).slice(-6),top=Math.max(1,...ms.map(inc)),wait=unpaidInv().filter(x=>x.ym!==ym);
  const quick=rc.length?`<div class="row" style="margin-top:12px;flex-wrap:wrap;gap:8px"><span class="sm mu">Hitro dodaj:</span>${rc.map(n=>`<button class="chip qa" data-qadd="${esc(n)}">+ ${esc(n)}</button>`).join('')}</div>`:'';
- const row=(c,n,k)=>`<div class="li ${c.a>0&&ipaid(c)?'paid':''}" ${c.a>0?`data-ipay="${c.id}"${k?` data-pym="${k}"`:''}`:''} style="--i:${n}">${c.a>0?'<span class="ck"></span>':'<span class="ck off"></span>'}<button class="av" data-ied="${c.id}" ${k?`data-pym="${k}"`:''} title="Uredi ali izbriši" style="background:${clc(c.n)}22;color:${clc(c.n)}">${esc(c.n.trim().slice(0,2).toUpperCase())}</button><div class="t"><b class="nm" ${k?'':`data-inedit="${c.id}" title="Klikni za preimenovanje"`}>${esc(c.n)}</b>${k?`<span>račun za ${mLow(k)} ${yr(k)}</span>`:`<div class="track" style="margin-top:7px;max-width:420px"><i style="--w:${c.a/mx*100}%;--n:${n};background:${clc(c.n)}"></i></div>`}</div>${c.est?'<span class="tag mine">okvirno</span>':''}<div class="a" ${k?'':`data-iedit="${c.id}" title="Klikni za vpis zneska"`}><span class="ed ${c.a?'':'in'}">${c.a?(c.est?'~ ':'')+eur(c.a):'vpiši'}</span>${!k&&i&&c.a?`<small class="mu">${pct(c.a/i*100)}</small>`:''}</div></div>`;
+ const row=(c,n,k)=>`<div class="li ${c.a>0&&ipaid(c)?'paid':''}" ${c.a>0?`data-ipay="${c.id}"${k?` data-pym="${k}"`:''}`:''} style="--i:${n}">${c.a>0?'<span class="ck"></span>':'<span class="ck off"></span>'}<button class="av" data-ied="${c.id}" ${k?`data-pym="${k}"`:''} title="Uredi ali izbriši" style="background:${clc(c.n)}22;color:${clc(c.n)}">${esc(c.n.trim().slice(0,2).toUpperCase())}</button><div class="t"><b class="nm" ${k?'':`data-inedit="${c.id}" title="Klikni za preimenovanje"`}>${esc(c.n)}</b>${k?`<span>račun za ${mLow(k)} ${yr(k)}</span>`:`<div class="track" style="margin-top:7px;max-width:420px"><i style="--w:${c.a/mx*100}%;--n:${n};background:${clc(c.n)}"></i></div>`}</div>${c.est?'<span class="tag mine">okvirno</span>':''}${c.a>0?`<span class="remw">${remBtn(c,k)}</span>`:''}<div class="a" ${k?'':`data-iedit="${c.id}" title="Klikni za vpis zneska"`}><span class="ed ${c.a?'':'in'}">${c.a?(c.est?'~ ':'')+eur(c.a):'vpiši'}</span>${!k&&i&&c.a?`<small class="mu">${pct(c.a/i*100)}</small>`:''}</div></div>`;
  return `<div class="grid"><div class="card c4"><h3>Prihodek za ${mLow(ym)} ${ym>=CUR?'<span class="tag">v teku</span>':''}</h3>${i?num(i,'big in','itot'):'<div class="mid">Še ni vpisano</div>'}<div class="sm mu" style="margin-top:6px">${!i?'Vsak mesec se začne prazen. Vpiši zneske, lahko tudi okvirne.':pos.length+(pos.length===1?' stranka':pos.length===2?' stranki':pos.length<5?' stranke':' strank')+(est?', vsebuje okvirne zneske':'')} ${i&&inc(pm)?dl(i,inc(pm),true):''}</div></div>
  <div class="card c4"><h3>Prejeto</h3>${q.n?`<div class="mid"><span id="ipc"></span></div><div class="pr"><i id="ipp" style="--w:0%"></i></div><div class="sm mu" id="ipa"></div>`:'<p class="mu">Ko vpišeš zneske, tukaj kljukaš, kateri računi so že plačani.</p>'}</div>
  <div class="card c4"><h3>Zadnjih 6 mesecev <span class="lg">klikni stolpec</span></h3>${ms.length?`<div class="sm6" style="height:120px;gap:6px">${ms.map((k,n)=>{const t=inc(k);return `<div class="c col ${k===ym?'cur':''}" data-ym="${k}"><div class="st" style="--h:${t/top*78}%;--n:${n}">${Mo(k).inc.filter(c=>c.a>0).map(c=>`<i style="height:${c.a/t*100}%;background:${clc(c.n)}" title="${esc(c.n)}: ${eur0(c.a)}"></i>`).join('')}</div><span>${mShort(k)}</span></div>`}).join('')}</div>`:'<p class="mu">Graf se pokaže, ko vpišeš prve prihodke.</p>'}</div>
- <div class="card"><h3>Po strankah <span class="lg">klik na vrstico = plačano, na ime = preimenuj, na znesek = spremeni, na kvadratek = uredi</span></h3>${cl.length?cl.map((c,n)=>row(c,n)).join(''):`<p class="mu" style="margin-bottom:4px">Za ${mLow(ym)} še ni vpisanih prihodkov. Dodaj stranko in znesek, ko izstaviš račun ali dobiš plačilo.</p>`}${quick}<div class="row" style="margin-top:12px;flex-wrap:wrap"><button class="chip" data-act="addin" style="border-style:dashed">+ Dodaj stranko</button></div></div>
+ <div class="card"><h3>Po strankah <span class="lg">klik na vrstico = plačano, na ime = preimenuj, na znesek = spremeni, na kvadratek = uredi, zvonček = opomnik poslan</span></h3>${cl.length?cl.map((c,n)=>row(c,n)).join(''):`<p class="mu" style="margin-bottom:4px">Za ${mLow(ym)} še ni vpisanih prihodkov. Dodaj stranko in znesek, ko izstaviš račun ali dobiš plačilo.</p>`}${quick}<div class="row" style="margin-top:12px;flex-wrap:wrap"><button class="chip" data-act="addin" style="border-style:dashed">+ Dodaj stranko</button></div></div>
  ${wait.length?`<div class="card"><h3>Čaka na plačilo iz drugih mesecev <span class="lg">klik na vrstico = plačano</span></h3>${wait.map((x,n)=>row(x.c,n,x.ym)).join('')}</div>`:''}</div>`}
 function incUpd(){const q=incStat(S.ym);if(!$('#ipc'))return;$('#ipc').innerHTML=`${q.pn} od ${q.n} <span class="mu sm" style="font-weight:400">${q.n===1?'računa':'računov'}</span>`;$('#ipa').innerHTML=q.rest>0?`Prejeto ${eur(q.pa)}, <b class="ou">čaka še ${eur(q.rest)}</b>`:`Prejeto ${eur(q.pa)}, <b class="in">vse plačano</b>`;$('#ipp').style.setProperty('--w',(q.n?q.pn/q.n*100:0)+'%')}
 function vRedni(){const ym=S.ym,{fx,t}=fixInfo(ym);
@@ -608,6 +631,11 @@ document.addEventListener('click',e=>{if(e.target.id==='undo'){const t=$('#toast
  else if(d.goin){if(d.goin===ym&&S.view===2)return;S.story=0;const dir=d.goin<ym?-1:1,ch=d.goin!==ym;swap(dir,()=>{S.ym=d.goin;S.view=2});nav(2);if(ch)setTimeout(()=>mlab(dir),D.set.calm?0:170)}
  else if(d.qadd){const id=uid();mut(ym,m=>m.inc.push({id,n:d.qadd,a:0,paid:false}));S.focusInc=id;draw()}
  else if(d.inedit){const x=Mo(ym).inc.find(i=>i.id===d.inedit);if(x)inline(t,'ne',x.n,v=>{v=v.trim().slice(0,60);if(v&&v!==x.n){const o=x.n;mut(ym,m=>{m.inc.find(i=>i.id===d.inedit).n=v});toast(o+' -> '+v)}draw()},'text')}
+ else if(d.iremx){const k=d.pym||ym;let o;mut(k,m=>{const x=m.inc.find(i=>i.id===d.iremx);o=x.rem;delete x.rem});draw();toast('Opomnik odstranjen',()=>{mut(k,m=>{const x=m.inc.find(i=>i.id===d.iremx);if(x)x.rem=o});draw()})}
+ else if(d.irem){const k=d.pym||ym,id=d.irem,x=Mo(k).inc.find(i=>i.id===id);if(!x)return;
+  if(!x.rem){const v=tdy();mut(k,m=>{m.inc.find(i=>i.id===id).rem=v});const w=t.parentNode;w.innerHTML=remBtn(Mo(k).inc.find(i=>i.id===id),d.pym);w.firstChild.classList.add('pop');toast('Opomnik zabeležen: '+dS(v),()=>{mut(k,m=>{const y=m.inc.find(i=>i.id===id);if(y)delete y.rem});draw()})}
+  else{const w=t.parentNode;w.innerHTML=`<span class="remed"><input type="date" class="pe rd" max="${tdy()}" value="${x.rem}"><button class="remx" data-iremx="${id}" ${d.pym?`data-pym="${d.pym}"`:''} title="Odstrani opomnik">&times;</button></span>`;const inp=w.querySelector('input'),bx=w.querySelector('.remx');let fin=false;const end=()=>{if(fin)return;fin=true;const v=inp.value;if(v&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&v!==x.rem){mut(k,m=>{m.inc.find(i=>i.id===id).rem=v});toast('Opomnik poslan '+dS(v))}draw()};
+   bx.addEventListener('mousedown',e=>{fin=true});bx.addEventListener('touchstart',e=>{fin=true},{passive:true});inp.addEventListener('click',e=>e.stopPropagation());inp.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')inp.blur();if(e.key==='Escape'){inp.value=x.rem;inp.blur()}});inp.addEventListener('blur',()=>setTimeout(end,120));inp.focus({preventScroll:true})}}
  else if(d.ipay){const k=d.pym||ym;let now;mut(k,m=>{const x=m.inc.find(i=>i.id===d.ipay);x.paid=!ipaid(x);now=x.paid});toast(now?'Račun označen kot plačan':'Račun označen kot neplačan');if(d.pym){t.classList.toggle('paid',now);setTimeout(draw,D.set.calm?0:450)}else{t.classList.toggle('paid',now);incUpd()}}
  else if(d.act==='logout')doLogout();
  else if(d.v!=null)go(+d.v);else if(d.act==='prev')month(ymAdd(ym,-1));else if(d.act==='next')month(ymAdd(ym,1));else if(d.ym)month(d.ym);
