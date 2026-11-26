@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Politika zasebnosti - foqs.</title>
+<meta name="description" content="Kako foqs. obdeluje osebne podatke na foqs.si, v orodjih za stranke in v aplikaciji foqs connector." />
+<link rel="icon" type="image/png" href="/favicon.png" />
+<link rel="canonical" href="https://foqs.si/privacy" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink:#231F20; --ink2:#1a1718; --ink3:#141112; --teal:#46BEC5; --teal-d:#2ea4ab;
+    --line:rgba(255,255,255,.1); --muted:#a8a4a5; --maxw:820px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--ink2);color:#fff;line-height:1.7;-webkit-font-smoothing:antialiased}
+  h1,h2,h3{font-family:'Poppins',sans-serif;letter-spacing:-.03em;line-height:1.15}
+  a{color:var(--teal);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px}
+  ::selection{background:var(--teal);color:#08282a}
+  header{position:sticky;top:0;z-index:90;background:rgba(26,23,24,.85);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:76px}
+  .nav img{height:27px;display:block}
+  .nav a.back{color:#cfcccd;font-size:15px;font-weight:500}
+  .nav a.back:hover{color:var(--teal);text-decoration:none}
+  main{padding:64px 0 80px}
+  .snum{font-family:'Poppins';font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--teal)}
+  h1{font-size:clamp(34px,5vw,54px);font-weight:900;margin:10px 0 14px}
+  .lead{font-size:18px;color:#cfcccd;max-width:640px}
+  .updated{margin-top:14px;font-size:14px;color:var(--muted)}
+  .toc{margin:36px 0 8px;padding:20px 24px;border:1px solid var(--line);border-radius:16px;background:var(--ink)}
+  .toc b{font-family:'Poppins';font-size:14px;display:block;margin-bottom:8px}
+  .toc a{display:inline-block;margin:3px 16px 3px 0;font-size:14.5px}
+  section{padding-top:44px}
+  h2{font-size:25px;font-weight:700;margin-bottom:12px}
+  h3{font-size:17px;font-weight:600;margin:22px 0 6px}
+  p{color:#d8d5d6;margin-bottom:12px}
+  ul{margin:6px 0 14px 22px;color:#d8d5d6}
+  li{margin-bottom:6px}
+  .tbl{width:100%;border-collapse:collapse;margin:10px 0 16px;font-size:14.5px}
+  .tbl th,.tbl td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:#d8d5d6}
+  .tbl th{font-family:'Poppins';font-size:12.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  .tblwrap{overflow-x:auto}
+  .box{padding:18px 22px;border-left:3px solid var(--teal);background:var(--ink);border-radius:0 12px 12px 0;margin:14px 0}
+  .box p:last-child{margin-bottom:0}
+  footer{border-top:1px solid var(--line);padding:26px 0 34px;font-size:13px;color:#8f8b8c}
+  .foot-bot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px}
+  footer a{color:#8f8b8c}
+  @media(max-width:600px){main{padding:44px 0 60px}.wrap{padding:0 20px}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a href="/"><img src="/privacy/foqs-light.png" alt="foqs." /></a>
+    <a class="back" href="/">Nazaj na foqs.si</a>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+
+  <span class="snum">Zasebnost</span>
+  <h1>Politika zasebnosti</h1>
+  <p class="lead">Na kratko: zbiram samo tisto, kar mi sami pošljete ali kar rabim za delo na vašem oglasnem računu. Brez analitike, brez oglaševalskih piškotkov, brez prodaje podatkov.</p>
+  <p class="updated">Zadnja sprememba: 26. 11. 2026</p>
+
+  <div class="toc">
+    <b>Vsebina</b>
+    <a href="#upravljavec">1. Kdo sem</a>
+    <a href="#podatki">2. Kateri podatki</a>
+    <a href="#piskotki">3. Piškotki</a>
+    <a href="#connector">4. foqs connector in orodja za stranke</a>
+    <a href="#google">4a. foqs. Ads (Google Ads API)</a>
+    <a href="#obdelovalci">5. Kdo še vidi podatke</a>
+    <a href="#hramba">6. Hramba</a>
+    <a href="#pravice">7. Vaše pravice</a>
+    <a href="#izbris">8. Izbris podatkov</a>
+    <a href="#english">English summary</a>
+  </div>
+
+  <section id="upravljavec">
+    <h2>1. Kdo sem</h2>
+    <p>Upravljavec osebnih podatkov je Gašper Gracel s.p., ki posluje pod blagovno znamko foqs. (v nadaljevanju "foqs." ali "jaz"), Slovenija.</p>
+    <p>Kontakt za vsa vprašanja o zasebnosti: <a href="mailto:gasper.mcc@gmail.com">gasper.mcc@gmail.com</a></p>
+    <p>Ta politika velja za spletno stran foqs.si z vsemi podstranmi, za orodja, ki jih pripravim za stranke, in za aplikacijo foqs connector na platformi Meta.</p>
+  </section>
+
+  <section id="podatki">
+    <h2>2. Katere podatke obdelujem in zakaj</h2>
+    <div class="tblwrap">
+    <table class="tbl">
+      <tr><th>Kdaj</th><th>Kateri podatki</th><th>Zakaj</th><th>Pravna podlaga</th></tr>
+      <tr>
+        <td>Izpolnite kontaktni obrazec</td>
+        <td>Ime, e-pošta, spletna stran, izbrana storitev, sporočilo</td>
+        <td>Da vam odgovorim in pripravim pregled</td>
+        <td>Koraki pred sklenitvijo pogodbe na vašo zahtevo (člen 6(1)(b) GDPR)</td>
+      </tr>
+      <tr>
+        <td>Mi pišete po e-pošti</td>
+        <td>E-naslov in vsebina sporočila</td>
+        <td>Da vam odgovorim</td>
+        <td>Zakoniti interes, komunikacija z vami (člen 6(1)(f))</td>
+      </tr>
+      <tr>
+        <td>Ustvarite račun v orodju na foqs.si (na primer /habit)</td>
+        <td>E-pošta, geslo v šifrirani obliki, podatki, ki jih sami vnesete v orodje</td>
+        <td>Prijava in shranjevanje vaših vnosov</td>
+        <td>Izvajanje storitve, ki ste jo zahtevali (člen 6(1)(b))</td>
+      </tr>
+      <tr>
+        <td>Vklopite potisna obvestila v orodju</td>
+        <td>Tehnični naslov vaše naprave za obvestila</td>
+        <td>Pošiljanje obvestil, ki ste jih vklopili</td>
+        <td>Vaša privolitev (člen 6(1)(a)), ki jo lahko kadarkoli prekličete v brskalniku</td>
+      </tr>
+      <tr>
+        <td>Obiščete stran</td>
+        <td>IP naslov, vrsta brskalnika, čas obiska (strežniški dnevniki)</td>
+        <td>Delovanje in varnost strani</td>
+        <td>Zakoniti interes, varno delovanje strani (člen 6(1)(f))</td>
+      </tr>
+      <tr>
+        <td>Ste moja stranka</td>
+        <td>Kontaktni podatki, podatki za račun, podatki iz vaših oglasnih računov</td>
+        <td>Izvajanje dogovorjenih storitev in izdaja računov</td>
+        <td>Pogodba (člen 6(1)(b)) in zakonske obveznosti (člen 6(1)(c))</td>
+      </tr>
+    </table>
+    </div>
+    <p>Podatkov ne prodajam in jih ne uporabljam za avtomatizirano odločanje ali profiliranje.</p>
+  </section>
+
+  <section id="piskotki">
+    <h2>3. Piškotki in lokalna shramba</h2>
+    <p>Stran foqs.si ne uporablja analitičnih ali oglaševalskih piškotkov. Na strani ni Google Analytics, Meta Pixla ali podobnih sledilnih orodij.</p>
+    <p>Orodja na podstraneh (na primer /habit in /memecoins) uporabljajo lokalno shrambo vašega brskalnika, da si zapomnijo prijavo in vaše vnose. To je nujno za delovanje orodja, zato privolitev ni potrebna. Shrambo lahko kadarkoli izbrišete v nastavitvah brskalnika.</p>
+    <p>Pisave se nalagajo s storitve Google Fonts. Pri tem Google prejme vaš IP naslov.</p>
+  </section>
+
+  <section id="connector">
+    <h2>4. foqs connector in orodja za stranke</h2>
+    <p>foqs connector je interna aplikacija na platformi Meta, s katero upravljam oglaševanje za svoje projekte in za stranke. Nima javne prijave in je ne more uporabljati nihče drug.</p>
+    <h3>Do česa dostopa</h3>
+    <ul>
+      <li>Do oglasnih računov, strani, Instagram profilov in podatkovnih virov (Pixel), za katere mi je lastnik izrecno dodelil partnerski dostop v Meta Business nastavitvah.</li>
+      <li>Do oglaševalskih podatkov v teh računih: kampanje, oglasi, kreative, proračuni in statistika uspešnosti (prikazi, kliki, stroški, konverzije).</li>
+    </ul>
+    <h3>Česa ne počne</h3>
+    <ul>
+      <li>Ne zbira osebnih podatkov posameznih uporabnikov Facebooka ali Instagrama. Statistika, ki jo vrne Meta, je združena in ne razkriva posameznikov.</li>
+      <li>Ne dostopa do zasebnih sporočil, seznamov prijateljev ali osebnih profilov.</li>
+      <li>Podatkov ne deli z drugimi strankami in jih ne prodaja.</li>
+    </ul>
+    <h3>Za kaj se podatki uporabljajo</h3>
+    <p>Za pregled in analizo oglaševanja, pripravo poročil ter ustvarjanje in urejanje kampanj po naročilu lastnika računa. Enako velja za nadzorne plošče (dashboarde), ki jih pripravim strankam: te prikazujejo podatke o oglaševanju in prodaji iz računov, do katerih mi je stranka dala dostop.</p>
+    <div class="box">
+      <p>Lastnik računa lahko dostop kadarkoli ukine sam: v Meta Business nastavitvah pri posameznem računu odstrani partnerja foqs. Od tistega trenutka aplikacija do računa nima več dostopa.</p>
+    </div>
+  </section>
+
+  <section id="google">
+    <h2>4a. foqs. Ads (Google Ads API)</h2>
+    <p>foqs. Ads je interno orodje, s katerim upravljam Google Ads račune strank, povezane pod mojimi upraviteljskimi računi (MCC). Do Google Ads API dostopa prek prijave Google (OAuth) z mojim računom. Nima javne prijave in ga ne more uporabljati nihče drug.</p>
+    <h3>Do česa dostopa</h3>
+    <ul>
+      <li>Samo do Google Ads računov, ki so povezani pod moje upraviteljske račune s privolitvijo lastnika.</li>
+      <li>Do oglaševalskih podatkov v teh računih: kampanje, oglasne skupine, ključne besede, oglasi, sredstva, proračuni, iskalni izrazi in združena statistika uspešnosti (prikazi, kliki, stroški, konverzije).</li>
+    </ul>
+    <h3>Česa ne počne</h3>
+    <ul>
+      <li>Ne dostopa do Gmaila, Google Drive ali drugih osebnih podatkov v Google računu. Uporablja samo dovoljenje za Google Ads.</li>
+      <li>Ne zbira osebnih podatkov posameznih uporabnikov, ki vidijo oglase.</li>
+      <li>Podatkov ne prodaja, ne uporablja za oglaševanje in jih ne deli z drugimi strankami.</li>
+    </ul>
+    <h3>Za kaj se podatki uporabljajo</h3>
+    <p>Za poročila, analize in spremembe v kampanjah, ki jih predhodno pregledam in potrdim. Uporaba podatkov, prejetih prek Google API-jev, je skladna z <a href="https://developers.google.com/terms/api-services-user-data-policy" rel="noopener">Google API Services User Data Policy</a>, vključno z zahtevami Limited Use.</p>
+    <div class="box">
+      <p>Lastnik računa lahko dostop kadarkoli ukine sam: v Google Ads pod Skrbnik, Dostop in varnost, Upravitelji, odstrani povezavo z upraviteljskim računom foqs.</p>
+    </div>
+  </section>
+
+  <section id="obdelovalci">
+    <h2>5. Kdo še vidi podatke</h2>
+    <p>Pri delu uporabljam ponudnike, ki podatke obdelujejo v mojem imenu:</p>
+    <div class="tblwrap">
+    <table class="tbl">
+      <tr><th>Ponudnik</th><th>Za kaj</th></tr>
+      <tr><td>Cloudflare</td><td>Gostovanje strani foqs.si in zaščita pred napadi</td></tr>
+      <tr><td>Formspree</td><td>Prenos sporočil iz kontaktnega obrazca na mojo e-pošto</td></tr>
+      <tr><td>Supabase</td><td>Prijava in shranjevanje podatkov v orodjih, strežniki v EU</td></tr>
+      <tr><td>Google</td><td>E-pošta in pisave (Google Fonts)</td></tr>
+      <tr><td>Meta Platforms</td><td>Oglasni računi, do katerih dostopa foqs connector</td></tr>
+      <tr><td>Anthropic (Claude)</td><td>Analiza oglaševalskih podatkov in priprava kampanj</td></tr>
+    </table>
+    </div>
+    <p>Nekateri od teh ponudnikov imajo sedež v ZDA. Prenos podatkov izven EU poteka na podlagi zaščitnih ukrepov, ki jih določa GDPR (sklep o ustreznosti ali standardne pogodbene klavzule).</p>
+    <p>Podatke lahko razkrijem tudi državnim organom, kadar to zahteva zakon.</p>
+  </section>
+
+  <section id="hramba">
+    <h2>6. Kako dolgo hranim podatke</h2>
+    <ul>
+      <li><b>Povpraševanja in e-pošta:</b> dokler traja pogovor in največ 2 leti po zadnjem stiku.</li>
+      <li><b>Uporabniški računi v orodjih:</b> dokler račun obstaja. Po zahtevi za izbris jih izbrišem v 30 dneh.</li>
+      <li><b>Podatki strank:</b> ves čas sodelovanja. Računi in poslovna dokumentacija 10 let, kot zahteva davčna zakonodaja.</li>
+      <li><b>Podatki iz oglasnih računov:</b> dokler traja dostop. Po koncu sodelovanja shranjene kopije poročil izbrišem na zahtevo.</li>
+      <li><b>Strežniški dnevniki:</b> kratek čas, kot ga določa ponudnik gostovanja.</li>
+    </ul>
+  </section>
+
+  <section id="pravice">
+    <h2>7. Vaše pravice</h2>
+    <p>Po GDPR imate pravico, da:</p>
+    <ul>
+      <li>izveste, katere vaše podatke imam, in dobite njihovo kopijo,</li>
+      <li>zahtevate popravek netočnih podatkov,</li>
+      <li>zahtevate izbris podatkov,</li>
+      <li>zahtevate omejitev obdelave ali ji ugovarjate,</li>
+      <li>zahtevate prenos podatkov k drugemu ponudniku,</li>
+      <li>prekličete privolitev, kjer obdelava temelji na njej.</li>
+    </ul>
+    <p>Zahtevo pošljite na <a href="mailto:gasper.mcc@gmail.com">gasper.mcc@gmail.com</a>. Odgovorim v enem mesecu.</p>
+    <p>Če menite, da vaše podatke obdelujem nezakonito, se lahko pritožite pri Informacijskem pooblaščencu Republike Slovenije, Dunajska cesta 22, 1000 Ljubljana, <a href="https://www.ip-rs.si" rel="noopener">www.ip-rs.si</a>.</p>
+  </section>
+
+  <section id="izbris">
+    <h2>8. Navodila za izbris podatkov</h2>
+    <p>Če želite, da izbrišem vaše podatke, vključno s podatki, povezanimi z aplikacijo foqs connector:</p>
+    <ul>
+      <li>Pošljite e-pošto na <a href="mailto:gasper.mcc@gmail.com">gasper.mcc@gmail.com</a> z zadevo "Izbris podatkov".</li>
+      <li>Napišite, za kateri račun ali e-naslov gre (na primer ime oglasnega računa ali e-naslov, s katerim ste izpolnili obrazec).</li>
+      <li>Podatke izbrišem v 30 dneh in vam izbris potrdim po e-pošti.</li>
+    </ul>
+    <p>Izjema so podatki, ki jih moram hraniti po zakonu (na primer izdani računi).</p>
+    <p>Lastniki oglasnih računov lahko dostop aplikacije ukinejo tudi sami, takoj: v Meta Business nastavitvah odprejo račun in odstranijo partnerja foqs.</p>
+  </section>
+
+  <section id="spremembe">
+    <h2>9. Spremembe te politike</h2>
+    <p>Politiko posodobim, ko se spremeni način obdelave podatkov. Datum zadnje spremembe je zapisan na vrhu strani.</p>
+  </section>
+
+  <section id="english">
+    <h2>English summary</h2>
+    <p><b>Controller:</b> Gašper Gracel s.p., operating as foqs., Slovenia. Contact: <a href="mailto:gasper.mcc@gmail.com">gasper.mcc@gmail.com</a></p>
+    <p><b>foqs connector</b> is an internal Meta app used only by foqs. to manage advertising for its own projects and for clients. It has no public login.</p>
+    <ul>
+      <li>It accesses only ad accounts, Pages, Instagram profiles and datasets whose owner has explicitly granted partner access in Meta Business settings.</li>
+      <li>It reads and manages advertising data: campaigns, ads, creatives, budgets and aggregated performance statistics.</li>
+      <li>It does not collect personal data of individual Facebook or Instagram users, and it does not sell or share data with other clients.</li>
+      <li>Service providers involved: Meta Platforms, Supabase (EU hosting), Cloudflare and Anthropic (Claude) for analysis.</li>
+    </ul>
+    <p><b>foqs. Ads</b> is an internal tool used only by foqs. to manage Google Ads accounts of clients linked under foqs. manager accounts (MCC), via the Google Ads API with OAuth sign-in of the foqs. account. It has no public login.</p>
+    <ul>
+      <li>It requests only the Google Ads scope and accesses only advertising data (campaigns, ads, keywords, budgets, search terms and aggregated performance statistics) of accounts linked to foqs. manager accounts with the owner's consent.</li>
+      <li>It does not access Gmail, Drive or other Google account data, does not collect personal data of individuals who see ads, and does not sell or share data.</li>
+      <li>foqs. Ads' use and transfer of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy" rel="noopener">Google API Services User Data Policy</a>, including the Limited Use requirements.</li>
+    </ul>
+    <p><b>Data deletion:</b> email <a href="mailto:gasper.mcc@gmail.com">gasper.mcc@gmail.com</a> with the subject "Data deletion" and the name of the ad account or email address concerned. Data is deleted within 30 days and the deletion is confirmed by email. Account owners can also revoke the app's access immediately by removing foqs. as a partner in Meta Business settings.</p>
+    <p>Under the GDPR you have the right to access, rectify, erase, restrict, object to and port your data, and to lodge a complaint with the Information Commissioner of the Republic of Slovenia (<a href="https://www.ip-rs.si" rel="noopener">www.ip-rs.si</a>).</p>
+  </section>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap foot-bot">
+    <span>© <span id="year"></span> foqs. Vse pravice pridržane.</span>
+    <a href="/">foqs.si</a>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent=new Date().getFullYear();
+</script>
+</body>
+</html>
