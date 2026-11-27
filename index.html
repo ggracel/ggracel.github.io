@@ -1,912 +1,1263 @@
 <!doctype html>
-<html lang="en">
+<html lang="sl" class="js g3">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>foqs. - Advertising &amp; Performance Consulting</title>
-<meta name="description" content="foqs. - Google Ads, TikTok Ads and websites. Sign in to the foqs. hub for habit, Ura+ and flow.">
-<meta name="theme-color" content="#141112">
+<script>if(/access_token=|type=recovery|error_description=/.test(location.hash)||/[?&]code=/.test(location.search))location.replace('/hub/'+location.search+location.hash)</script>
+<title>foqs. - Google Ads za spletne trgovine in lokalna podjetja</title>
+<meta name="description" content="V zadnjem letu so Google oglasi mojim strankam prinesli 1,46 milijona € prodaje. Rezervirajte brezplačen pregled svojega Google Ads računa.">
+<meta name="theme-color" content="#231F20">
+<link rel="canonical" href="https://foqs.si/">
 <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<meta property="og:title" content="foqs.">
-<meta property="og:description" content="Google Ads, TikTok Ads and websites that pay for themselves.">
+<meta property="og:title" content="foqs. - Google Ads, ki se meri v prodaji">
+<meta property="og:description" content="1,46 milijona € prodaje iz Google oglasov v zadnjem letu. Brezplačen pregled vašega Google Ads računa.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://foqs.si">
+<meta property="og:url" content="https://foqs.si/">
+<meta property="og:image" content="https://foqs.si/icon-512.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Michroma&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+html{background:#231F20}
+.flinks{margin-top:14px;font-size:12.5px;display:flex;gap:10px;justify-content:center;color:#a79f9c}
+.flinks a{color:#a79f9c;text-decoration:underline;text-underline-offset:3px}
+.flinks a:hover{color:#46BEC5}
 
-:root{
-  --ink:#141112; --ink2:#1a1617; --ink3:#211d1e; --ink4:#2a2526;
-  --line:#322c2d; --line2:#453e3f;
-  --teal:#46BEC5; --teal-d:#2ea4ab; --teal-dim:rgba(70,190,197,.14);
-  --fg:#f4f2f2; --dim:#B7B4B5; --mute:#8b8586;
-  --pos:#5ad8ae; --warn:#e8b463;
-  --poppins:'Poppins',system-ui,sans-serif;
-  --inter:'Inter',system-ui,sans-serif;
-  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
-}
-*{box-sizing:border-box}
-body{margin:0;background:var(--ink);color:var(--fg);font-family:var(--inter);line-height:1.6;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;text-size-adjust:100%}
-h1,h2,h3,h4{font-family:var(--poppins);letter-spacing:-.03em;line-height:1.08;margin:0;text-wrap:balance}
-p{margin:0}
-button{font:inherit;color:inherit;cursor:pointer}
-a{color:inherit;text-decoration:none}
-img{max-width:100%}
-:focus-visible{outline:2px solid var(--teal);outline-offset:3px;border-radius:4px}
-
-/* ---------- switcher ---------- */
-.sw{position:sticky;top:env(safe-area-inset-top,0px);z-index:100;padding:10px 16px;
-  background:rgba(12,10,11,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);
-  display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between}
-.sw-group{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.sw-lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;color:var(--mute);text-transform:uppercase;margin-right:4px}
-.sw button{background:transparent;border:1px solid var(--line2);color:var(--dim);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;font-family:var(--inter);transition:all .18s}
-.sw button:hover{border-color:var(--teal);color:var(--teal)}
-.sw button[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:#0d2c2e}
-
-
-.stage{min-height:78vh;position:relative;overflow:hidden}
-.view[hidden]{display:none!important}
-.pad{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:0}
-
-
-/* ================= background: poligoni ================= */
-#bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:var(--ink)}
-main{position:relative;z-index:1}
-.bg-mesh{position:absolute;inset:0}
-.bg-mesh canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-.bg-mesh::after{content:"";position:absolute;inset:0;background:radial-gradient(820px 470px at 50% -6%,rgba(70,190,197,.07),transparent 62%)}
-
-/* ---------- entry screen: hub sits sharp on the right ---------- */
-body[data-view="login"]{overflow:hidden}
-.tease-veil{position:absolute;inset:0;z-index:0;opacity:1;transition:opacity .46s ease;pointer-events:none;
-  background:linear-gradient(90deg,rgba(11,9,10,.97) 0,rgba(11,9,10,.93) 22%,rgba(11,9,10,.55) 42%,rgba(11,9,10,.12) 62%,transparent 78%)}
-body[data-view="login"] .view[data-view="hub"]{
-  pointer-events:none;user-select:none;filter:saturate(.88);transform:scale(.88);transform-origin:100% 34%;
-  transition:transform .5s ease,filter .5s ease}
-body[data-view="login"] .lg-inner{justify-content:flex-start;padding-left:max(20px,5vw)}
-body.reveal[data-view="login"] .tease-veil{opacity:0}
-body.reveal[data-view="login"] .view[data-view="hub"]{transform:none;filter:none}
-@media(max-width:900px){
-  /* on a phone the hub stacks, so a sharp hub behind the card reads as a second
-     broken header. A little blur turns it back into depth without losing the teal. */
-  .tease-veil{background:radial-gradient(92% 62% at 50% 44%,rgba(11,9,10,.94) 30%,rgba(11,9,10,.9) 66%,rgba(11,9,10,.88) 100%)}
-  body[data-view="login"] .view[data-view="hub"]{transform:scale(.95);transform-origin:50% 30%;filter:blur(4px) saturate(.7) brightness(.6)}
-  body[data-view="login"] .lg-inner{justify-content:center;padding-left:16px;padding-right:16px}
-}
-/* A phone screen is filled by the card, so nothing of the hub shows through.
-   This quiet locked list gives the same hint the desktop split gives. */
-.lg-peek{display:none}
-@media(max-width:900px){
-  .lg-peek{display:grid;gap:8px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
-  .lg-peek-lab{font-family:var(--mono);font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--mute)}
-  .lg-peek-row{display:flex;align-items:baseline;gap:9px;font-size:13.5px;color:var(--dim)}
-  .lg-peek-row svg{flex:0 0 auto;color:var(--teal);opacity:.75;align-self:center}
-  .lg-peek-row b{font-family:var(--poppins);font-weight:600;letter-spacing:-.01em}
-  .lg-peek-row i{font-style:normal;font-size:12.5px;color:var(--mute)}
-  .view.leaving .lg-peek{animation:cardOut .26s cubic-bezier(.45,0,.85,.25) both}
-}
-@media(max-width:640px){
-  /* 16px inputs stop iOS Safari from zooming the page on focus */
-  .lg-card .lg-f input{font-size:16px;padding:13px 13px}
-  .lg-inner{padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(22px + env(safe-area-inset-bottom,0px))}
-  .lg-card{padding:20px 19px 18px;border-radius:18px}
-  .lg-card .wm{width:112px}
-  .lg-card > small{margin:8px 0 11px}
-  .lg-card p.note{font-size:14px;line-height:1.5;margin-bottom:14px}
-  .lg-f{margin-bottom:10px;gap:4px}
-  .fhint{font-size:11px;margin-top:2px}
-  .authmsg{margin-top:10px;font-size:12.5px}
-  .lg-hint{margin-top:12px}
-  .lg-btn{padding:15px}
-  .linkish{display:inline-block;padding:6px 2px}
-  .lg-alt{margin-top:14px;padding-top:12px}
-  .d-bar{gap:12px;padding-block:calc(16px + env(safe-area-inset-top,0px)) 16px}
-  .d-bar .wm{width:82px}
-  .d-bar-r{gap:11px;font-size:10px}
-  .d-intro{padding-block:32px 30px}
-  .d-grid{gap:14px;padding-bottom:40px}
-  .d-body{padding:16px 14px}
-  .foot{padding-block:18px calc(24px + env(safe-area-inset-bottom,0px));font-size:12px}
-}
-@media(hover:none){
-  /* no lift while scrolling, the border and the brackets carry the state instead */
-  .d-mod.is-on{transform:none;box-shadow:0 14px 34px rgba(0,0,0,.4)}
-}
-
-/* ---------- login to hub transition ---------- */
-.view.leaving .lg-card{animation:cardOut .3s cubic-bezier(.45,0,.85,.25) both}
-@keyframes cardOut{to{opacity:0;transform:translateY(-10px) scale(.96)}}
-@keyframes riseIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
-@keyframes cardIn{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
-.view.entering .d-bar{animation:riseIn .34s both}
-.view.entering .d-intro{animation:riseIn .38s .05s both}
-.view.entering .d-mod{animation:cardIn .42s both}
-.view.entering .d-mod:nth-child(1){animation-delay:.10s}
-.view.entering .d-mod:nth-child(2){animation-delay:.16s}
-.view.entering .d-mod:nth-child(3){animation-delay:.22s}
-.view.entering .foot{animation:riseIn .34s .3s both}
-.lg-btn.busy{pointer-events:none;opacity:.85}
-
-/* ---------- shared mini previews ---------- */
-.prev{position:relative;border-radius:12px;background:var(--ink);border:1px solid var(--line);padding:14px;overflow:hidden}
-.prev-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.prev-top small{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--mute);text-transform:uppercase}
-.prev-dot{width:6px;height:6px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 3px var(--teal-dim)}
-
-/* habit */
-.hb-row{display:flex;align-items:center;gap:9px;padding:5px 0}
-.hb-box{width:15px;height:15px;border-radius:5px;border:1.5px solid var(--line2);flex:0 0 auto;position:relative;transition:background .3s,border-color .3s}
-.hb-box::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #0d2c2e;border-width:0 2px 2px 0;transform:rotate(45deg) scale(0);transition:transform .25s cubic-bezier(.2,1.4,.4,1)}
-.hb-box.on,.is-live .hb-box{background:var(--teal);border-color:var(--teal)}
-.hb-box.on::after,.is-live .hb-box::after{transform:rotate(45deg) scale(1)}
-.is-live .hb-box:nth-child(1){transition-delay:.05s}
-.hb-row:nth-child(2) .hb-box{transition-delay:.06s}
-.hb-row:nth-child(3) .hb-box{transition-delay:.12s}
-.hb-row:nth-child(4) .hb-box{transition-delay:.18s}
-.hb-txt{height:7px;border-radius:4px;background:var(--ink4);flex:1}
-.hb-row:nth-child(2) .hb-txt{max-width:78%}
-.hb-row:nth-child(3) .hb-txt{max-width:64%}
-.hb-row:nth-child(4) .hb-txt{max-width:84%}
-.hb-week{display:flex;gap:5px;margin-top:13px;padding-top:12px;border-top:1px solid var(--line)}
-.hb-week i{flex:1;height:22px;border-radius:5px;background:var(--ink4);transition:background .35s}
-.hb-week i:nth-child(-n+5){background:rgba(70,190,197,.4)}
-.is-live .hb-week i:nth-child(-n+5){background:var(--teal)}
-.is-live .hb-week i:nth-child(1){transition-delay:.02s}
-.is-live .hb-week i:nth-child(2){transition-delay:.07s}
-.is-live .hb-week i:nth-child(3){transition-delay:.12s}
-.is-live .hb-week i:nth-child(4){transition-delay:.17s}
-.is-live .hb-week i:nth-child(5){transition-delay:.22s}
-.hb-week i:nth-child(6),.hb-week i:nth-child(7){opacity:.5}
-
-/* ura: goal ring with a pace notch, and a month that fills from the bottom */
-.ur2{display:flex;align-items:center;gap:14px;height:82px}
-.ur2-ring{width:82px;height:82px;flex:0 0 auto;overflow:visible}
-.ur2-track{fill:none;stroke:var(--ink4);stroke-width:7}
-.ur2-arc{fill:none;stroke:var(--teal);stroke-width:7;stroke-linecap:round;stroke-dasharray:48 100;transform:rotate(-90deg);transform-origin:42px 42px;transition:stroke-dasharray .7s cubic-bezier(.2,.8,.2,1)}
-.is-live .ur2-arc{stroke-dasharray:56 100}
-.ur2-tick{stroke:var(--fg);stroke-width:2.4;stroke-linecap:round}
-.ur2-pct{font-family:var(--poppins);font-weight:700;font-size:16px;fill:var(--fg);text-anchor:middle;letter-spacing:-.02em}
-.ur2-sub{font-family:var(--mono);font-size:7px;fill:var(--mute);text-anchor:middle;letter-spacing:.12em;text-transform:uppercase}
-.ur2-cal{flex:1;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(4,1fr);gap:3px;height:76px}
-.ur2-cal i{position:relative;border-radius:3px;background:var(--ink4);overflow:hidden}
-.ur2-cal i.f{background:transparent;border:1px dashed var(--line2)}
-.ur2-cal i.t{box-shadow:inset 0 0 0 1.5px var(--teal)}
-.ur2-cal b{position:absolute;left:0;right:0;bottom:0;height:var(--h);background:linear-gradient(180deg,var(--teal),var(--teal-d));transform:scaleY(.45);transform-origin:bottom;transition:transform .5s cubic-bezier(.2,.8,.2,1)}
-.is-live .ur2-cal b{transform:none}
-.is-live .ur2-cal i:nth-child(7n+2) b{transition-delay:.03s}
-.is-live .ur2-cal i:nth-child(7n+3) b{transition-delay:.06s}
-.is-live .ur2-cal i:nth-child(7n+4) b{transition-delay:.09s}
-.is-live .ur2-cal i:nth-child(7n+5) b{transition-delay:.12s}
-.is-live .ur2-cal i:nth-child(7n+6) b{transition-delay:.15s}
-
-/* changelog under the modules */
-.d-log{position:relative;margin:0 0 54px;background:rgba(26,22,23,.78);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(8px);overflow:hidden}
-.d-log-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--mute);text-transform:uppercase}
-.d-log-head b{color:var(--teal);font-weight:700}
-.d-log ol{list-style:none;margin:0;padding:0}
-.d-log li{display:grid;grid-template-columns:62px 98px 1fr;gap:16px;align-items:baseline;padding:12px 18px;border-top:1px solid var(--line);transition:background .2s}
-.d-log li:first-child{border-top:0}
-.d-log li:hover{background:rgba(70,190,197,.05)}
-.d-log time{font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:.06em;text-transform:uppercase}
-.d-log .tag{justify-self:start;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);border:1px solid rgba(70,190,197,.35);background:rgba(70,190,197,.07);border-radius:999px;padding:3px 9px;white-space:nowrap}
-.d-log .tag.ur{color:var(--dim);border-color:var(--line2);background:transparent}
-.d-log li p{color:var(--dim);font-size:14px;line-height:1.5;margin:0}
-@media(max-width:640px){.d-log li{grid-template-columns:auto 1fr;gap:6px 10px}.d-log li p{grid-column:1/-1}.d-log{margin-bottom:40px}}
-/* changelog only for signed-in accounts; guests keep the old spacing under the cards */
-body.guest .d-log{display:none}
-body.guest .d-grid{padding-bottom:54px}
-@media(max-width:640px){body.guest .d-grid{padding-bottom:40px}}
-
-/* ura */
-.ur-cal{display:flex;gap:7px;align-items:flex-end;height:82px}
-.ur-cal span{flex:1;background:linear-gradient(180deg,var(--teal),var(--teal-d));border-radius:5px 5px 2px 2px;transform-origin:bottom;transition:height .45s cubic-bezier(.2,.8,.2,1)}
-.ur-cal span:nth-child(1){height:44%}
-.ur-cal span:nth-child(2){height:29%;background:var(--ink4)}
-.ur-cal span:nth-child(3){height:64%}
-.ur-cal span:nth-child(4){height:48%}
-.ur-cal span:nth-child(5){height:23%;background:var(--ink4)}
-.is-live .ur-cal span:nth-child(1){height:58%}
-.is-live .ur-cal span:nth-child(2){height:41%;transition-delay:.05s}
-.is-live .ur-cal span:nth-child(3){height:86%;transition-delay:.1s}
-.is-live .ur-cal span:nth-child(4){height:67%;transition-delay:.15s}
-.is-live .ur-cal span:nth-child(5){height:34%;transition-delay:.2s}
-.ur-foot{display:flex;justify-content:space-between;align-items:baseline;margin-top:13px;padding-top:12px;border-top:1px solid var(--line)}
-.ur-foot b{font-family:var(--poppins);font-size:19px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-.ur-foot small{font-size:11px;color:var(--mute)}
-.ur-chip{font-family:var(--mono);font-size:10px;color:var(--pos);background:rgba(90,216,174,.12);border:1px solid rgba(90,216,174,.3);border-radius:999px;padding:3px 8px;opacity:0;transform:translateY(4px);transition:all .3s .25s}
-.is-live .ur-chip{opacity:1;transform:none}
-
-/* sonar */
-.sn-chart{width:100%;height:82px;display:block}
-.sn-line{fill:none;stroke:var(--teal);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:420;stroke-dashoffset:0}
-.is-live .sn-line{animation:draw .9s cubic-bezier(.3,.7,.3,1)}
-@keyframes draw{from{stroke-dashoffset:420}to{stroke-dashoffset:0}}
-.sn-area{fill:url(#snfill);opacity:.45;transition:opacity .45s}
-.is-live .sn-area{opacity:1}
-.sn-end{fill:var(--teal);opacity:.55;transition:opacity .3s}
-.is-live .sn-end{opacity:1}
-.sn-end-ring{fill:none;stroke:var(--teal);stroke-width:1.4;opacity:0;transform-origin:center}
-.is-live .sn-end-ring{animation:ping 1.6s ease-out infinite}
-@keyframes ping{0%{opacity:.7;r:3.4}100%{opacity:0;r:11}}
-.sn-foot{display:flex;gap:7px;margin-top:13px;padding-top:12px;border-top:1px solid var(--line);flex-wrap:wrap}
-.sn-foot span{font-family:var(--mono);font-size:10px;border-radius:999px;padding:3px 9px;border:1px solid var(--line2);color:var(--dim)}
-.sn-foot span.up{color:var(--pos);border-color:rgba(90,216,174,.3);background:rgba(90,216,174,.1)}
-
-/* installable badge (habit only) */
-.inst{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;margin-left:10px;
-  font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:500;
-  color:var(--mute);border:1px solid var(--line2);border-radius:999px;padding:3px 9px;transition:color .25s,border-color .25s,background .25s}
-.inst svg{flex:0 0 auto;opacity:.8}
-.d-mod.is-on .inst{color:var(--teal);border-color:rgba(70,190,197,.45);background:rgba(70,190,197,.09)}
-
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01ms!important}}
-
-/* ============ shared module chrome (used by D) ============ */
-.b-led{display:inline-flex;align-items:center;gap:7px;color:var(--pos)}
-.b-led i{width:7px;height:7px;border-radius:50%;background:var(--pos);animation:blip 2.4s ease-in-out infinite}
-@keyframes blip{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(90,216,174,.5)}50%{opacity:.45;box-shadow:0 0 0 5px rgba(90,216,174,0)}}
-.b-cor{position:absolute;width:13px;height:13px;border:2px solid var(--teal);opacity:0;transition:opacity .2s,transform .28s cubic-bezier(.2,1.5,.4,1);pointer-events:none;z-index:3}
-.b-cor.tl{top:6px;left:6px;border-right:0;border-bottom:0;transform:translate(-5px,-5px)}
-.b-cor.tr{top:6px;right:6px;border-left:0;border-bottom:0;transform:translate(5px,-5px)}
-.b-cor.bl{bottom:6px;left:6px;border-right:0;border-top:0;transform:translate(-5px,5px)}
-.b-cor.br{bottom:6px;right:6px;border-left:0;border-top:0;transform:translate(5px,5px)}
-.d-mod.is-on .b-cor{opacity:1;transform:translate(0,0)}
-.b-scan{position:absolute;left:0;right:0;top:-40%;height:40%;pointer-events:none;z-index:2;
-  background:linear-gradient(180deg,transparent,rgba(70,190,197,.16),transparent);opacity:0}
-.d-mod.is-on.scan .b-scan{opacity:1;animation:scan 1.5s linear infinite}
-@keyframes scan{0%{top:-40%}100%{top:105%}}
-.b-read{font-family:var(--mono);font-size:11px;color:var(--mute);display:grid;gap:5px;border-top:1px solid var(--line);padding-top:12px}
-.b-read div{display:flex;justify-content:space-between;gap:10px;opacity:.45;transform:translateX(-5px);transition:all .25s}
-.d-mod.is-on .b-read div{opacity:1;transform:none}
-.d-mod.is-on .b-read div:nth-child(2){transition-delay:.06s}
-.d-mod.is-on .b-read div:nth-child(3){transition-delay:.12s}
-.b-read span:last-child{color:var(--dim)}
-
-/* ================= D - MIX (A layout + B behaviour) ================= */
-.d{background:transparent}
-.d-bar{position:relative;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding-block:calc(22px + env(safe-area-inset-top,0px)) 22px;border-bottom:1px solid var(--line)}
-.d-bar .wm{width:92px;height:auto;display:block}
-.d-bar-r{display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;letter-spacing:.11em;color:var(--mute);text-transform:uppercase}
-.d-av{width:26px;height:26px;border-radius:50%;background:var(--teal);color:#0d2c2e;font-family:var(--poppins);font-weight:800;font-size:12px;display:grid;place-items:center}
-.d-user{display:flex;align-items:center;gap:9px;color:var(--dim);text-transform:none;letter-spacing:0;font-family:var(--inter);font-size:14px}
-.d-out{background:transparent;border:1px solid var(--line2);border-radius:999px;padding:5px 13px;font-family:var(--inter);font-size:12.5px;color:var(--mute);transition:all .18s}
-.d-out:hover{border-color:var(--teal);color:var(--teal)}
-.d-intro{position:relative;text-align:center;padding-block:46px 42px}
-.d-eyebrow{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--teal);
-  border:1px solid rgba(70,190,197,.32);background:rgba(70,190,197,.07);border-radius:999px;padding:6px 15px}
-.d-eyebrow i{width:6px;height:6px;border-radius:50%;background:var(--pos);animation:blip 2.4s ease-in-out infinite}
-.d-intro h1{font-size:clamp(33px,5.2vw,56px);font-weight:800;margin:18px 0 14px}
-.d-intro p{color:var(--dim);font-size:16.5px;max-width:64ch;margin-inline:auto;text-wrap:balance}
-.d-grid{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:18px;padding-bottom:30px}
-@media(max-width:900px){.d-grid{grid-template-columns:1fr}}
-.d-mod{position:relative;display:flex;flex-direction:column;background:rgba(26,22,23,.78);border:1px solid var(--line);border-radius:14px;overflow:hidden;backdrop-filter:blur(8px);
-  transition:transform .3s cubic-bezier(.2,.8,.2,1),border-color .3s,box-shadow .3s,opacity .3s}
-.d-mod::after{content:"";position:absolute;inset:-1px;border-radius:15px;padding:1px;background:linear-gradient(140deg,var(--teal),transparent 45%,transparent 60%,rgba(70,190,197,.45));
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .3s;pointer-events:none;z-index:4}
-.d-mod.is-on{transform:translateY(-6px);border-color:transparent;box-shadow:0 26px 60px rgba(0,0,0,.5)}
-.d-mod.is-on::after{opacity:1}
-.d-grid.dimmed .d-mod{opacity:.5}
-.d-grid.dimmed .d-mod.is-on{opacity:1}
-.d-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);
-  font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--mute);text-transform:uppercase}
-.d-head b{color:var(--teal);font-weight:700}
-.d-body{padding:18px 16px 18px;display:flex;flex-direction:column;gap:15px;flex:1}
-.d-mod h2{font-family:var(--poppins);font-size:22px;font-weight:600;color:var(--dim);letter-spacing:-.02em}
-.d-mod h2 b{font-weight:800;color:var(--fg)}
-.d-mod h2 i{color:var(--teal);font-style:normal}
-.d-mod > .d-body > p{color:var(--mute);font-size:14.5px;line-height:1.55}
-.d-go{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:15px;border-top:1px solid var(--line);
-  font-family:var(--mono);font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--teal)}
-.d-go svg{transition:transform .25s}
-.d-mod.is-on .d-go svg{transform:translateX(5px)}
-
-/* D login: A card, B labels */
-.lgd .lg-card{max-width:410px}
-.lgd .lg-card .wm{width:150px}
-.lgd .lg-f label{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
-.lgd .lg-btn{font-family:var(--mono);font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:12.5px}
-.lgd .lg-links button{font-family:var(--mono);font-size:11px;letter-spacing:.05em}
-
-/* ---------- login screens ---------- */
-[hidden]{display:none!important}
-.lg{position:fixed;inset:0;z-index:6;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
-.lg-inner{position:relative;z-index:1;min-height:100%;display:flex;align-items:center;justify-content:center;padding:calc(46px + env(safe-area-inset-top,0px)) 20px calc(46px + env(safe-area-inset-bottom,0px))}
-.lg-wrap{width:100%;max-width:410px;display:flex;flex-direction:column}
-.lg-card{position:relative;width:100%;max-width:400px;background:rgba(26,22,23,.9);border:1px solid var(--line);border-radius:20px;padding:30px 28px 26px;box-shadow:0 30px 80px rgba(0,0,0,.6);backdrop-filter:blur(8px)}
-.lg-card .wm{width:150px;height:auto;display:block}
-.lg-card > small{display:block;margin:10px 0 16px;letter-spacing:.3em;font-size:10.5px;font-weight:600;color:var(--dim);font-family:var(--mono)}
-.lg-card p.note{color:var(--mute);font-size:14px;margin-bottom:18px}
-.lg-f{display:grid;gap:5px;margin-bottom:14px}
-.lg-f label{font-size:12.5px;color:var(--dim);font-weight:600}
-.lg-f input{background:var(--ink);border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:12px 13px;font-family:var(--inter);font-size:14.5px;width:100%}
-.lg-f input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(70,190,197,.2)}
-.lg-btn{width:100%;background:var(--teal);color:#0d2c2e;border:0;border-radius:10px;padding:13px;font-family:var(--poppins);font-weight:800;font-size:15px;transition:background .2s,transform .15s}
-.lg-btn:hover{background:#5fcdd3;transform:translateY(-1px)}
-.lg-links{display:flex;gap:8px;margin-top:12px}
-.lg-links button{flex:1;background:transparent;border:1px solid var(--line);color:var(--teal);border-radius:10px;padding:9px;font-size:12.5px;font-weight:600;transition:background .2s}
-.lg-links button:hover{background:rgba(70,190,197,.09)}
-
-.fhint{display:block;font-size:11.5px;line-height:1.45;color:var(--mute);margin-top:3px;font-family:var(--inter)}
-.fhint.confirm{margin-top:11px;text-align:center}
-.lg-f input::placeholder{color:#6a6465}
-.lg-alt{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);text-align:center;font-size:13px;color:var(--mute);font-family:var(--inter)}
-.linkish{background:none;border:0;padding:0;color:var(--teal);font-weight:600;font-size:13px;font-family:var(--inter);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
-.linkish:hover{color:#6fd4da}
-.lg-hint{text-align:center;margin-top:16px;font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--mute)}
-.lgd .lg-alt,.lgd .linkish,.lgd .fhint{font-family:var(--mono);font-size:11.5px}
-.lgd .lg-hint{color:var(--teal);opacity:.75}
-
-
-.foot{border-top:1px solid var(--line);padding-block:20px calc(28px + env(safe-area-inset-bottom,0px));font-size:12.5px;color:var(--mute);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;position:relative}
-.foot b{color:var(--dim);font-weight:500}
-
-/* real auth states */
-.lg-card[data-mode="register"] .in-only,.lg-card[data-mode="register"] .rec-only{display:none}
-.lg-card[data-mode="signin"] .reg-only,.lg-card[data-mode="signin"] .rec-only{display:none}
-.lg-card[data-mode="recover"] .reg-only,.lg-card[data-mode="recover"] .in-only,.lg-card[data-mode="recover"] .not-rec{display:none}
-.authmsg{min-height:20px;margin-top:12px;text-align:center;font-size:13px;line-height:1.5;color:var(--mute);font-family:var(--inter)}
-.authmsg.ok{color:#7fd9de}
-.authmsg.err{color:#ffb2b7}
-.lg-btn[disabled]{opacity:.65;pointer-events:none}
-main{transition:opacity .22s ease}
-body[data-state="boot"] main{opacity:0;pointer-events:none}
-/* guest: the hub is open to look around, every app asks for an account first */
-.d-in{display:none;border-color:rgba(70,190,197,.5);color:var(--teal)}
-body.guest .d-user,body.guest #signOut{display:none}
-body.guest .d-in{display:inline-block}
-.lg-close{display:none;position:absolute;top:14px;right:14px;width:34px;height:34px;align-items:center;justify-content:center;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--mute);transition:color .2s,border-color .2s,background .2s}
-.lg-close:hover{color:var(--teal);border-color:var(--teal);background:rgba(70,190,197,.08)}
-body.guest .lg-close{display:flex}
-.lg-card[data-mode="recover"] .lg-close{display:none}
-/* hub to login: the login to hub move played backwards */
-.view.arriving .lg-card{animation:cardIn .42s cubic-bezier(.2,.8,.2,1) .1s both}
-@media(max-width:900px){.view.arriving .lg-peek{animation:cardIn .42s cubic-bezier(.2,.8,.2,1) .16s both}}
-@media(prefers-reduced-motion:reduce){.view.arriving .lg-card,.view.arriving .lg-peek{animation:none}}
-/* sonar brez dostopa: osivljena, neklikljiva kartica */
-.d-mod.locked{filter:grayscale(1);opacity:.42;pointer-events:none;cursor:default}
-.d-mod.locked .b-led i{background:var(--mute)}
-.d-mod.locked .d-go{color:var(--mute)}
-.d-mod.locked .b-scan{display:none}
-
-/* ===== flow in the hub ===== */
-.fl{display:flex;align-items:flex-end;gap:14px;height:62px;margin-bottom:11px}
-.fl-num{display:flex;flex-direction:column;flex:0 0 auto}
-.fl-num b{font-family:var(--poppins);font-size:21px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;transition:color .35s}
-.fl-num small{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
-.is-live .fl-num b{color:var(--pos)}
-.fl-bars{flex:1;display:flex;gap:6px;align-items:flex-end;height:100%;min-width:0}
-.fl-bars i{flex:1;display:flex;gap:2px;align-items:flex-end;height:100%}
-.fl-bars b{flex:1;height:var(--h);border-radius:3px 3px 1px 1px;transform:scaleY(.55);transform-origin:bottom;transition:transform .5s cubic-bezier(.2,.8,.2,1)}
-.fl-bars b.in{background:linear-gradient(180deg,var(--teal),var(--teal-d))}
-.fl-bars b.out{background:var(--line2)}
-.is-live .fl-bars b{transform:none}
-.is-live .fl-bars i:nth-child(2) b{transition-delay:.04s}.is-live .fl-bars i:nth-child(3) b{transition-delay:.08s}.is-live .fl-bars i:nth-child(4) b{transition-delay:.12s}.is-live .fl-bars i:nth-child(5) b{transition-delay:.16s}.is-live .fl-bars i:nth-child(6) b{transition-delay:.2s}
-.fl-list{border-top:1px solid var(--line);padding-top:8px}
-.fl-row{display:flex;align-items:center;gap:9px;padding:4px 0}
-.fl-row em{font-style:normal;font-family:var(--mono);font-size:10px;color:var(--mute);flex:0 0 auto}
-.fl-row:nth-child(2) .hb-txt{max-width:62%}.fl-row:nth-child(3) .hb-txt{max-width:74%}
-.fl-row .hb-txt{margin-right:auto}
-/* izpostavljena kartica */
-.d-grid.two{grid-template-columns:repeat(2,1fr)}
-.d-feat{grid-column:1/-1}
-.d-feat .d-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:26px;align-items:center;padding:24px 22px}
-.ft-l{display:flex;flex-direction:column;gap:15px;min-width:0}
-.ft-new{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--teal);border:1px solid rgba(70,190,197,.32);background:rgba(70,190,197,.07);border-radius:999px;padding:5px 12px}
-.ft-new i{width:6px;height:6px;border-radius:50%;background:var(--pos);animation:blip 2.4s ease-in-out infinite}
-.d-feat h2{font-size:clamp(26px,3.2vw,36px)}
-.d-feat .ft-l>p{color:var(--mute);font-size:15.5px;line-height:1.55;max-width:46ch}
-.ft-cta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:2px}
-.ft-btn{display:inline-flex;align-items:center;gap:9px;background:var(--teal);color:#0d2c2e;border-radius:10px;padding:11px 18px;font-family:var(--mono);font-weight:700;font-size:12.5px;letter-spacing:.13em;text-transform:uppercase;transition:background .2s,transform .2s,box-shadow .3s}
-.ft-btn svg{transition:transform .25s}
-.d-feat.is-on .ft-btn{background:#5fcdd3;transform:translateY(-1px);box-shadow:0 10px 26px rgba(70,190,197,.28)}
-.d-feat.is-on .ft-btn svg{transform:translateX(4px)}
-.ft-cta small{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--mute)}
-.d-feat .b-read div{opacity:1;transform:none}
-.fx{padding:16px}
-.fx .prev-top{gap:10px}.fx .prev-top small{margin-right:auto}
-.fx-note{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:var(--warn);opacity:0;animation:fxnote 9s ease-in-out infinite}
-.fx-note i{width:5px;height:5px;border-radius:50%;background:var(--warn)}
-.fx-main{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1.1fr);gap:16px;align-items:center;margin-bottom:12px}
-.fx-ring{width:84px;height:84px;display:block}
-.fx-arc{fill:none;stroke:var(--teal);stroke-width:7;stroke-linecap:round;stroke-dasharray:0 100;transform:rotate(-90deg);transform-origin:center;animation:fxarc 9s cubic-bezier(.2,.8,.2,1) infinite}
-.fx-num{display:flex;flex-direction:column;gap:2px;min-width:0}
-.fx-num small{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
-.fx-num b{font-family:var(--poppins);font-size:clamp(22px,2.6vw,30px);font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;white-space:nowrap}
-.fx-num span{display:flex;gap:10px;font-family:var(--mono);font-size:10px}
-.fx-num em{font-style:normal}.fx-num em.in{color:var(--teal)}.fx-num em.out{color:var(--mute)}
-.fx-bars{height:74px;flex:none}
-.fx-bars b{transform:scaleY(0);animation:fxbar 9s cubic-bezier(.2,.8,.2,1) infinite}
-.fx-bars i:nth-child(2) b{animation-delay:.07s}.fx-bars i:nth-child(3) b{animation-delay:.14s}.fx-bars i:nth-child(4) b{animation-delay:.21s}.fx-bars i:nth-child(5) b{animation-delay:.28s}.fx-bars i:nth-child(6) b{animation-delay:.35s}
-.fx-list{border-top:1px solid var(--line);padding-top:8px}
-.fx-name{font-size:12.5px;color:var(--dim);margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;animation:fxname 9s ease infinite}
-.fx-list .hb-box{animation:fxbox 9s ease infinite}
-.fx-list .hb-box::after{animation:fxtick 9s cubic-bezier(.2,1.4,.4,1) infinite}
-.fx-list .fl-row:nth-child(1) .hb-box,.fx-list .fl-row:nth-child(1) .hb-box::after,.fx-list .fl-row:nth-child(1) .fx-name{animation-delay:1.3s}
-.fx-list .fl-row:nth-child(2) .hb-box,.fx-list .fl-row:nth-child(2) .hb-box::after,.fx-list .fl-row:nth-child(2) .fx-name{animation-delay:2.2s}
-.fx-list .fl-row:nth-child(3) .hb-box,.fx-list .fl-row:nth-child(3) .hb-box::after,.fx-list .fl-row:nth-child(3) .fx-name{animation-delay:3.1s}
-.fx-list .fl-row:nth-child(4) .hb-box,.fx-list .fl-row:nth-child(4) .hb-box::after,.fx-list .fl-row:nth-child(4) .fx-name{animation-delay:4s}
-@keyframes fxarc{0%{stroke-dasharray:0 100}18%,90%{stroke-dasharray:68 100}100%{stroke-dasharray:0 100}}
-@keyframes fxbar{0%{transform:scaleY(0)}14%,90%{transform:scaleY(1)}100%{transform:scaleY(0)}}
-@keyframes fxbox{0%,1%{background:transparent;border-color:var(--line2)}4%,50%{background:var(--teal);border-color:var(--teal)}56%,100%{background:transparent;border-color:var(--line2)}}
-@keyframes fxtick{0%,1%{transform:rotate(45deg) scale(0)}5%,50%{transform:rotate(45deg) scale(1)}56%,100%{transform:rotate(45deg) scale(0)}}
-@keyframes fxname{0%,1%{color:var(--dim)}4%,50%{color:var(--mute)}56%,100%{color:var(--dim)}}
-@keyframes fxnote{0%,8%{opacity:0;transform:translateY(3px)}14%,86%{opacity:1;transform:none}94%,100%{opacity:0}}
-@media(max-width:900px){.d-grid.two{grid-template-columns:1fr}.d-feat .d-body{grid-template-columns:1fr;gap:18px;padding:16px 14px}.fx-main{grid-template-columns:auto minmax(0,1fr)}.fx-bars{grid-column:1/-1;height:56px}}
-@media(prefers-reduced-motion:reduce){.fx-arc{animation:none;stroke-dasharray:68 100}.fx-bars b{animation:none;transform:none}.fx-list .hb-box,.fx-list .hb-box::after,.fx-name,.fx-note{animation:none}.fx-note{opacity:1}}
+/* ---------- obrazec za pregled (lf) ---------- */
+.lfsec{padding:80px 0 96px;background:#1a1718}
+.lfsec .lfw{width:min(1120px,calc(100% - 40px));margin:0 auto}
+.lf{--lt:#46BEC5;--li:#0e2a2c;--ll:#3a3435;--lm:#a79f9c;--lfg:#f3f0ee;--lw:#f0b35a;--le:cubic-bezier(.2,.8,.2,1);display:block;border:1px solid var(--lt);border-radius:24px;background:linear-gradient(135deg,#2b2627,#211d1e);padding:44px;box-shadow:0 40px 80px -40px rgba(70,190,197,.35);text-align:left}
+.lf button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.lf input{font:inherit;color:inherit;margin:0}
+.lf-head{display:flex;gap:26px;align-items:center;margin-bottom:28px}
+.lf-head img{width:84px;height:84px;border-radius:50%;object-fit:cover;object-position:50% 12%;border:2px solid var(--lt);flex:none;max-width:none}
+html .lf h2{font-family:var(--fh);font-weight:400;letter-spacing:-.01em;line-height:1.24;font-size:clamp(18px,2.1vw,24px);margin:0 0 8px;text-wrap:balance;text-align:left}
+.lf h2 em{font-style:normal;color:var(--lt)}
+html .lf-head p{font-size:15.5px;color:var(--lm);margin:0}
+.lf-row{display:grid;grid-template-columns:.85fr 1fr 1.25fr auto;gap:12px;align-items:start}
+.lf-fld{position:relative}
+.lf-fld input{width:100%;height:58px;padding:24px 16px 8px;border-radius:14px;border:1px solid var(--ll);background:#231F20;outline:0;font-size:16px;transition:border-color .2s,box-shadow .2s;caret-color:var(--lt);-webkit-appearance:none;appearance:none}
+.lf-fld label{position:absolute;left:17px;top:19px;font-size:15px;line-height:1.3;color:var(--lm);pointer-events:none;transform-origin:0 0;transition:transform .2s var(--le),color .2s;white-space:nowrap}
+.lf-fld label i{font-style:normal;font-size:.82em;opacity:.65;margin-left:4px}
+.lf-fld input:focus+label,.lf-fld input:not(:placeholder-shown)+label{transform:translateY(-11px) scale(.76);color:var(--lt)}
+.lf-fld input:hover{border-color:#514a4b}
+.lf-fld input:focus{border-color:var(--lt);box-shadow:0 0 0 4px rgba(70,190,197,.16)}
+.lf-ok{position:absolute;right:16px;top:21px;width:16px;height:16px;opacity:0;transform:scale(.5);transition:opacity .2s,transform .3s var(--le)}
+.lf-fld.good .lf-ok{opacity:1;transform:none}
+.lf-err{display:block;font-size:12.5px;color:var(--lw);max-height:0;overflow:hidden;transition:max-height .25s,margin .25s}
+.lf-fld.bad input{border-color:var(--lw);box-shadow:0 0 0 4px rgba(240,179,90,.12)}
+.lf-fld.bad .lf-err{max-height:40px;margin-top:6px}
+.lf-fld.bad label{color:var(--lw)}
+.lf-hp{position:absolute!important;left:-9999px;width:1px;height:1px;opacity:0}
+.lf .lf-go{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:100%;min-width:230px;min-height:58px;padding:11px 20px;border-radius:14px;background:var(--lt);color:var(--li);font-family:var(--fh);font-size:13px;box-shadow:0 12px 30px -10px rgba(70,190,197,.6);transition:transform .15s,box-shadow .2s}
+.lf-go small{font-family:var(--f);font-size:12px;font-weight:500;opacity:.8}
+.lf .lf-go:hover{transform:translateY(-2px);box-shadow:0 18px 36px -10px rgba(70,190,197,.75)}
+.lf .lf-go:active{transform:scale(.98)}
+.lf .lf-go.load{height:58px;min-height:58px;min-width:0;white-space:nowrap;overflow:hidden;justify-self:center;pointer-events:none;color:transparent;border-radius:999px;padding:0;margin-left:auto;margin-right:auto;transition:width .4s var(--le),color .15s,border-radius .4s}
+.lf-go.load small{opacity:0}
+.lf-go.load::after{content:"";position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px;border-radius:50%;border:2.5px solid rgba(14,42,44,.25);border-top-color:var(--li);animation:lfspin .6s linear infinite}
+.lf-more{margin-top:18px;padding-top:18px;border-top:1px solid var(--ll);display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.lf-more>span{font-size:13px;color:var(--lm)}
+.lf-chips{display:flex;flex-wrap:wrap;gap:8px}
+.lf .lf-chips button{padding:11px 15px;border-radius:999px;border:1px solid var(--ll);background:#231F20;font-size:14px;font-weight:500;color:var(--lfg);transition:border-color .2s,background .2s,color .2s,transform .12s}
+.lf .lf-chips button:hover{border-color:var(--lt)}
+.lf .lf-chips button:active{transform:scale(.96)}
+.lf .lf-chips button.on{background:var(--lt);border-color:var(--lt);color:var(--li);font-weight:600}
+.lf-trust{display:flex;gap:22px;flex-wrap:wrap;margin-top:18px;font-size:13px;color:var(--lm)}
+.lf-trust span{display:flex;gap:8px;align-items:center}
+.lf-trust span::before{content:"";width:5px;height:9px;border-right:2px solid var(--lt);border-bottom:2px solid var(--lt);transform:rotate(45deg)}
+html .lf-fail{display:none;margin:14px 0 0;font-size:14px;color:var(--lw)}
+.lf-fail a{text-decoration:underline;color:var(--lfg)}
+.lf.failed .lf-fail{display:block}
+/* uspeh */
+.lf-done{display:none;text-align:center;padding:8px}
+.lf.sent .lf-body{display:none}
+.lf.sent .lf-done{display:block}
+.lf-ring{width:76px;height:76px;margin:0 auto 20px;position:relative}
+.lf-ring svg{width:100%;height:100%;overflow:visible}
+.lf-ring circle{fill:none;stroke:var(--lt);stroke-width:2.5;stroke-dasharray:214;stroke-dashoffset:214;transform:rotate(-90deg);transform-origin:50% 50%}
+.lf-ring path{fill:none;stroke:var(--lt);stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:40;stroke-dashoffset:40}
+.lf.sent .lf-ring circle{animation:lfdraw .6s var(--le) forwards}
+.lf.sent .lf-ring path{animation:lfdraw .35s .5s var(--le) forwards}
+.lf-ring::before{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid var(--lt);opacity:0}
+.lf.sent .lf-ring::before{animation:lfripple .9s .55s var(--le) 1}
+.lf-ring b{position:absolute;left:50%;top:50%;width:7px;height:7px;margin:-3.5px;border-radius:50%;background:var(--lt);opacity:0}
+.lf-ring b:nth-child(even){background:var(--lfg);width:5px;height:5px;margin:-2.5px}
+.lf.sent .lf-ring b{animation:lfburst .8s .55s var(--le) 1}
+html .lf-done h3{font-family:var(--fh);font-weight:400;font-size:20px;margin:0 0 8px;color:var(--lfg);text-align:center}
+html .lf-done p{font-size:15.5px;color:var(--lm);margin:0;text-align:center}
+.lf.sent .lf-done h3{animation:lfup .5s .75s var(--le) both}
+.lf.sent .lf-done p{animation:lfup .5s .87s var(--le) both}
+@keyframes lfup{from{opacity:0;transform:translateY(12px)}}
+@keyframes lfdraw{to{stroke-dashoffset:0}}
+@keyframes lfripple{0%{opacity:.7;transform:scale(1)}100%{opacity:0;transform:scale(1.9)}}
+@keyframes lfburst{0%{opacity:1;transform:rotate(var(--a)) translateX(30px) scale(1)}100%{opacity:0;transform:rotate(var(--a)) translateX(74px) scale(.3)}}
+@keyframes lfspin{to{transform:rotate(360deg)}}
+@media(max-width:900px){.lf-row{grid-template-columns:1fr}.lf .lf-go{min-width:0}}
+@media(max-width:760px){.lfsec{padding:48px 0 56px}.lf{padding:24px 18px;border-radius:20px}.lf-head{gap:16px;align-items:flex-start}.lf-head img{width:56px;height:56px}.lf-trust{gap:10px 18px}}
+@media(prefers-reduced-motion:reduce){.lf *,.lf *::before,.lf *::after{animation-duration:.01s!important;transition:none!important}}
+@media (max-width:760px){#D{display:none}}
+@media (min-width:761px){#M{display:none}}
 </style>
-<script defer src="/track.js?v=2"></script>
+<style>
+@media (min-width:761px){
+
+:root{--bg:#231F20;--bg2:#1a1718;--panel:#2b2627;--line:#3a3435;--fg:#f3f0ee;--muted:#a79f9c;--teal:#46BEC5;--teal-ink:#0e2a2c;--warn:#f0b35a;--f:'Inter',system-ui,sans-serif;--fh:'Poppins',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--fg);font-family:var(--f);line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%}
+.w{width:min(1120px,calc(100% - 40px));margin:0 auto}
+h1,h2,h3{font-family:var(--fh);line-height:1.12;letter-spacing:-.01em}
+h1{font-size:clamp(34px,5.4vw,60px);font-weight:700}
+h2{font-size:clamp(26px,3.6vw,40px);font-weight:700}
+h3{font-size:19px;font-weight:600}
+p{color:var(--muted)}
+.lead{font-size:clamp(17px,1.6vw,20px)}
+em.t{color:var(--teal);font-style:normal}
+.eyebrow{font-family:var(--fh);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);font-weight:600;margin-bottom:14px}
+.btn{display:inline-flex;flex-direction:column;align-items:flex-start;padding:14px 24px;border-radius:12px;font-family:var(--fh);font-weight:600;font-size:16px;transition:transform .15s,box-shadow .15s;max-width:100%}
+.btn.p{background:var(--teal);color:var(--teal-ink);box-shadow:0 10px 30px -10px rgba(70,190,197,.6)}
+.btn.p:hover{transform:translateY(-2px);box-shadow:0 16px 36px -10px rgba(70,190,197,.75)}
+.btn.s{border:1px solid var(--line);color:var(--fg)}
+.btn.s:hover{border-color:var(--teal)}
+.btn small{display:block;font-weight:400;font-size:12px;opacity:.75}
+section{padding:96px 0}
+@media(max-width:760px){section{padding:64px 0}}
+
+/* urgency bar */
+.bar{background:var(--teal);color:var(--teal-ink);font-size:14px;font-weight:600;text-align:center;padding:10px 16px;font-family:var(--fh)}
+.bar b{background:var(--teal-ink);color:var(--teal);padding:2px 8px;border-radius:6px;margin-right:8px;font-size:12px;letter-spacing:.06em}
+
+/* nav */
+nav{position:sticky;top:0;z-index:20;background:rgba(35,31,32,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+nav .w{display:flex;align-items:center;justify-content:space-between;height:68px}
+nav .logo img{height:26px}
+nav ul{display:flex;gap:28px;list-style:none;font-size:14px;color:var(--muted)}
+nav ul a:hover{color:var(--fg)}
+nav .btn{padding:11px 18px;font-size:14px}
+@media(max-width:860px){nav ul{display:none}}
+
+/* hero */
+.hero{padding:72px 0 40px;position:relative;overflow:hidden}
+.hero .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:48px;align-items:center}.hero .grid>div{min-width:0}
+.hero h1{margin:0 0 20px}
+.hero .lead{margin-bottom:32px;max-width:54ch}
+.cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.trust{display:flex;gap:18px;flex-wrap:wrap;margin-top:26px;font-size:13px;color:var(--muted)}
+.trust span::before{content:"✓";color:var(--teal);margin-right:7px;font-weight:700}
+.photo{position:relative;justify-self:end;width:min(100%,420px)}
+.photo img{border-radius:20px;mask-image:linear-gradient(to bottom,#000 78%,transparent 100%)}
+.photo .tag{position:absolute;left:-18px;bottom:52px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 16px;box-shadow:0 20px 50px -20px #000}
+.photo .tag b{display:block;font-family:var(--fh);font-size:22px;color:var(--teal)}
+.photo .tag span{font-size:12px;color:var(--muted)}
+.glow{position:absolute;right:-10%;top:-20%;width:600px;height:600px;background:radial-gradient(circle,rgba(70,190,197,.18),transparent 60%);pointer-events:none}
+@media(max-width:860px){.hero .grid{grid-template-columns:1fr}.hero .grid>div{min-width:0}.cta .btn{width:100%;align-items:center}.photo{justify-self:center;width:min(100%,340px)}.photo .tag{left:0}}
+
+
+/* logo tiles 3D */
+.logos{padding:56px 0 64px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--bg),var(--bg2))}
+.logos p{font-size:12px;letter-spacing:.14em;text-transform:uppercase;text-align:center;margin-bottom:30px}
+.logos ul{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;list-style:none;perspective:1400px;max-width:920px;margin:0 auto}
+.logos li{--rx:0deg;--ry:0deg;--mx:50%;--my:50%;--lift:0px;position:relative;aspect-ratio:16/9;border-radius:14px;transform-style:preserve-3d;transform:rotateX(calc(10deg + var(--rx))) rotateY(var(--ry)) translateY(var(--lift));transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s,filter .35s;box-shadow:0 1px 0 #5a5354,0 2px 0 #4c4647,0 3px 0 #3f393a,0 4px 0 #332e2f,0 5px 0 #2a2526,0 18px 26px -10px rgba(0,0,0,.75);cursor:default;will-change:transform}
+.logos li img{width:100%;height:100%;object-fit:cover;border-radius:14px;display:block}
+.logos li::after{content:"";position:absolute;inset:0;border-radius:14px;background:radial-gradient(circle at var(--mx) var(--my),rgba(255,255,255,.55),transparent 55%);opacity:0;transition:opacity .3s;mix-blend-mode:soft-light;pointer-events:none}
+.logos li::before{content:"";position:absolute;inset:0;border-radius:14px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14),inset 0 1px 0 rgba(255,255,255,.5);z-index:2;pointer-events:none}
+.logos li span{position:absolute;left:50%;bottom:-30px;transform:translateX(-50%) translateZ(30px);font-family:var(--fh);font-size:12px;font-weight:600;color:var(--teal);white-space:nowrap;opacity:0;transition:opacity .25s}
+.logos li.on{--lift:-10px;z-index:3;box-shadow:0 1px 0 #5a5354,0 2px 0 #4c4647,0 3px 0 #3f393a,0 4px 0 #332e2f,0 5px 0 #2a2526,0 34px 40px -14px rgba(0,0,0,.8),0 0 44px -6px rgba(70,190,197,.5)}
+.logos li.on::after{opacity:1}
+.logos li.on span{opacity:1}
+.logos li{filter:grayscale(1) brightness(.72) contrast(1.05)}
+.logos li.on{filter:none}
+@media(max-width:760px){.logos ul{grid-template-columns:repeat(2,1fr);gap:16px;max-width:420px}.logos li span{display:none}}
+@media(prefers-reduced-motion:reduce){.logos li{transition:none}}
+
+/* stats */
+.stats{background:var(--bg2)}
+.stats .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-top:40px}
+.stat{background:var(--bg2);padding:30px 26px}
+.stat b{display:block;font-family:var(--fh);font-size:clamp(28px,3.4vw,42px);white-space:nowrap;font-weight:700;color:var(--teal);line-height:1}
+.stat span{display:block;margin-top:10px;font-size:14px;color:var(--muted)}
+.stats .note{font-size:12px;margin-top:14px}
+@media(max-width:860px){.stats .grid{grid-template-columns:1fr 1fr}}
+
+/* problem */
+.prob .grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start}
+.leaks{list-style:none;display:grid;gap:12px}
+.leaks li{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:grid;grid-template-columns:34px 1fr;gap:14px}
+.leaks li i{font-style:normal;width:34px;height:34px;border-radius:9px;background:rgba(240,179,90,.12);color:var(--warn);display:grid;place-items:center;font-weight:700;font-family:var(--fh)}
+.leaks li b{display:block;color:var(--fg);font-weight:600;margin-bottom:3px}
+.leaks li span{font-size:14px;color:var(--muted)}
+@media(max-width:860px){.prob .grid{grid-template-columns:1fr;gap:32px}}
+
+/* steps */
+.steps{background:var(--bg2)}
+.steps .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:28px;position:relative;transition:border-color .2s,transform .2s}
+.step:hover{border-color:var(--teal);transform:translateY(-3px)}
+.step .n{font-family:var(--fh);font-size:13px;color:var(--teal);font-weight:600;letter-spacing:.1em;margin-bottom:14px}
+.step h3{margin-bottom:10px}
+.step p{font-size:15px}
+.step .pill{position:absolute;top:22px;right:22px;font-size:11px;padding:4px 9px;border-radius:999px;background:rgba(70,190,197,.14);color:var(--teal);font-weight:600}
+@media(max-width:860px){.steps .grid{grid-template-columns:1fr}}
+
+/* why one */
+.why .grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:56px;align-items:center}
+.why blockquote{border-left:3px solid var(--teal);padding-left:22px;margin-top:26px;color:var(--fg);font-size:17px}
+.why blockquote footer{font-size:14px;color:var(--muted);margin-top:10px}
+.vs{list-style:none;display:grid;gap:0;border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.vs li{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line)}
+.vs li:first-child{border-top:0;background:var(--panel);font-family:var(--fh);font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+.vs li div{padding:16px 20px;font-size:15px}
+.vs li div:first-child{border-right:1px solid var(--line);color:var(--muted)}
+.vs li:not(:first-child) div:last-child{color:var(--fg)}
+.vs li:not(:first-child) div:last-child::before{content:"✓ ";color:var(--teal);font-weight:700}
+@media(max-width:860px){.why .grid{grid-template-columns:1fr}}
+
+/* cases */
+.cases{background:var(--bg2)}
+.cases .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px}
+.case{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:26px;display:flex;flex-direction:column;gap:14px}
+.case .who{display:flex;justify-content:space-between;align-items:baseline}
+.case .who b{font-family:var(--fh);font-size:18px}
+.case .who span{font-size:12px;color:var(--muted)}
+.case .big{font-family:var(--fh);font-size:40px;font-weight:700;color:var(--teal);line-height:1}
+.case .big small{font-size:14px;color:var(--muted);font-weight:400;display:block;margin-top:6px;font-family:var(--f)}
+.case p{font-size:14px}
+.case .row{display:flex;gap:18px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+.case .row b{color:var(--fg);font-weight:600}
+@media(max-width:860px){.cases .grid{grid-template-columns:1fr}}
+
+/* faq */
+.faq .list{max-width:760px;margin:36px auto 0}
+details{border-top:1px solid var(--line);padding:18px 0}
+details:last-child{border-bottom:1px solid var(--line)}
+summary{cursor:pointer;font-family:var(--fh);font-weight:600;font-size:17px;list-style:none;display:flex;justify-content:space-between;gap:20px}
+summary::after{content:"+";color:var(--teal);font-size:22px;line-height:1}
+details[open] summary::after{content:"−"}
+details p{margin-top:12px;font-size:15px;max-width:66ch}
+
+/* final cta */
+.final{background:linear-gradient(180deg,var(--bg2),var(--bg));text-align:center}
+.final .box{max-width:820px;margin:0 auto;background:var(--panel);border:1px solid var(--teal);border-radius:24px;padding:56px 40px;position:relative;overflow:hidden}
+.final .box::before{content:"";position:absolute;inset:-40%;background:radial-gradient(circle at 50% 0%,rgba(70,190,197,.2),transparent 50%);pointer-events:none}
+.final .box>*{position:relative}
+.final h2{margin-bottom:14px}
+.final .lead{margin:0 auto 30px;max-width:58ch}
+.final .meta{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;margin-top:22px;font-size:13px;color:var(--muted)}
+.final .meta span::before{content:"✓";color:var(--teal);margin-right:7px;font-weight:700}
+.count{display:inline-flex;gap:10px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-size:13px;margin-bottom:22px}
+.count i{width:8px;height:8px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 4px rgba(240,179,90,.2)}
+.count b{color:var(--warn)}
+
+footer{padding:40px 0;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+footer .w{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center}
+footer img{height:20px}
+footer .small{font-size:12px}
+
+/* sticky mobile cta */
+.sticky{display:none}
+@media(max-width:760px){.sticky{display:block;position:fixed;left:12px;right:12px;bottom:12px;z-index:30}.sticky .btn{width:100%;justify-content:center}body{padding-bottom:80px}}
+
+
+/* V2 */
+.hero.c{padding:84px 0 64px;text-align:center}
+.hero.c .grid{grid-template-columns:1fr;justify-items:center}
+.hero.c h1{max-width:20ch;margin-left:auto;margin-right:auto;font-size:clamp(36px,5.6vw,64px)}
+.hero.c .lead{margin-left:auto;margin-right:auto;max-width:60ch}
+.hero.c .cta,.hero.c .trust{justify-content:center}
+.hero.c .glow{left:50%;right:auto;transform:translateX(-50%);top:-30%;width:900px}
+.season{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:8px 16px;font-size:13px;margin-bottom:26px;color:var(--muted)}
+.season i{width:8px;height:8px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 4px rgba(70,190,197,.2)}
+.season b{color:var(--fg);font-weight:600}
+.now .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px;position:relative}
+.now .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:26px;position:relative;overflow:hidden;transition:border-color .2s,transform .2s}
+.now .card:hover{border-color:var(--teal);transform:translateY(-3px)}
+.now .card .m{font-family:var(--fh);font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);font-weight:600;margin-bottom:12px}
+.now .card h3{margin-bottom:10px}
+.now .card p{font-size:15px}
+.now .card.act{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal),0 30px 60px -30px rgba(70,190,197,.5)}
+.now .card .here{position:absolute;top:22px;right:22px;font-size:11px;padding:4px 9px;border-radius:999px;background:var(--teal);color:var(--teal-ink);font-weight:700}
+.now .bars{display:flex;align-items:flex-end;gap:5px;height:44px;margin-top:20px}
+.now .bars span{flex:1;background:var(--line);border-radius:3px}
+.now .bars span.h{background:var(--teal)}
+.why .me{display:flex;align-items:center;gap:14px;margin-top:22px}
+.why .me img{width:64px;height:64px;border-radius:50%;object-fit:cover;object-position:50% 18%;border:2px solid var(--teal)}
+.why .me b{display:block;font-family:var(--fh)}
+.why .me span{font-size:13px;color:var(--muted)}
+@media(max-width:860px){.now .grid{grid-template-columns:1fr}}
+
+
+.flow{display:inline-grid;grid-template-columns:auto auto auto auto auto;align-items:stretch;gap:0;margin:6px auto 34px;background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;text-align:left}
+.flow div{padding:16px 24px}
+.flow div b{display:block;font-family:var(--fh);font-size:24px;font-weight:700;line-height:1.1;color:var(--fg);white-space:nowrap}
+.flow div span{font-size:12px;color:var(--muted);white-space:nowrap}
+.flow div.hl{background:rgba(70,190,197,.1)}
+.flow div.hl b{color:var(--teal)}
+.flow i{font-style:normal;display:grid;place-items:center;color:var(--teal);font-size:20px;border-left:1px solid var(--line);border-right:1px solid var(--line);padding:0 12px;background:var(--bg2)}
+@media(max-width:700px){.flow{grid-template-columns:1fr 1fr 1fr;width:100%;text-align:center}.flow i{display:none}.flow div{padding:12px 6px;border-left:1px solid var(--line)}.flow div:first-child{border-left:0}.flow div b{font-size:16px}.flow div span{font-size:10.5px;white-space:normal;display:block;line-height:1.3;margin-top:3px}.season{font-size:11.5px;padding:7px 12px;gap:8px;white-space:nowrap}}
+
+/* ---- v3: spacing ---- */
+h1,h2{text-wrap:balance}
+.lead,.stat span,.case p,.step p,.now .card p{text-wrap:pretty}
+section{padding:88px 0}
+.hero.c{padding:76px 0 72px}
+.hero.c .lead{margin-bottom:26px}
+.flow{margin:0 auto 30px}
+.hero .trust{margin-top:22px;gap:8px 20px}
+.stats .grid{margin-top:36px}
+.stats .note{margin-top:16px}
+.now .grid,.steps .grid,.cases .grid{margin-top:36px}
+.now .card{display:flex;flex-direction:column}
+.now .card.act{box-shadow:0 0 0 1px var(--teal)}
+.now .bars{margin-top:auto;padding-top:22px;height:66px}
+.step .pill{top:24px;right:24px}
+.case .big small{line-height:1.4;margin-top:8px}
+.case .row{margin-top:auto}
+.faq .list{margin-top:32px}
+.final .box{padding:52px 40px}
+.final .lead{margin-bottom:28px}
+.final .meta{gap:8px 20px;margin-top:20px}
+@media(max-width:760px){section{padding:60px 0}.hero.c{padding:48px 0 52px}.logos{padding:44px 0 52px}.final .box{padding:36px 20px}.final h2{font-size:26px}.why .grid{gap:32px}.hero .trust{justify-content:center}}
+
+/* ---- v3: problem A (seznam) ---- */
+.pa .grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:56px;align-items:start}
+.pa .left{position:sticky;top:100px}
+.pa .left .lead{margin:18px 0 26px}
+.rows{border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--panel)}
+.rows .hd{display:grid;grid-template-columns:1fr 1.25fr;gap:20px;padding:14px 22px;font-family:var(--fh);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);background:var(--bg2)}
+.rows .rw{display:grid;grid-template-columns:1fr 1.25fr;gap:20px;padding:16px 22px;border-top:1px solid var(--line);align-items:start}
+.rows .rw b{font-weight:600;font-size:15px;color:var(--fg);line-height:1.4}
+.rows .rw b em{display:inline-block;font-style:normal;font-family:var(--f);font-weight:500;font-size:11px;color:var(--warn);border:1px solid rgba(240,179,90,.35);border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+.rows .rw span{font-size:14px;color:var(--muted);line-height:1.5}
+@media(max-width:860px){.pa .grid{grid-template-columns:1fr;gap:28px}.pa .left{position:static}.rows .hd{display:none}.rows .rw{grid-template-columns:1fr;gap:4px;padding:15px 18px}}
+
+/* ---- v3: problem B (tri skupine) ---- */
+.pb .top{max-width:760px}
+.pb .top .lead{margin-top:18px}
+.pb .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:40px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.pb .col{padding:28px 28px 30px;border-left:1px solid var(--line)}
+.pb .col:first-child{border-left:0;padding-left:0}
+.pb .col:last-child{padding-right:0}
+.pb .col h3{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin-bottom:16px}
+.pb .col ul{list-style:none;display:grid;gap:12px}
+.pb .col li{position:relative;padding-left:18px;font-size:15px;color:var(--fg);line-height:1.45}
+.pb .col li::before{content:"";position:absolute;left:0;top:.6em;width:6px;height:6px;background:var(--warn);border-radius:1px}
+.pb .col p{font-size:13.5px;margin-top:18px;line-height:1.5}
+.pb .after{display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin-top:32px}
+.pb .after p{font-size:15px;max-width:52ch}
+@media(max-width:860px){.pb .cols{grid-template-columns:1fr}.pb .col{border-left:0;border-top:1px solid var(--line);padding:24px 0}.pb .col:first-child{border-top:0}}
+
+/* ---- v3: namesto značke ---- */
+.note-me{display:inline-flex;align-items:center;gap:14px;text-align:left;margin-bottom:28px;max-width:520px}
+.note-me img{width:46px;height:46px;border-radius:50%;object-fit:cover;object-position:50% 18%;flex:none}
+.note-me p{font-size:15px;color:var(--fg);line-height:1.45}
+.note-me p span{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.slots{display:inline-flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:28px}
+.slots .bx{display:flex;gap:6px}
+.slots .bx i{width:22px;height:22px;border:1.5px solid #6b6462;border-radius:4px}
+.slots p{font-size:13px;color:var(--muted)}
+.slots p b{color:var(--fg);font-weight:600}
+.vs li:first-child div{display:flex;align-items:center}
+
+/* ---- v4: interakcije ---- */
+nav ul a{position:relative;padding:6px 0;transition:color .2s}
+nav ul a::after{content:"";position:absolute;left:0;right:0;bottom:-2px;height:2px;background:var(--teal);border-radius:2px;transform:scaleX(0);transform-origin:left;transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+nav ul a.act{color:var(--fg)}
+nav ul a.act::after{transform:scaleX(1)}
+.hero.c .glow{transform:translate(calc(-50% + var(--gx,0px)),var(--gy,0px));transition:transform .9s cubic-bezier(.2,.8,.2,1)}
+.btn{position:relative;overflow:hidden}
+.btn:active{transform:scale(.97)!important;transition-duration:.06s}
+.btn .rip{position:absolute;border-radius:50%;background:rgba(255,255,255,.45);transform:scale(0);animation:rip .5s ease-out forwards;pointer-events:none}
+.btn.s .rip{background:rgba(70,190,197,.35)}
+@keyframes rip{to{transform:scale(1);opacity:0}}
+/* trak v heroju */
+.js .flow>*{opacity:0;transform:translateY(10px);transition:opacity .45s,transform .45s cubic-bezier(.2,.8,.2,1)}
+.js .flow>i{transform:translateX(-8px)}
+.js .flow>.on{opacity:1;transform:none}
+.flow b{font-variant-numeric:tabular-nums}
+/* sestavljanje ob scrollu */
+.js .rv{opacity:0;transform:translateY(18px);transition:opacity .6s,transform .6s cubic-bezier(.2,.8,.2,1)}
+.js .rv.in{opacity:1;transform:none}
+.js .sg{opacity:1!important;transform:none!important}
+.js .sg>*{opacity:0;transform:translateY(18px);transition:opacity .55s,transform .55s cubic-bezier(.2,.8,.2,1)}
+.js .sg.in>*{opacity:1;transform:none}
+.js .logos ul.sg>li{transform:rotateX(10deg) translateY(22px)}
+.js .logos ul.sg.in>li{transform:rotateX(10deg)}
+.stat b{font-variant-numeric:tabular-nums}
+/* zakaj zdaj */
+.now .bars span{transform-origin:bottom;transition:transform .7s cubic-bezier(.2,.8,.2,1)}
+.js .now .grid:not(.go) .bars span{transform:scaleY(0)}
+.now .card{transition:border-color .4s,box-shadow .4s,transform .2s}
+.now .card .here{animation:pop .4s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes pop{from{transform:scale(0);opacity:0}}
+/* tabela */
+.vs li:not(:first-child) div:last-child::before{content:none}
+.vs li div:last-child{display:flex;align-items:flex-start;gap:9px}
+.vs svg{flex:none;width:16px;height:16px;margin-top:3px}
+.vs svg path{fill:none;stroke:var(--teal);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:22;stroke-dashoffset:22;transition:stroke-dashoffset .45s ease-out}
+.vs li.ck svg path{stroke-dashoffset:0}
+html:not(.js) .vs svg path{stroke-dashoffset:0}
+/* koraki */
+.pline{position:relative;height:22px;margin:36px 0 14px}
+.pline .tr{position:absolute;left:16.66%;right:16.66%;top:10px;height:2px;background:var(--line);border-radius:2px;overflow:hidden}
+.pline .tr span{display:block;height:100%;width:100%;background:var(--teal);transform:scaleX(var(--p,0));transform-origin:left}
+.pline i{position:absolute;top:4px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--bg2);border:2px solid var(--line);transition:border-color .3s,background .3s,box-shadow .3s}
+.pline i:nth-of-type(1){left:16.66%}.pline i:nth-of-type(2){left:50%}.pline i:nth-of-type(3){left:83.33%}
+.pline i.lit{border-color:var(--teal);background:var(--teal);box-shadow:0 0 0 5px rgba(70,190,197,.18)}
+.steps .grid{margin-top:0}
+.step .n{transition:color .3s}
+.js .steps .step:not(.lit) .n{color:var(--muted)}
+.step.lit{border-color:#3f5f62}
+@media(max-width:860px){.pline{display:none}.steps .grid{margin-top:32px}.js .steps .step:not(.lit) .n{color:var(--teal)}}
+@media(prefers-reduced-motion:reduce){.js .rv,.js .sg>*,.js .flow>*{opacity:1!important;transform:none!important;transition:none!important}.now .bars span{transform:none!important}.vs svg path{stroke-dashoffset:0!important}}
+
+/* ---- v5: zadnji okvir s fotko ---- */
+.final .box.b1{display:grid;grid-template-columns:300px 1fr;padding:0;text-align:left;max-width:940px;align-items:stretch}
+.b1 .ph{position:relative;overflow:hidden;border-radius:23px 0 0 23px;min-height:400px}
+.b1 .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 12%}
+.b1 .ph::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(26,23,24,.92))}
+.b1 .ph p{position:absolute;left:22px;right:22px;bottom:20px;z-index:1;color:var(--fg);font-size:14px;line-height:1.45}
+.b1 .ph p b{display:block;font-family:var(--fh);font-size:17px;margin-bottom:2px}
+.b1 .tx{padding:48px 44px}
+.b1 h2{margin:0 0 14px;font-size:clamp(24px,2.6vw,32px);max-width:none}
+.b1 .lead{margin:0 0 26px;font-size:17px;max-width:none}
+.b1 .meta{justify-content:flex-start}
+.b1 .left6{font-size:14px;margin-top:22px;color:var(--muted)}
+.b1 .left6 b{color:var(--fg);font-weight:600}
+@media(max-width:760px){.final .box.b1{grid-template-columns:1fr}.b1 .ph{border-radius:23px 23px 0 0;min-height:260px}.b1 .tx{padding:30px 22px}}
+/* reveal */
+.r{opacity:0;transform:translateY(16px);transition:opacity .6s,transform .6s}
+.r.in{opacity:1;transform:none}
+
+/* slovenska muska: objava */
+.ig{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:#0c1017;box-shadow:0 30px 50px -24px #000;cursor:pointer;display:block;width:100%;scroll-margin-top:130px;transition:border-color .3s}
+.ig .win{height:212px;overflow:hidden;transition:height .75s cubic-bezier(.2,.8,.2,1)}
+.ig img{width:100%;max-width:none;transform:scale(1.04);transform-origin:50% 0;transition:transform .9s cubic-bezier(.2,.8,.2,1)}
+.ig .fade{position:absolute;inset:auto 0 0 0;height:150px;background:linear-gradient(180deg,rgba(12,16,23,0),rgba(12,16,23,.92) 62%,#0c1017);transition:opacity .45s;pointer-events:none}
+.ig .open{position:absolute;left:14px;right:14px;bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;transition:opacity .3s,transform .45s cubic-bezier(.2,.8,.2,1)}
+.ig .open span{font-size:13.5px;color:#fff;font-weight:600;line-height:1.3;font-family:var(--f)}
+.ig .open span small{display:block;font-weight:400;font-size:12px;color:#aab1bd}
+.ig .open i{flex:none;width:42px;height:42px;border-radius:50%;background:var(--teal);position:relative;box-shadow:0 8px 22px -6px rgba(70,190,197,.7);transition:transform .2s}
+.ig:hover .open i{transform:scale(1.08)}
+.ig .open i::before{content:"";position:absolute;left:50%;top:50%;width:11px;height:11px;margin:-9px 0 0 -6.5px;border-right:2.5px solid #0e2a2c;border-bottom:2.5px solid #0e2a2c;border-radius:1px;transform:rotate(45deg)}
+.ig.on{border-color:var(--teal);cursor:default}
+.ig.on img{transform:none}
+.ig.on .fade{opacity:0}
+.ig.on .open{opacity:0;transform:translateY(14px);pointer-events:none}
+.ig.nudge{animation:ignudge .9s cubic-bezier(.2,.8,.2,1) 1}
+@keyframes ignudge{0%{transform:none}35%{transform:translateY(-7px)}100%{transform:none}}
+.ig.nudge .open i{animation:igpop .9s cubic-bezier(.2,.8,.2,1) .15s 1}
+@keyframes igpop{0%{transform:none}40%{transform:scale(1.22)}100%{transform:none}}
+.igcap{margin-top:14px;font-size:13px;text-align:center;display:flex;justify-content:center;gap:10px;align-items:center;color:var(--muted)}
+.igcap b{color:var(--fg);font-weight:600}
+.igcap button{color:var(--teal);font:600 13px var(--f);background:none;border:0;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .3s}
+.igcap.on button{opacity:1;pointer-events:auto}
+@media(prefers-reduced-motion:reduce){.ig,.ig *{animation:none!important;transition:none!important}}
+.logos ul{display:flex;flex-wrap:wrap;justify-content:center;max-width:1080px}
+.logos li{flex:0 0 calc((100% - 88px)/5)}
+.logos li.mkt{cursor:pointer}
+.logos li.mkt i{position:absolute;right:8px;bottom:8px;z-index:3;width:24px;height:24px;border-radius:50%;background:var(--teal) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.6 6.4L8 9.8l3.4-3.4' fill='none' stroke-linejoin='round' stroke='%230e2a2c' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") center/24px;box-shadow:0 4px 10px -2px rgba(0,0,0,.5)}
+.muska{padding:72px 0;border-bottom:1px solid var(--line);background:var(--bg2)}
+.logos{border-bottom:0}
+.muska .grid{display:grid;grid-template-columns:1fr 400px;gap:72px;align-items:center}
+.muska .lead{margin-top:18px;max-width:52ch}
+.muska .lead b{color:var(--fg)}
+.muska .ig .win{height:250px}
+@media(max-width:860px){.muska .grid{grid-template-columns:1fr;gap:30px}.muska .col{max-width:420px;width:100%;margin:0 auto}}
+@media(max-width:760px){.logos li{flex-basis:calc((100% - 16px)/2)}.muska .ig .win{height:212px}}
+
+
+/* ---- foqs. font: Michroma (naslovi) + Hanken Grotesk (besedilo) ---- */
+@font-face{font-family:'EuroFix';src:local('Helvetica Neue Medium'),local('HelveticaNeue-Medium'),local('Helvetica Neue'),local('Arial'),local('Roboto');unicode-range:U+20AC}
+html.g3{--fh:'EuroFix','Michroma',sans-serif;--f:'Hanken Grotesk',system-ui,sans-serif}
+html.g3 h1,html.g3 h2,html.g3 h3{font-weight:400;letter-spacing:-.01em;line-height:1.22}
+html.g3 h1{font-size:clamp(23px,3.5vw,42px)}
+html.g3 h2{font-size:clamp(19px,2.4vw,28px)}
+html.g3 .b1 h2{font-size:clamp(17px,1.9vw,22px)}
+html.g3 h3{font-size:15px}
+html.g3 .btn{font-size:13px;font-weight:400}
+html.g3 .btn small{font-family:var(--f)}
+html.g3 .eyebrow{font-size:10px;font-weight:400}
+html.g3 .stat b{font-size:clamp(22px,2.6vw,30px);font-weight:400}
+html.g3 .flow div b{font-size:17px;font-weight:400}
+html.g3 .case .big{font-size:28px;font-weight:400}
+html.g3 summary{font-size:14px;font-weight:400}
+
+}
+</style>
+<style>
+@media (max-width:760px){
+
+@font-face{font-family:'EuroFix';src:local('Helvetica Neue Medium'),local('HelveticaNeue-Medium'),local('Helvetica Neue'),local('Arial'),local('Roboto');unicode-range:U+20AC}
+:root{--bg:#231F20;--bg2:#1a1718;--panel:#2b2627;--line:#3a3435;--fg:#f3f0ee;--muted:#a79f9c;--teal:#46BEC5;--ink:#0e2a2c;--warn:#f0b35a;--f:'Hanken Grotesk',system-ui,sans-serif;--fh:'EuroFix','Michroma',sans-serif;--pad:20px;--ease:cubic-bezier(.2,.8,.2,1)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg2);-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:hidden;min-height:100vh}
+img{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+h1,h2,h3,.num{font-family:var(--fh);font-weight:400;letter-spacing:-.01em;text-wrap:balance}
+h1{font-size:23px;line-height:1.24}
+h2{font-size:19px;line-height:1.28}
+h3{font-size:14px;line-height:1.3}
+p{color:var(--muted);text-wrap:pretty}
+em.t{font-style:normal;color:var(--teal)}
+.pad{padding-left:var(--pad);padding-right:var(--pad)}
+.eyebrow{font-family:var(--fh);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);margin-bottom:12px}
+.btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:100%;min-height:56px;padding:12px 18px;border-radius:14px;background:var(--teal);color:var(--ink);font-family:var(--fh);font-size:12.5px;text-align:center;position:relative;overflow:hidden;transition:transform .12s}
+.btn small{font-family:var(--f);font-size:12px;font-weight:500;opacity:.8}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+section{padding:56px 0}
+/* reveal */
+.js .rv{opacity:0;transform:translateY(16px);transition:opacity .6s,transform .6s var(--ease)}
+.js .rv.in{opacity:1;transform:none}
+.js .sg>*{opacity:0;transform:translateY(16px);transition:opacity .5s,transform .5s var(--ease)}
+.js .sg.in>*{opacity:1;transform:none}
+/* fixed elements stay inside the phone column on desktop */
+.fx{position:fixed;left:50%;transform:translateX(-50%);width:100%;z-index:40}
+.deskhint{display:none}
+@media(min-width:99999px){
+  html{background:#0b0a0a}
+  body{max-width:390px;margin:0 auto;box-shadow:0 0 0 1px #3a3435,0 0 90px #000}
+  .deskhint{display:block;position:fixed;left:calc(50% + 220px);top:28px;width:230px;font:500 13px/1.5 system-ui,sans-serif;color:#8e8684}
+  .deskhint b{display:block;color:#f3f0ee;font-size:15px;margin-bottom:6px}
+}
+@media(prefers-reduced-motion:reduce){.js .rv,.js .sg>*{opacity:1!important;transform:none!important;transition:none!important}}
+/* shared bits */
+.topbar{display:flex;align-items:center;justify-content:space-between;height:56px}
+.topbar img{height:21px}
+.pill{font-size:11.5px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:5px 10px;white-space:nowrap}
+.pill b{color:var(--fg);font-weight:600}
+.cta-bar{bottom:0;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(26,23,24,0),rgba(26,23,24,.96) 34%);transform:translate(-50%,110%);transition:transform .45s var(--ease)}
+.cta-bar.show{transform:translate(-50%,0)}
+.cta-bar .btn{min-height:52px;box-shadow:0 10px 30px -8px rgba(70,190,197,.55)}
+/* accordion */
+.faq{border-top:1px solid var(--line)}
+.q{border-bottom:1px solid var(--line)}
+.q>button{width:100%;display:flex;justify-content:space-between;align-items:center;gap:14px;text-align:left;padding:16px 0;font-weight:600;font-size:15.5px;line-height:1.35}
+.q>button i{flex:none;width:22px;height:22px;position:relative}
+.q>button i::before,.q>button i::after{content:"";position:absolute;left:4px;right:4px;top:10px;height:2px;background:var(--teal);border-radius:2px;transition:transform .3s var(--ease)}
+.q>button i::after{transform:rotate(90deg)}
+.q.open>button i::after{transform:rotate(0)}
+.q .a{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s var(--ease)}
+.q.open .a{grid-template-rows:1fr}
+.q .a>div{overflow:hidden}
+.q .a p{padding:0 0 16px;font-size:14.5px}
+/* final */
+.final .card{margin:0 var(--pad);border:1px solid var(--teal);border-radius:22px;overflow:hidden;background:var(--panel)}
+.final .ph{position:relative;aspect-ratio:5/4;overflow:hidden}
+.final .ph img{width:100%;height:100%;object-fit:cover;object-position:50% 10%}
+.final .ph::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,var(--panel))}
+.final .ph b{position:absolute;left:18px;bottom:8px;z-index:1;font-family:var(--fh);font-size:11px;font-weight:400}
+.final .tx{padding:8px 18px 22px}
+.final h2{margin-bottom:12px}
+.final p{font-size:15px;margin-bottom:18px}
+.final .left6{font-size:13px;margin:14px 0 0;text-align:center}
+.final .left6 b{color:var(--fg)}
+footer{padding:28px var(--pad) 110px;font-size:12.5px;color:var(--muted);text-align:center}
+footer img{height:18px;margin:0 auto 10px}
+
+/* ===== B: kot aplikacija ===== */
+.hdr{position:sticky;top:0;z-index:30;background:rgba(35,31,32,.9);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid transparent;transition:border-color .3s}
+.hdr.sc{border-bottom-color:var(--line)}
+.hdr .topbar{height:54px}
+.hero{position:relative;padding:8px var(--pad) 26px;overflow:hidden}
+.hero .ph{position:absolute;right:-46px;top:0;width:230px;height:290px;z-index:0;opacity:0;transform:translateX(30px);transition:opacity .9s .3s,transform .9s .3s var(--ease);-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 46%),linear-gradient(180deg,#000 60%,transparent);-webkit-mask-composite:source-in;mask-image:linear-gradient(90deg,transparent 0,#000 46%),linear-gradient(180deg,#000 60%,transparent);mask-composite:intersect}
+.hero.go .ph{opacity:.55;transform:none}
+.hero .ph img{width:100%;height:100%;object-fit:cover;object-position:50% 8%}
+.hero .in{position:relative;z-index:1}
+.hero h1{margin:26px 0 14px;max-width:300px}
+.hero .lead{font-size:15.5px;max-width:320px;margin-bottom:20px}
+.js .hero .w{display:inline-block;opacity:0;transform:translateY(12px);filter:blur(6px);transition:opacity .5s,transform .5s var(--ease),filter .5s}
+.js .hero.go .w{opacity:1;transform:none;filter:none}
+.strip{display:grid;grid-template-columns:1fr 1fr 1fr;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel);margin-bottom:16px}
+.strip div{padding:12px 6px 11px;text-align:center;border-left:1px solid var(--line);opacity:0;transform:translateY(10px);transition:opacity .45s,transform .45s var(--ease)}
+.strip div:first-child{border-left:0}
+.strip div.on{opacity:1;transform:none}
+.strip div.hl{background:rgba(70,190,197,.1)}
+.strip b{display:block;font-family:var(--fh);font-weight:400;font-size:12.5px;line-height:1.2;white-space:nowrap;font-variant-numeric:tabular-nums}
+.strip .hl b{color:var(--teal)}
+.strip span{display:block;font-size:10.5px;color:var(--muted);margin-top:4px;line-height:1.25}
+.hero .trust{display:flex;justify-content:center;gap:6px 14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:12px}
+.hero .trust span::before{content:"✓ ";color:var(--teal);font-weight:700}
+/* logo row */
+.lrow{padding:18px 0 20px;border-top:1px solid var(--line);background:var(--bg2)}
+.lrow p{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;padding:0 var(--pad);margin-bottom:12px}
+.lrow ul{list-style:none;display:flex;gap:9px;overflow-x:auto;padding:2px var(--pad) 8px;scroll-snap-type:x proximity;scrollbar-width:none}
+.lrow ul::-webkit-scrollbar{display:none}
+.lrow li{flex:0 0 104px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;scroll-snap-align:start;box-shadow:0 1px 0 #5a5354,0 2px 0 #403a3b,0 3px 0 #2a2526,0 10px 14px -8px #000}
+.lrow li img{width:100%;height:100%;object-fit:cover}
+.js .lrow ul.sg>li{transform:translateX(26px)}
+.js .lrow ul.sg.in>li{transform:none}
+/* tabs */
+.tabs{position:sticky;top:54px;z-index:25;background:rgba(26,23,24,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.tabs .in{position:relative;display:grid;grid-template-columns:repeat(4,1fr)}
+.tabs button{height:50px;font-size:12.5px;font-weight:600;color:var(--muted);transition:color .25s;line-height:1.15;padding:0 2px}
+.tabs button.on{color:var(--fg)}
+.tabs .ink{position:absolute;left:0;bottom:-1px;width:25%;height:2px;background:var(--teal);border-radius:2px;transition:transform .4s var(--ease)}
+.panels{position:relative;overflow:hidden;background:var(--bg2);touch-action:pan-y;scroll-margin-top:105px;min-height:70vh}
+.panel{display:none;padding:26px var(--pad) 34px}
+.panel.on{display:block;animation:pin .45s var(--ease) both}
+.panel.on.back{animation-name:pinb}
+@keyframes pin{from{opacity:0;transform:translateX(34px)}}
+@keyframes pinb{from{opacity:0;transform:translateX(-34px)}}
+.panel h2{margin-bottom:8px}
+.panel .sub{font-size:14.5px;margin-bottom:18px}
+.js .panel.on .pi{opacity:0;transform:translateY(12px);animation:piin .45s var(--ease) forwards}
+@keyframes piin{to{opacity:1;transform:none}}
+/* panel 1: rezultati */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.stats div{background:var(--bg);padding:16px 14px}
+.stats b{display:block;font-family:var(--fh);font-weight:400;font-size:18px;color:var(--teal);line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stats span{display:block;font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.35}
+.refs{margin-top:14px;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--bg)}
+.ref{border-top:1px solid var(--line)}
+.ref:first-child{border-top:0}
+.ref>button{width:100%;display:grid;grid-template-columns:1fr auto 20px;align-items:center;gap:10px;padding:14px 14px 14px 16px;text-align:left}
+.ref .nm b{display:block;font-weight:700;font-size:15px}
+.ref .nm span{font-size:12px;color:var(--muted)}
+.ref .ro{font-family:var(--fh);font-size:16px;color:var(--teal);white-space:nowrap}
+.ref i{width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);justify-self:center;transition:transform .3s var(--ease);margin-top:-4px}
+.ref.open i{transform:rotate(225deg);margin-top:4px}
+.ref .more{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s var(--ease)}
+.ref.open .more{grid-template-rows:1fr}
+.ref .more>div{overflow:hidden}
+.ref .more p{font-size:14px;padding:0 16px 10px}
+.ref .bars{padding:0 16px 16px;display:grid;gap:7px}
+.ref .bars div{display:grid;grid-template-columns:62px 1fr auto;gap:8px;align-items:center;font-size:12px;color:var(--muted)}
+.ref .bars div b{color:var(--fg);font-weight:600;white-space:nowrap}
+.ref .bars u{display:block;height:8px;border-radius:4px;background:var(--line);overflow:hidden;text-decoration:none}
+.ref .bars u s{display:block;height:100%;border-radius:4px;background:#6b6462;transform:scaleX(0);transform-origin:left;transition:transform .8s .15s var(--ease)}
+.ref .bars div:last-child u s{background:var(--teal)}
+.ref.open .bars u s{transform:scaleX(1)}
+/* panel 2: samopregled */
+.chk{display:grid;gap:9px}
+.ci{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:14px;transition:border-color .3s,background .3s}
+.ci b{display:block;font-weight:600;font-size:15px;line-height:1.3}
+.ci b em{font-style:normal;font-size:10.5px;font-weight:600;color:var(--warn);border:1px solid rgba(240,179,90,.4);border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:1px;white-space:nowrap}
+.ci p{font-size:13.5px;margin:5px 0 11px;line-height:1.45}
+.ci .ch{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ci .ch button{height:40px;border-radius:10px;border:1px solid var(--line);font-size:13.5px;font-weight:600;color:var(--muted);transition:all .2s}
+.ci .ch button:active{transform:scale(.96)}
+.ci.ok{border-color:#2f5f62}.ci.ok .ch button[data-a=ok]{background:rgba(70,190,197,.16);border-color:var(--teal);color:var(--fg)}
+.ci.no{border-color:#6a5530}.ci.no .ch button[data-a=no]{background:rgba(240,179,90,.14);border-color:var(--warn);color:var(--fg)}
+.score{position:sticky;bottom:calc(84px + env(safe-area-inset-bottom));z-index:5;margin-top:14px;background:#161314;border:1px solid var(--line);border-radius:14px;padding:13px 14px;box-shadow:0 14px 30px -10px #000;transition:border-color .3s}
+.score.hot{border-color:var(--warn)}
+.score .t{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:13.5px;color:var(--muted)}
+.score .t b{font-family:var(--fh);font-weight:400;font-size:13px;color:var(--fg);white-space:nowrap}
+.score .tr{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:9px;display:flex}
+.score .tr i{display:block;height:100%;transition:width .45s var(--ease)}
+.score .tr i.a{background:var(--teal);width:0}
+.score .tr i.b{background:var(--warn);width:0}
+.score p{font-size:13px;margin-top:9px;color:var(--fg);display:none}
+.score.hot p{display:block}
+/* panel 3: kako poteka */
+.steps{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 calc(var(--pad) * -1);padding:2px var(--pad) 6px;scrollbar-width:none}
+.steps::-webkit-scrollbar{display:none}
+.stp{flex:0 0 82%;scroll-snap-align:center;background:var(--bg);border:1px solid var(--line);border-radius:18px;padding:20px;transition:border-color .3s}
+.stp.cur{border-color:#3f6a6d}
+.stp .k{font-family:var(--fh);font-size:9.5px;letter-spacing:.12em;color:var(--teal);margin-bottom:12px}
+.stp .k em{font-style:normal;font-family:var(--f);font-size:11px;letter-spacing:0;font-weight:600;background:rgba(70,190,197,.14);border-radius:999px;padding:2px 8px;margin-left:8px}
+.stp h3{margin-bottom:8px}
+.stp p{font-size:14.5px}
+.sp{display:flex;align-items:center;gap:8px;margin-top:14px}
+.sp i{flex:1;height:3px;border-radius:3px;background:var(--line);overflow:hidden}
+.sp i::after{content:"";display:block;height:100%;background:var(--teal);transform:scaleX(0);transform-origin:left;transition:transform .4s var(--ease)}
+.sp i.on::after{transform:scaleX(1)}
+.mine{margin-top:22px}
+.mine h3{margin-bottom:12px}
+.mine ul{list-style:none;display:grid;gap:9px}
+.mine li{display:flex;gap:10px;font-size:14.5px;color:var(--fg);line-height:1.4}
+.mine li::before{content:"✓";color:var(--teal);font-weight:700}
+.mine li span{color:var(--muted)}
+
+/* ===== C: isto kot B, več prostora in jasnejši vrstni red ===== */
+:root{--pad:24px}
+body{font-size:16.5px;line-height:1.6}
+p b,.lead b,.sub b{color:var(--fg);font-weight:700}
+p em.t,.sub em.t,.lead em.t{font-weight:700}
+h1{font-size:24px;line-height:1.3}
+h2{font-size:20px;line-height:1.34}
+.hdr .topbar{height:60px}
+.hero{padding:14px var(--pad) 44px}
+.hero .ph{top:6px;height:310px}
+.hero.go .ph{opacity:.42}
+.hero .eyebrow{margin-top:30px!important;margin-bottom:16px}
+.hero h1{margin:0 0 20px;max-width:310px}
+.hero .lead{font-size:17px;line-height:1.55;max-width:330px;margin-bottom:30px}
+.hero .trust{margin-top:16px;font-size:13px}
+.btn{min-height:60px;border-radius:16px}
+.band{padding-top:34px;padding-bottom:38px;border-top:1px solid var(--line);background:var(--bg2)}
+.band .cap{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;text-align:center;margin-bottom:16px}
+.strip{margin-bottom:0;border-radius:16px}
+.strip div{padding:18px 6px 16px}
+.strip b{font-size:13.5px}
+.strip span{font-size:11.5px;margin-top:7px}
+.lrow{padding:30px 0 34px}
+.lrow p{margin-bottom:16px;text-align:center}
+.lrow ul{gap:12px}
+.lrow li{flex-basis:120px;border-radius:10px}
+.tabs{top:60px}
+.tabs button{height:56px;font-size:13px}
+.panels{scroll-margin-top:117px}
+.panel{padding:40px var(--pad) 52px}
+.panel h2{margin-bottom:12px}
+.panel .sub{font-size:15.5px;line-height:1.55;margin-bottom:28px}
+.stats div{padding:22px 16px}
+.stats b{font-size:19px}
+.stats span{font-size:13px;margin-top:9px;line-height:1.4}
+.refs{margin-top:22px}
+.ref>button{padding:20px 16px 20px 18px}
+.ref .rw{display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;padding:20px 18px}
+.ref .rw .ro{font-size:18px}
+.ref .rw .ro small{display:block;font-family:var(--f);font-size:11px;color:var(--muted);text-align:right;margin-top:3px;letter-spacing:.06em}
+.ref .nm b{font-size:16px;margin-bottom:2px}
+.ref .nm span{font-size:13px}
+.ref .more p{font-size:15px;line-height:1.55;padding:0 18px 14px}
+.ref .bars{padding:0 18px 22px;gap:10px}
+.ref .bars div{font-size:13px}
+.chk{gap:16px}
+.ci{padding:20px 18px 18px;border-radius:16px}
+.ci b{font-size:16px}
+.ci p{font-size:14.5px;margin:8px 0 16px;line-height:1.5}
+.ci p b{display:inline;font-size:inherit;line-height:inherit}
+.ci .ch{gap:10px}
+.ci .ch button{height:46px;border-radius:12px;font-size:14.5px}
+.score{margin-top:22px;padding:16px 16px 15px;border-radius:16px}
+.score .t{font-size:14.5px}
+.score p{font-size:14px;line-height:1.45;margin-top:11px}
+.steps{gap:14px}
+.stp{flex-basis:84%;padding:26px 22px;border-radius:20px}
+.stp .k{margin-bottom:16px}
+.stp h3{font-size:15px;margin-bottom:12px}
+.stp p{font-size:15.5px;line-height:1.55}
+.sp{margin-top:20px}
+.mine{margin-top:40px;padding-top:32px;border-top:1px solid var(--line)}
+.mine h3{font-size:15px;margin-bottom:18px}
+.mine ul{gap:14px}
+.mine li{font-size:15.5px}
+.q>button{padding:20px 0;font-size:16px}
+.q .a p{padding-bottom:20px;font-size:15.5px;line-height:1.55}
+.final{padding:64px 0 24px}
+.final .tx{padding:14px 22px 28px}
+.final h2{margin-bottom:16px}
+.final p{font-size:15.5px;line-height:1.55;margin-bottom:24px}
+.final .left6{margin-top:18px}
+footer{padding-top:36px}
+
+/* slovenska muska: objava */
+.ig{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:#0c1017;box-shadow:0 30px 50px -24px #000;cursor:pointer;display:block;width:100%;scroll-margin-top:130px;transition:border-color .3s}
+.ig .win{height:212px;overflow:hidden;transition:height .75s cubic-bezier(.2,.8,.2,1)}
+.ig img{width:100%;max-width:none;transform:scale(1.04);transform-origin:50% 0;transition:transform .9s cubic-bezier(.2,.8,.2,1)}
+.ig .fade{position:absolute;inset:auto 0 0 0;height:150px;background:linear-gradient(180deg,rgba(12,16,23,0),rgba(12,16,23,.92) 62%,#0c1017);transition:opacity .45s;pointer-events:none}
+.ig .open{position:absolute;left:14px;right:14px;bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;transition:opacity .3s,transform .45s cubic-bezier(.2,.8,.2,1)}
+.ig .open span{font-size:13.5px;color:#fff;font-weight:600;line-height:1.3;font-family:var(--f)}
+.ig .open span small{display:block;font-weight:400;font-size:12px;color:#aab1bd}
+.ig .open i{flex:none;width:42px;height:42px;border-radius:50%;background:var(--teal);position:relative;box-shadow:0 8px 22px -6px rgba(70,190,197,.7);transition:transform .2s}
+.ig:hover .open i{transform:scale(1.08)}
+.ig .open i::before{content:"";position:absolute;left:50%;top:50%;width:11px;height:11px;margin:-9px 0 0 -6.5px;border-right:2.5px solid #0e2a2c;border-bottom:2.5px solid #0e2a2c;border-radius:1px;transform:rotate(45deg)}
+.ig.on{border-color:var(--teal);cursor:default}
+.ig.on img{transform:none}
+.ig.on .fade{opacity:0}
+.ig.on .open{opacity:0;transform:translateY(14px);pointer-events:none}
+.ig.nudge{animation:ignudge .9s cubic-bezier(.2,.8,.2,1) 1}
+@keyframes ignudge{0%{transform:none}35%{transform:translateY(-7px)}100%{transform:none}}
+.ig.nudge .open i{animation:igpop .9s cubic-bezier(.2,.8,.2,1) .15s 1}
+@keyframes igpop{0%{transform:none}40%{transform:scale(1.22)}100%{transform:none}}
+.igcap{margin-top:14px;font-size:13px;text-align:center;display:flex;justify-content:center;gap:10px;align-items:center;color:var(--muted)}
+.igcap b{color:var(--fg);font-weight:600}
+.igcap button{color:var(--teal);font:600 13px var(--f);background:none;border:0;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .3s}
+.igcap.on button{opacity:1;pointer-events:auto}
+@media(prefers-reduced-motion:reduce){.ig,.ig *{animation:none!important;transition:none!important}}
+.mk{padding:30px var(--pad) 36px;background:var(--bg2);border-top:1px solid var(--line)}
+.mk h2{margin-bottom:10px}
+.mk .lead{font-size:14.5px;margin-bottom:20px}
+.lrow li.mkt{position:relative;cursor:pointer}
+.lrow li.mkt::after{content:"";position:absolute;right:5px;bottom:5px;width:17px;height:17px;border-radius:50%;background:var(--teal) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.6 6.4L8 9.8l3.4-3.4' fill='none' stroke-linejoin='round' stroke='%230e2a2c' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") center/17px}
+
+}
+</style>
 </head>
-<body data-state="boot" data-view="login">
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="snfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#46BEC5" stop-opacity=".34"/><stop offset="1" stop-color="#46BEC5" stop-opacity="0"/></linearGradient></defs></svg>
-<div id="bg" aria-hidden="true">
-  <div class="bg-mesh"><canvas id="meshCanvas"></canvas></div>
+<body>
+<div id="D">
+
+
+<div class="bar"><b>Q4 2026</b> Do konca leta sprejmem še 6 brezplačnih pregledov Google Ads računov.</div>
+
+<nav><div class="w">
+  <a class="logo" href="#"><img src="/assets/home/f8b383bc44.png" alt="foqs."></a>
+  <ul><li><a href="#stevilke">Rezultati</a></li><li><a href="#kako">Kako delam</a></li><li><a href="#zakaj">Zakaj freelancer</a></li><li><a href="#primeri">Reference</a></li><li><a href="#faq">Vprašanja</a></li></ul>
+  <a class="btn p" href="#audit">Brezplačen pregled</a>
+</div></nav>
+
+<header class="hero c"><div class="glow"></div><div class="w grid">
+  <div>
+    <div class="season"><i></i><b>Q4 2026</b> najmočnejši kvartal za spletno prodajo</div>
+    <h1>V zadnjem letu so Google oglasi mojim strankam prinesli <em class="t">1,46&nbsp;milijona&nbsp;€</em> prodaje.</h1>
+    <p class="lead">Kampanje vodim neposredno v vašem Google Ads računu in jih merim v prodaji, ne v klikih. Zdaj, ko kupci kupujejo največ, je pravi čas, da preverite tudi svoj račun.</p>
+    <div class="flow"><div><b data-c="158600" data-k="eur">158.600&nbsp;€</b><span>vloženo v oglase</span></div><i>→</i><div class="hl"><b data-c="1.46" data-k="mio">1,46&nbsp;mio&nbsp;€</b><span>prodaje iz oglasov</span></div><i>→</i><div><b data-c="9.2" data-k="roas">9,2x&nbsp;ROAS</b><span>7 trgovin, 12 mesecev</span></div></div>
+    <div class="cta">
+      <a class="btn p" href="#audit">Rezervirajte brezplačen pregled <small>Pokličem vas v 24 urah</small></a>
+      <a class="btn s" href="#kako">Kako delam</a>
+    </div>
+    <div class="trust"><span>Najprej kratek klic</span><span>Dostop samo za branje</span><span>Seznam popravkov je vaš</span></div>
+  </div>
+</div></header>
+
+<div class="logos"><div class="w">
+  <p>Podjetja, ki so nehala ugibati</p>
+  <ul><li><img src="/assets/home/5547a8e4ba.jpg" alt="KAI Health"><span>KAI Health</span></li><li><img src="/assets/home/aab183b74b.jpg" alt="Bestway"><span>Bestway</span></li><li class="mkt"><img src="/assets/home/99b88e4d00.png" alt="Slovenska muska"><span>Slovenska muska</span><i></i></li><li><img src="/assets/home/342fd15bcc.jpg" alt="Štumfki"><span>Štumfki</span></li><li><img src="/assets/home/d472446a5d.jpg" alt="Optika Sunshine"><span>Optika Sunshine</span></li><li><img src="/assets/home/3ddc56e0dc.jpg" alt="No+Vello"><span>No+Vello</span></li><li><img src="/assets/home/438b58f5ff.jpg" alt="Fit Akademija"><span>Fit Akademija</span></li><li><img src="/assets/home/fcc2bc8d6b.jpg" alt="Slavec PRO"><span>Slavec PRO</span></li><li><img src="/assets/home/9dd24caec4.jpg" alt="Great Agency"><span>Great Agency</span></li></ul>
+</div></div>
+
+<section class="muska" id="muska"><div class="w grid">
+  <div>
+    <div class="eyebrow">Slovenska muska · Stožice 2024</div>
+    <h2>Kdor polni Stožice, pri oglasih <em class="t">ne ugiba.</em></h2>
+    <p class="lead">Pri dogodku je datum en sam in popravnega izpita ni. Vstopnice za <b>Slovensko musko v Stožicah</b> so se prodajale tudi prek Google oglasov, ki sem jih vodil jaz.</p>
+  </div>
+  <div class="col">
+  <div class="ig" id="ig" role="button" tabindex="0" aria-expanded="false">
+    <div class="win"><img src="/assets/home/b4dfa59f7e.jpg" alt="Objava Lada Bizovičarja na Instagramu: Gašper Gracel, Google oglaševanje"></div>
+    <div class="fade"></div>
+    <div class="open"><span>Slovenska muska<small>Instagram, 6. 2. 2024</small></span><i></i></div>
+  </div>
+  <p class="igcap" id="igcap"><span><b>@ladobizovicar</b> · Instagram</span><button id="igcls">Zapri</button></p>
+  </div>
+</div></section>
+
+<section class="stats" id="stevilke"><div class="w">
+  <div class="eyebrow">Zadnjih 12 mesecev</div>
+  <h2>Rezultati, ki se vidijo <em class="t">v številkah.</em></h2>
+  <div class="grid r">
+    <div class="stat"><b data-c="20600" data-k="plus">20.600+</b><span>nakupov prek Google Ads</span></div>
+    <div class="stat"><b data-c="7.68" data-k="eur2">7,68&nbsp;€</b><span>povprečen strošek oglasov na en nakup</span></div>
+    <div class="stat"><b data-c="71" data-k="eur">71&nbsp;€</b><span>povprečna vrednost nakupa</span></div>
+    <div class="stat"><b data-c="716" data-k="int">716</b><span>povpraševanj za optiko in salone za depilacijo</span></div>
+  </div>
+  <p class="note">Zadnjih 12 mesecev, 7 spletnih trgovin. ROAS = prodaja iz oglasov, deljena s stroškom oglasov.</p>
+</div></section>
+
+<section class="now" id="zdaj"><div class="w">
+  <div class="eyebrow">Zakaj zdaj</div>
+  <h2>Od zdaj do januarja se odloča velik del letne prodaje.</h2>
+  <div class="grid r">
+    <div class="card act"><span class="here">zdaj</span><div class="m">Konec novembra</div><h3>Sezona se začne</h3><p>Kupci začnejo iskati darila in ponudbe. Povpraševanje raste, z njim pa tudi cene klikov.</p><div class="bars"><span style="height:35%"></span><span style="height:45%"></span><span class="h" style="height:70%"></span><span style="height:85%"></span><span style="height:100%"></span><span style="height:60%"></span></div></div>
+    <div class="card"><div class="m">December</div><h3>Največ nakupov v letu</h3><p>Darila in zadnji nakupi pred prazniki. Vsaka napaka v računu zdaj stane več kot v kateremkoli drugem mesecu.</p><div class="bars"><span style="height:35%"></span><span style="height:45%"></span><span style="height:70%"></span><span class="h" style="height:85%"></span><span class="h" style="height:100%"></span><span style="height:60%"></span></div></div>
+    <div class="card"><div class="m">Januar</div><h3>Razprodaje in nov začetek</h3><p>Račun, ki ga uredite decembra, gre v januarske razprodaje in novo leto s čistimi podatki in jasno strukturo.</p><div class="bars"><span style="height:35%"></span><span style="height:45%"></span><span style="height:70%"></span><span style="height:85%"></span><span style="height:100%"></span><span class="h" style="height:60%"></span></div></div>
+  </div>
+</div></section>
+
+<section class="prob pa"><div class="w grid">
+  <div class="left r">
+    <div class="eyebrow">Kje se izgublja budget</div>
+    <h2>Razliko v rezultatih delajo malenkosti, ki jih večina spregleda.</h2>
+    <p class="lead">Večina računov, ki jih pregledam, ni slabih. Kampanje tečejo in prinašajo prodajo. Budget se izgublja v podrobnostih: v nastavitvah, ki ostanejo na privzetem, in v stvareh, ki jih nihče redno ne preverja.</p>
+    <a class="btn p" href="#audit">Preverite svoj račun</a>
+  </div>
+  <div class="rows r">
+    <div class="hd"><span>Kaj preverim</span><span>Zakaj je pomembno</span></div>
+    <div class="rw"><b>Negativne ključne besede</b><span>Brez njih plačujete tudi za iskanja, kot so "brezplačno", "zaposlitev" ali "navodila".</span></div>
+    <div class="rw"><b>Vrednosti konverzij</b><span>Če se nakupi štejejo dvakrat ali brez vrednosti, se Google uči na napačnih podatkih.</span></div>
+    <div class="rw"><b>Brand ločen od ostalih iskanj</b><span>Kdor išče vaše ime, bi kupil tudi brez oglasa. Skupaj ne vidite, koliko prodaje oglasi res pripeljejo.</span></div>
+    <div class="rw"><b>Ciljanje lokacije <em>privzeto</em></b><span>Oglase vidijo tudi ljudje, ki jih vaše območje samo zanima, ne le tisti, ki so tam.</span></div>
+    <div class="rw"><b>Display omrežje v Search kampanjah <em>privzeto</em></b><span>Vklopljeno je že ob nastavitvi kampanje in pogosto prinaša klike brez nakupov.</span></div>
+    <div class="rw"><b>Samodejna priporočila</b><span>Če so vklopljena, Google sam dodaja ključne besede in spreminja oglase.</span></div>
+    <div class="rw"><b>Izključitve v Performance Max</b><span>Brez izključenega branda PMax kaže lepe številke, ki jih je težko preveriti.</span></div>
+    <div class="rw"><b>Ponudba v oglasih</b><span>Naslovi brez cene, popusta ali razloga za nakup dobijo manj klikov za isti denar.</span></div>
+  </div>
+</div></section>
+
+<section class="steps" id="kako"><div class="w">
+  <div class="eyebrow">Kako delam</div>
+  <h2>Sodelovanje v treh korakih. Prvi je brezplačen.</h2>
+  <div class="pline" aria-hidden="true"><div class="tr"><span></span></div><i></i><i></i><i></i></div>
+  <div class="grid r">
+    <div class="step"><span class="pill">brezplačno</span><div class="n">KORAK 1</div><h3>Pregled računa</h3><p>Oddate povpraševanje in v 24 urah vas pokličem. Po klicu me dodate v Google Ads z dostopom samo za branje, v 48 urah pa dobite kratek video in seznam 5 največjih napak z vrstnim redom popravkov. Seznam je vaš, tudi če ne sodelujeva naprej.</p></div>
+    <div class="step"><div class="n">KORAK 2</div><h3>30-dnevni Profit Sprint</h3><p>Uredim vse s seznama: strukturo kampanj, merjenje konverzij, negativne ključne besede in oglase. Fiksna cena in pisna garancija na rezultat. Po 30 dneh imate račun, ki ga razumete.</p></div>
+    <div class="step"><div class="n">KORAK 3</div><h3>Mesečno vodenje</h3><p>Če so rezultati dobri za oba, nadaljujeva. Tedenski pregled iskalnih izrazov, testiranje oglasov in mesečno poročilo o prodaji, ne o klikih. Brez vezave.</p></div>
+  </div>
+</div></section>
+
+<section class="why" id="zakaj"><div class="w grid">
+  <div class="r">
+    <div class="eyebrow">Zakaj freelancer in ne agencija</div>
+    <h2>Pri agenciji sestanek vodi direktor, vaš račun pa nekdo, ki ga nikoli ne spoznate.</h2>
+    <blockquote>Pri meni je oseba, s katero se pogovarjate, tudi oseba, ki vodi vaš račun. Kar prinaša prodajo, dobi več budgeta. Kar je ne, izklopim.</blockquote>
+    <div class="me"><img src="/assets/home/6a0caffc1e.jpg" alt="Gašper"><div><b>Gašper</b><span>foqs. · Google Ads in performance svetovanje</span></div></div>
+  </div>
+  <ul class="vs r">
+    <li><div>Agencija</div><div><img src="/assets/home/f8b383bc44.png" alt="foqs." style="height:19px;width:auto;display:block"></div></li>
+    <li><div>Prodaja direktor, dela junior</div><div>Vse delo naredim sam</div></li>
+    <li><div>Poročila o klikih in prikazih</div><div>Poročila o prodaji in ROAS-u</div></li>
+    <li><div>Kampanje na računu agencije</div><div>Račun in podatki ostanejo vaši</div></li>
+    <li><div>Pogodba za 12 mesecev</div><div>30 dni, potem mesečno brez vezave</div></li>
+    <li><div>Več kot 20 računov na osebo</div><div>Le nekaj strank hkrati</div></li>
+    <li><div>Odgovor v nekaj delovnih dneh</div><div>Odgovor isti dan</div></li>
+  </ul>
+</div></section>
+
+<section class="cases" id="primeri"><div class="w">
+  <div class="eyebrow">Reference</div>
+  <h2>Trije računi, ki jih vodim.</h2>
+  <div class="grid r">
+    <div class="case"><div class="who"><b>Bestway</b><span>bazeni, SI + HR</span></div><div class="big">11,4x<small>ROAS v Sloveniji, 10,9x na Hrvaškem</small></div><p>Sezonski izdelek na dveh trgih.</p></div>
+    <div class="case"><div class="who"><b>Štumfki</b><span>nogavice, 4 države</span></div><div class="big">7,3x<small>ROAS v Sloveniji</small></div><p>Ločen račun za vsako državo, brand ločen od ostalih iskanj in širitev na Madžarsko, Slovaško in Češko.</p></div>
+    <div class="case"><div class="who"><b>KAI Health</b><span>prehranska dopolnila</span></div><div class="big">7,8x<small>ROAS</small></div><p>Google Ads je iz nič postal stalen prodajni kanal, ki je dobičkonosen vsak mesec.</p></div>
+  </div>
+</div></section>
+
+<section class="faq" id="faq"><div class="w">
+  <div class="eyebrow" style="text-align:center">Vprašanja</div>
+  <h2 style="text-align:center">Pogosta vprašanja</h2>
+  <div class="list r">
+    <details open><summary>Zakaj je pregled brezplačen?</summary><p>Ker najlažje pokažem, kako delam, kar na vašem računu. V pregledu dobite konkretne popravke. Lahko jih uredite sami ali pa jih uredim jaz. Oboje je v redu.</p></details>
+    <details><summary>Kaj dobim v pregledu?</summary><p>Kratek video, v katerem grem skozi vaš račun, in seznam 5 največjih napak z oceno, koliko vas stanejo na mesec, ter vrstnim redom popravkov. V slovenščini in brez žargona.</p></details>
+    <details><summary>Kako poteka pregled?</summary><p>Oddate kratek obrazec, v 24 urah vas pokličem. V 15 minutah se pogovoriva, kaj prodajate in kaj pričakujete od oglasov. Šele potem me dodate v Google Ads kot uporabnika z dovoljenjem "Samo za branje". Rezultat dobite v 48 urah po tem, ko dobim dostop.</p></details>
+    <details><summary>Ali lahko v računu kaj spremenite?</summary><p>Ne. Z dostopom samo za branje lahko podatke le gledam, ne morem pa spreminjati kampanj ali budgeta. Po pregledu me lahko iz računa odstranite.</p></details>
+    <details><summary>Lahko prevzamete kampanje, ki jih že vodimo?</summary><p>Da. Večina strank pride z obstoječim računom. Ne začnemo iz nič, ampak nadgradimo to, kar že deluje.</p></details>
+    <details><summary>Kaj se zgodi po pregledu?</summary><p>Rezultat dobite po e-pošti. Če želite, greva skupaj skozi seznam na kratkem klicu. Ali popravke uredite sami ali z mano, je vaša odločitev.</p></details>
+    <details><summary>Kakšen budget je potreben?</summary><p>Pregled je smiseln od približno 1.000&nbsp;€ mesečnega budgeta za oglase. Pri manjših računih vam namesto pregleda pošljem kratek checklist, po katerem račun uredite sami.</p></details>
+  </div>
+</div></section>
+
+<section class="lfsec" id="audit"><div class="lfw">
+  <form class="lf" novalidate>
+    <div class="lf-body">
+      <div class="lf-head"><img src="/assets/home/0710826989.jpg" alt="Gašper"><div><h2><em>5 napak</em> v vašem oglaševalskem računu, razvrščenih po&nbsp;tem, koliko vas stanejo.</h2><p>Pustite ime in številko. Pokličem vas v 24 urah.</p></div></div>
+      <div class="lf-row">
+        <div class="lf-fld" data-r="name"><input id="lfn" name="name" placeholder=" " autocomplete="given-name" maxlength="80"><label for="lfn">Ime</label><svg class="lf-ok" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke="#46BEC5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="lf-err">Kako naj vas pokličem?</span></div>
+        <div class="lf-fld" data-r="tel"><input id="lft" name="phone" placeholder=" " inputmode="tel" autocomplete="tel" maxlength="30"><label for="lft">Telefon</label><svg class="lf-ok" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke="#46BEC5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="lf-err">Številka je videti prekratka</span></div>
+        <div class="lf-fld" data-r="urlopt"><input id="lfu" name="website" placeholder=" " inputmode="url" autocomplete="url" maxlength="200"><label for="lfu">Spletna stran <i>neobvezno</i></label><svg class="lf-ok" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke="#46BEC5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="lf-err">Naslov ni videti pravi, npr. vasatrgovina.si</span></div>
+        <input class="lf-hp" name="company" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <button class="lf-go" type="submit">Rezervirajte pregled<small>Pokličem vas v 24 urah</small></button>
+      </div>
+      <p class="lf-fail">Ni šlo skozi. Poskusite še enkrat ali mi pišite na <a href="mailto:gasper.mcc@gmail.com">gasper.mcc@gmail.com</a>.</p>
+      <div class="lf-more"><span>Kdaj vas najlažje ujamem?</span><div class="lf-chips"><button type="button">Dopoldne</button><button type="button">Popoldne</button><button type="button" class="on">Kadarkoli</button></div></div>
+      <div class="lf-trust"><span>Najprej kratek klic</span><span>Dostop samo za branje</span><span>Do konca leta še 6 pregledov</span></div>
+    </div>
+    <div class="lf-done"><div class="lf-ring"><svg viewBox="0 0 76 76"><circle cx="38" cy="38" r="34"/><path d="M24 39.5l9.5 9.5L52 29"/></svg><b style="--a:0deg"></b><b style="--a:36deg"></b><b style="--a:72deg"></b><b style="--a:108deg"></b><b style="--a:144deg"></b><b style="--a:180deg"></b><b style="--a:216deg"></b><b style="--a:252deg"></b><b style="--a:288deg"></b><b style="--a:324deg"></b></div><h3>Hvala.</h3><p>Pokličem vas v roku 24 ur.</p></div>
+  </form>
+</div></section>
+
+<footer><div class="w">
+  <img src="/assets/home/f8b383bc44.png" alt="foqs.">
+  <div class="small">Google Ads, TikTok Ads in spletne strani za podjetja, ki oglaševanje merijo v prodaji.</div>
+  <div>gasper.mcc@gmail.com · foqs.si</div>
+<p class="flinks"><a href="/privacy">Privacy Policy</a><span>·</span><a href="/hub">Hub</a></p></div></footer>
+
+<div class="sticky"><a class="btn p" href="#audit">Rezervirajte brezplačen pregled</a></div>
+
+
+
 </div>
-<main>
-<!-- ============ D ============ -->
-<section class="stage d" data-stage="d">
+<div id="M">
 
-  <div class="view" data-view="hub" hidden>
-    <div class="pad">
-      <div class="d-bar">
-        <img class="wm" src="/foqs-logo.png" alt="foqs." width="700" height="247">
-        <div class="d-bar-r">
-          <span id="d-clock">09:41</span>
-          <span class="d-user"><span class="d-av" id="hubInitial">·</span><span id="hubName"></span></span>
-          <button class="d-out" id="signOut" type="button">Sign out</button>
-          <button class="d-out d-in" id="guestIn" type="button">Sign in</button>
-        </div>
-      </div>
-      <div class="d-intro">
-        <span class="d-eyebrow"><i></i>New · foqs.flow is live</span>
-        <h1>Three apps. One login.</h1>
-        <p>Small tools built for my own work, now all in one place and on your phone.</p>
-      </div>
-      <div class="d-grid two">
-        <a class="d-mod d-feat" id="modFlow" href="/flow">
-          <span class="b-cor tl"></span><span class="b-cor tr"></span><span class="b-cor bl"></span><span class="b-cor br"></span>
-          <span class="b-scan"></span>
-          <div class="d-head"><span>MOD <b>FLW-03</b> &middot; featured</span><span class="b-led"><i></i>new</span></div>
-          <div class="d-body">
-            <div class="ft-l">
-              <span class="ft-new"><i></i>New in the hub</span>
-              <h2>foqs.<b>flow</b><i>.</i><span class="inst" title="Installs on your phone home screen"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>Phone app</span></h2>
-              <p>Money in, money out. Your monthly costs as a checklist you tick off, income per client, and one number for what is left.</p>
-              <div class="b-read">
-                <div><span>Costs</span><span>Monthly checklist, paid or waiting</span></div>
-                <div><span>Income</span><span>Per client, with open invoices</span></div>
-                <div><span>Runs</span><span>Phone &middot; desktop, same data</span></div>
-              </div>
-              <div class="ft-cta"><span class="ft-btn">Open flow <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span><small>Uses your foqs. login</small></div>
-            </div>
-            <div class="prev fx" aria-hidden="true">
-              <div class="prev-top"><small>&lsaquo; October &rsaquo;</small><span class="fx-note"><i></i>2 invoices waiting</span><span class="prev-dot"></span></div>
-              <div class="fx-main">
-                <svg class="fx-ring" viewBox="0 0 84 84"><circle class="ur2-track" cx="42" cy="42" r="34"/><circle class="fx-arc" cx="42" cy="42" r="34" pathLength="100"/><text class="ur2-pct" x="42" y="45">68%</text><text class="ur2-sub" x="42" y="57">spent</text></svg>
-                <div class="fx-num"><small>Left this month</small><b id="fxNum">1.240 &euro;</b><span><em class="in">+ 3.890</em><em class="out">- 2.650</em></span></div>
-                <div class="fl-bars fx-bars"><i><b class="in" style="--h:72%"></b><b class="out" style="--h:48%"></b></i><i><b class="in" style="--h:70%"></b><b class="out" style="--h:46%"></b></i><i><b class="in" style="--h:74%"></b><b class="out" style="--h:92%"></b></i><i><b class="in" style="--h:71%"></b><b class="out" style="--h:50%"></b></i><i><b class="in" style="--h:86%"></b><b class="out" style="--h:60%"></b></i><i><b class="in" style="--h:100%"></b><b class="out" style="--h:62%"></b></i></div>
-              </div>
-              <div class="fx-list">
-                <div class="fl-row"><span class="hb-box"></span><span class="fx-name">Rent</span><em>600 &euro;</em></div>
-                <div class="fl-row"><span class="hb-box"></span><span class="fx-name">Car lease</span><em>268 &euro;</em></div>
-                <div class="fl-row"><span class="hb-box"></span><span class="fx-name">Phone + internet</span><em>79 &euro;</em></div>
-                <div class="fl-row"><span class="hb-box"></span><span class="fx-name">Electricity</span><em>53 &euro;</em></div>
-              </div>
-              <div class="sn-foot"><span class="up" id="fxPaid">0 / 4 paid</span><span>Income per client</span><span>Monthly recap</span></div>
-            </div>
-          </div>
-        </a>
-        <a class="d-mod" href="/habit">
-          <span class="b-cor tl"></span><span class="b-cor tr"></span><span class="b-cor bl"></span><span class="b-cor br"></span>
-          <span class="b-scan"></span>
-          <div class="d-head"><span>MOD <b>HAB-01</b></span><span class="b-led"><i></i>ready</span></div>
-          <div class="d-body">
-            <h2>foqs.<b>habit</b><i>.</i><span class="inst" title="Installs on your phone home screen"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>Phone app</span></h2>
-            <p>Win the day. Daily non-negotiables, a streak that hurts to break, and a week you can read in one look.</p>
-            <div class="prev">
-              <div class="prev-top"><small>Today</small><span class="prev-dot"></span></div>
-              <div class="hb-row"><span class="hb-box on"></span><span class="hb-txt"></span></div>
-              <div class="hb-row"><span class="hb-box on"></span><span class="hb-txt"></span></div>
-              <div class="hb-row"><span class="hb-box on"></span><span class="hb-txt"></span></div>
-              <div class="hb-row"><span class="hb-box"></span><span class="hb-txt"></span></div>
-              <div class="hb-week"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-            </div>
-            <div class="b-read">
-              <div><span>Rhythm</span><span>Daily</span></div>
-              <div><span>Sync</span><span>Across your devices</span></div>
-              <div><span>Home screen</span><span>iPhone · Mac</span></div>
-            </div>
-            <div class="d-go"><span>Open habit</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></div>
-          </div>
-        </a>
-        <a class="d-mod" href="/uraplus">
-          <span class="b-cor tl"></span><span class="b-cor tr"></span><span class="b-cor bl"></span><span class="b-cor br"></span>
-          <span class="b-scan"></span>
-          <div class="d-head"><span>MOD <b>URA-02</b></span><span class="b-led"><i></i>ready</span></div>
-          <div class="d-body">
-            <h2><b>Ura</b><i>+</i><span class="inst" title="Installs on your phone home screen"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>Phone app</span></h2>
-            <p>Hours into money. A goal ring with a pace marker, a calendar that fills with every hour, and shifts you log in one tap.</p>
-            <div class="prev">
-              <div class="prev-top"><small>This month</small><span class="prev-dot"></span></div>
-              <div class="ur2" aria-hidden="true">
-                <svg class="ur2-ring" viewBox="0 0 84 84">
-                  <circle class="ur2-track" cx="42" cy="42" r="34"/>
-                  <circle class="ur2-arc" cx="42" cy="42" r="34" pathLength="100"/>
-                  <line class="ur2-tick" x1="42" y1="3" x2="42" y2="15" transform="rotate(166 42 42)"/>
-                  <text class="ur2-pct" x="42" y="45">52%</text>
-                  <text class="ur2-sub" x="42" y="57">of goal</text>
-                </svg>
-                <div class="ur2-cal"><i><b style="--h:78%"></b></i><i><b style="--h:62%"></b></i><i><b style="--h:92%"></b></i><i><b style="--h:40%"></b></i><i><b style="--h:84%"></b></i><i></i><i></i><i><b style="--h:88%"></b></i><i><b style="--h:70%"></b></i><i></i><i><b style="--h:96%"></b></i><i><b style="--h:66%"></b></i><i><b style="--h:22%"></b></i><i></i><i><b style="--h:60%"></b></i><i><b style="--h:90%"></b></i><i><b style="--h:74%"></b></i><i><b style="--h:82%"></b></i><i><b style="--h:56%"></b></i><i></i><i></i><i><b style="--h:72%"></b></i><i><b style="--h:48%"></b></i><i class="t"><b style="--h:34%"></b></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></div>
-              </div>
-              <div class="ur-foot"><b>Ahead of pace</b><span class="ur-chip">+86 &euro;</span></div>
-            </div>
-            <div class="b-read">
-              <div><span>Goal</span><span>Monthly, with pace</span></div>
-              <div><span>Entry</span><span>Number pad or shifts</span></div>
-              <div><span>Runs</span><span>Phone &middot; desktop dashboard</span></div>
-            </div>
-            <div class="d-go"><span>Open Ura+</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></div>
-          </div>
-        </a>
-            </div>
-      <section class="d-log" aria-label="Latest updates">
-        <div class="d-log-head"><span>Changelog &middot; <b>latest updates</b></span><span class="b-led"><i></i>21 Nov 2026</span></div>
-        <ol>
-          <li><time>21 Nov</time><span class="tag">flow 1.0</span><p>New app. Monthly costs as a checklist, income per client with open invoices, and what is left, on phone and desktop.</p></li>
-          <li><time>10 Oct</time><span class="tag">sonar 7.1</span><p>A live view next to the demo bot, with its own guard rails and a confirm step before anything trades.</p></li>
-          <li><time>05 Oct</time><span class="tag">sonar 6.9</span><p>Copy tab follows a shortlist of wallets in shadow. The morning review now lives inside the app.</p></li>
-          <li><time>04 Oct</time><span class="tag ur">Ura+</span><p>Pace marker on the goal ring. You see in euros whether you are ahead or behind your month.</p></li>
-          <li><time>29 Sep</time><span class="tag">sonar 5.7</span><p>Phone app with its own icon and bottom tabs.</p></li>
-          <li><time>27 Sep</time><span class="tag ur">Ura+</span><p>New phone design: goal ring, a calendar that fills with your hours, number pad entry.</p></li>
-        </ol>
-      </section>
-      <div class="foot"><span>foqs. <b>Advertising &amp; Performance Consulting</b></span><span>One account for every foqs. app</span></div>
+
+
+<div class="hdr" id="hdr"><div class="topbar pad"><img src="/assets/home/f8b383bc44.png" alt="foqs."><span class="pill"><b>Q4 2026</b> · še 6 pregledov</span></div></div>
+
+<header class="hero pad" id="hero">
+  <div class="ph"><img src="/assets/home/0710826989.jpg" alt="Gašper"></div>
+  <div class="in">
+    <div class="eyebrow" style="margin-top:18px">Google Ads za spletne trgovine</div>
+    <h1 id="h1">V zadnjem letu so Google oglasi mojim strankam prinesli <em class="t">1,46&nbsp;milijona&nbsp;€</em> prodaje.</h1>
+    <p class="lead">Kampanje vodim <b>neposredno v vašem računu</b> in jih merim <em class="t">v prodaji</em>, ne v klikih.</p>
+        <a class="btn" href="#audit">Rezervirajte brezplačen pregled<small>Pokličem vas v 24 urah</small></a>
+    <div class="trust"><span>Najprej kratek klic</span><span>Dostop samo za branje</span></div>
+  </div>
+</header>
+
+<div class="band pad">
+    <div class="strip" id="strip">
+      <div><b data-c="158600" data-k="eur">158.600&nbsp;€</b><span>vloženo v oglase</span></div>
+      <div class="hl"><b data-c="1.46" data-k="mio">1,46&nbsp;mio&nbsp;€</b><span>prodaje iz oglasov</span></div>
+      <div><b data-c="9.2" data-k="x">9,2x</b><span>ROAS, 12 mesecev</span></div>
+    </div>
+</div>
+
+<div class="lrow"><p>Podjetja, ki so nehala ugibati</p><ul class="sg"><li><img src="/assets/home/d3e6dcd1cb.jpg" alt="KAI Health"></li><li><img src="/assets/home/d811ebeb9e.jpg" alt="Bestway"></li><li class="mkt"><img src="/assets/home/0d705faa75.png" alt="Slovenska muska"></li><li><img src="/assets/home/8429f482f7.jpg" alt="Štumfki"></li><li><img src="/assets/home/7d1dd48478.jpg" alt="Optika Sunshine"></li><li><img src="/assets/home/ec97fdd6e1.jpg" alt="No+Vello"></li><li><img src="/assets/home/ed50f097d0.jpg" alt="Fit Akademija"></li><li><img src="/assets/home/7a5aec94e8.jpg" alt="Slavec PRO"></li><li><img src="/assets/home/9e3d4935e8.jpg" alt="Great Agency"></li></ul></div>
+
+<div class="mk rv" id="muska">
+      <div class="eyebrow">Slovenska muska · Stožice 2024</div>
+      <h2>Kdor polni Stožice, pri oglasih <em class="t">ne ugiba.</em></h2>
+      <p class="lead">Pri dogodku je datum en sam in popravnega izpita ni. Vstopnice za <b>Slovensko musko v Stožicah</b> so se prodajale tudi prek Google oglasov, ki sem jih vodil jaz.</p>
+      <div class="ig" id="ig" role="button" tabindex="0" aria-expanded="false">
+    <div class="win"><img src="/assets/home/b4dfa59f7e.jpg" alt="Objava Lada Bizovičarja na Instagramu: Gašper Gracel, Google oglaševanje"></div>
+    <div class="fade"></div>
+    <div class="open"><span>Slovenska muska<small>Instagram, 6. 2. 2024</small></span><i></i></div>
+  </div>
+  <p class="igcap" id="igcap"><span><b>@ladobizovicar</b> · Instagram</span><button id="igcls">Zapri</button></p>
+</div>
+
+<div class="tabs" id="tabs"><div class="in">
+  <button class="on" data-i="0">Rezultati</button><button data-i="1">Kaj preverim</button><button data-i="2">Kako poteka</button><button data-i="3">Vprašanja</button><span class="ink"></span>
+</div></div>
+
+<div class="panels" id="panels">
+  <div class="panel on" data-i="0">
+    <h2 class="pi">Rezultati, ki se vidijo <em class="t">v številkah.</em></h2>
+    <p class="sub pi" style="animation-delay:.05s">Zadnjih 12 mesecev, <b>7 spletnih trgovin</b>.</p>
+    <div class="stats pi" id="stats" style="animation-delay:.1s">
+      <div><b data-c="20600" data-k="plus">20.600+</b><span>nakupov prek Google Ads</span></div>
+      <div><b data-c="7.68" data-k="eur2">7,68&nbsp;€</b><span>strošek oglasov na nakup</span></div>
+      <div><b data-c="71" data-k="eur">71&nbsp;€</b><span>povprečna vrednost nakupa</span></div>
+      <div><b data-c="716" data-k="int">716</b><span>povpraševanj za optiko in depilacijo</span></div>
+    </div>
+    <div class="refs pi" style="animation-delay:.18s">
+      <div class="ref"><div class="rw"><span class="nm"><b>Bestway</b><span>bazeni, SI + HR</span></span><span class="ro">11,4x<small>ROAS</small></span></div></div>
+      <div class="ref"><div class="rw"><span class="nm"><b>Štumfki</b><span>nogavice, 4 države</span></span><span class="ro">7,3x<small>ROAS</small></span></div></div>
+      <div class="ref"><div class="rw"><span class="nm"><b>KAI Health</b><span>prehranska dopolnila</span></span><span class="ro">7,8x<small>ROAS</small></span></div></div>
     </div>
   </div>
 
-  <div class="view lg lgd" data-view="login">
-    <div class="tease-veil" aria-hidden="true"></div>
-    <div class="lg-inner"><div class="lg-wrap">
-    <div class="lg-card" data-mode="register">
-      <button class="lg-close" id="lgClose" type="button" aria-label="Back to the hub"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-      <img class="wm" src="/foqs-logo.png" alt="foqs." width="700" height="247">
-      <small>HUB</small>
-      <p class="note reg-only">Create your foqs. account and you are straight in. One login for all foqs. apps.</p>
-      <p class="note in-only">Welcome back. Sign in to open your apps.</p>
-      <p class="note rec-only">Choose a new password for your foqs. account.</p>
-
-      <div class="lg-f reg-only">
-        <label for="fName">Name</label>
-        <input id="fName" type="text" maxlength="40" autocomplete="nickname" placeholder="e.g. Gašper">
-        <small class="fhint">Shown instead of your email in the apps.</small>
-      </div>
-      <div class="lg-f not-rec">
-        <label for="fEmail">Email</label>
-        <input id="fEmail" type="email" autocomplete="username" inputmode="email" placeholder="you@example.com">
-      </div>
-      <div class="lg-f not-rec">
-        <label for="fPass">Password</label>
-        <input id="fPass" type="password" autocomplete="current-password" placeholder="••••••••">
-        <small class="fhint reg-only">At least 6 characters.</small>
-      </div>
-      <div class="lg-f rec-only">
-        <label for="fNew">New password</label>
-        <input id="fNew" type="password" autocomplete="new-password" placeholder="••••••••">
-        <small class="fhint">At least 6 characters.</small>
-      </div>
-
-      <button class="lg-btn" id="mainBtn" type="button"><span class="reg-only">Create account</span><span class="in-only">Sign in</span><span class="rec-only">Save new password</span></button>
-      <p id="authMsg" class="authmsg" role="status"></p>
-
-      <p class="lg-alt">
-        <span class="reg-only">Already have an account? <button type="button" class="linkish" data-mode="signin">Sign in</button></span>
-        <span class="in-only">No account yet? <button type="button" class="linkish" data-mode="register">Create account</button> · <button type="button" class="linkish" id="forgotBtn">Forgot password</button></span>
-        <span class="rec-only">Remembered it? <button type="button" class="linkish" data-mode="signin">Sign in</button></span>
-      </p>
-      <p class="lg-hint">3 Apps, One Login.</p>
+  <div class="panel" data-i="1">
+    <h2 class="pi">Razliko delajo <em class="t">malenkosti</em>, ki jih večina spregleda.</h2>
+    <p class="sub pi" style="animation-delay:.05s">Tapnite, kaj od tega je pri vas <b>urejeno</b> in česa <em class="t">ne veste</em>.</p>
+    <div class="chk" id="chk">
+      <div class="ci pi" style="animation-delay:.08s"><b>Negativne ključne besede</b><p>Brez njih plačujete tudi za iskanja, ki <b>ne kupijo</b>.</p><div class="ch"><button data-a="ok">Urejeno</button><button data-a="no">Ne vem</button></div></div>
+      <div class="ci pi" style="animation-delay:.12s"><b>Vrednosti konverzij</b><p>Napačno šteti nakupi pomenijo, da se Google uči na <b>napačnih podatkih</b>.</p><div class="ch"><button data-a="ok">Urejeno</button><button data-a="no">Ne vem</button></div></div>
+      <div class="ci pi" style="animation-delay:.16s"><b>Brand ločen od ostalih iskanj</b><p>Skupaj ne vidite, koliko prodaje oglasi <b>res pripeljejo</b>.</p><div class="ch"><button data-a="ok">Urejeno</button><button data-a="no">Ne vem</button></div></div>
+      <div class="ci pi" style="animation-delay:.2s"><b>Ciljanje lokacije<em>privzeto</em></b><p>Oglase vidijo tudi ljudje, ki jih vaše območje <b>samo zanima</b>.</p><div class="ch"><button data-a="ok">Urejeno</button><button data-a="no">Ne vem</button></div></div>
+      <div class="ci pi" style="animation-delay:.24s"><b>Display v Search kampanjah<em>privzeto</em></b><p>Pogosto prinaša <b>klike brez nakupov</b>.</p><div class="ch"><button data-a="ok">Urejeno</button><button data-a="no">Ne vem</button></div></div>
+      <div class="ci pi" style="animation-delay:.28s"><b>Izključitve v Performance Max</b><p>Brez izključenega branda kaže lepe številke, ki jih je <b>težko preveriti</b>.</p><div class="ch"><button data-a="ok">Urejeno</button><button data-a="no">Ne vem</button></div></div>
     </div>
-      <div class="lg-peek" aria-hidden="true">
-        <span class="lg-peek-lab">Inside</span>
-        <span class="lg-peek-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><b>foqs.habit</b><i>Win the day</i></span>
-        <span class="lg-peek-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><b>Ura+</b><i>Hours into money</i></span>
-        <span class="lg-peek-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><b>foqs.flow</b><i>Money in, money out</i></span>
-      </div></div></div>
+    <div class="score" id="score"><div class="t"><span id="scT">Označite prvo postavko</span><b id="scN">0 / 6</b></div><div class="tr"><i class="a"></i><i class="b"></i></div><p id="scP"></p></div>
   </div>
-</section>
-</main>
-<a href="/privacy" style="position:fixed;left:50%;bottom:10px;transform:translateX(-50%);z-index:9999;font:500 11px/1 Inter,system-ui,sans-serif;color:#8a8482;text-decoration:none;letter-spacing:.04em;opacity:.8">Privacy Policy</a>
 
+  <div class="panel" data-i="2">
+    <h2 class="pi">Trije koraki. Prvi je <em class="t">brezplačen.</em></h2>
+    <p class="sub pi" style="animation-delay:.05s">Najprej se slišiva, <b>dostop do računa pride šele potem</b>.</p>
+    <div class="steps pi" id="steps" style="animation-delay:.1s">
+      <div class="stp cur"><div class="k">KORAK 1<em>brezplačno</em></div><h3>Pregled računa</h3><p>Oddate povpraševanje, <b>v 24 urah vas pokličem</b>. Po klicu dobim dostop samo za branje, v 48 urah pa dobite <em class="t">video in seznam 5 največjih napak</em>.</p></div>
+      <div class="stp"><div class="k">KORAK 2</div><h3>30-dnevni Profit Sprint</h3><p>Uredim vse s seznama. <b>Fiksna cena</b> in <em class="t">pisna garancija</em> na rezultat.</p></div>
+      <div class="stp"><div class="k">KORAK 3</div><h3>Mesečno vodenje</h3><p>Če so rezultati dobri za oba, nadaljujeva. Mesečno poročilo <b>o prodaji, ne o klikih</b>. <em class="t">Brez vezave.</em></p></div>
+    </div>
+    <div class="sp" id="sp"><i class="on"></i><i></i><i></i></div>
+    <div class="mine pi" style="animation-delay:.18s"><h3>Zakaj freelancer in ne agencija</h3><ul>
+      <li><div>Vse delo naredim sam <span>· brez juniorjev</span></div></li>
+      <li><div>Račun in podatki ostanejo vaši</div></li>
+      <li><div>Poročila o prodaji <span>· ne o klikih</span></div></li>
+      <li><div>Odgovor isti dan</div></li>
+    </ul></div>
+  </div>
+
+  <div class="panel" data-i="3">
+    <h2 class="pi" style="margin-bottom:16px">Pogosta vprašanja</h2>
+    <div class="faq pi" style="animation-delay:.06s">
+      <div class="q open"><button>Kako poteka pregled?<i></i></button><div class="a"><div><p>Oddate kratek obrazec, v 24 urah vas pokličem. Šele po klicu me dodate v Google Ads z dovoljenjem "Samo za branje". Rezultat dobite v 48 urah po dostopu.</p></div></div></div>
+      <div class="q"><button>Ali lahko v računu kaj spremenite?<i></i></button><div class="a"><div><p>Ne. Z dostopom samo za branje lahko podatke le gledam. Po pregledu me lahko iz računa odstranite.</p></div></div></div>
+      <div class="q"><button>Zakaj je pregled brezplačen?<i></i></button><div class="a"><div><p>Ker najlažje pokažem, kako delam, kar na vašem računu. Popravke lahko uredite sami ali z mano.</p></div></div></div>
+      <div class="q"><button>Lahko prevzamete obstoječe kampanje?<i></i></button><div class="a"><div><p>Da. Večina strank pride z obstoječim računom. Ne začnemo iz nič, ampak nadgradimo to, kar že deluje.</p></div></div></div>
+      <div class="q"><button>Kakšen budget je potreben?<i></i></button><div class="a"><div><p>Pregled je smiseln od približno 1.000 € mesečnega budgeta za oglase.</p></div></div></div>
+    </div>
+  </div>
+</div>
+
+<section class="lfsec" id="audit"><div class="lfw">
+  <form class="lf" novalidate>
+    <div class="lf-body">
+      <div class="lf-head"><img src="/assets/home/0710826989.jpg" alt="Gašper"><div><h2><em>5 napak</em> v vašem oglaševalskem računu, razvrščenih po&nbsp;tem, koliko vas stanejo.</h2><p>Pustite ime in številko. Pokličem vas v 24 urah.</p></div></div>
+      <div class="lf-row">
+        <div class="lf-fld" data-r="name"><input id="lfn" name="name" placeholder=" " autocomplete="given-name" maxlength="80"><label for="lfn">Ime</label><svg class="lf-ok" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke="#46BEC5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="lf-err">Kako naj vas pokličem?</span></div>
+        <div class="lf-fld" data-r="tel"><input id="lft" name="phone" placeholder=" " inputmode="tel" autocomplete="tel" maxlength="30"><label for="lft">Telefon</label><svg class="lf-ok" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke="#46BEC5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="lf-err">Številka je videti prekratka</span></div>
+        <div class="lf-fld" data-r="urlopt"><input id="lfu" name="website" placeholder=" " inputmode="url" autocomplete="url" maxlength="200"><label for="lfu">Spletna stran <i>neobvezno</i></label><svg class="lf-ok" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke="#46BEC5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="lf-err">Naslov ni videti pravi, npr. vasatrgovina.si</span></div>
+        <input class="lf-hp" name="company" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <button class="lf-go" type="submit">Rezervirajte pregled<small>Pokličem vas v 24 urah</small></button>
+      </div>
+      <p class="lf-fail">Ni šlo skozi. Poskusite še enkrat ali mi pišite na <a href="mailto:gasper.mcc@gmail.com">gasper.mcc@gmail.com</a>.</p>
+      <div class="lf-more"><span>Kdaj vas najlažje ujamem?</span><div class="lf-chips"><button type="button">Dopoldne</button><button type="button">Popoldne</button><button type="button" class="on">Kadarkoli</button></div></div>
+      <div class="lf-trust"><span>Najprej kratek klic</span><span>Dostop samo za branje</span><span>Do konca leta še 6 pregledov</span></div>
+    </div>
+    <div class="lf-done"><div class="lf-ring"><svg viewBox="0 0 76 76"><circle cx="38" cy="38" r="34"/><path d="M24 39.5l9.5 9.5L52 29"/></svg><b style="--a:0deg"></b><b style="--a:36deg"></b><b style="--a:72deg"></b><b style="--a:108deg"></b><b style="--a:144deg"></b><b style="--a:180deg"></b><b style="--a:216deg"></b><b style="--a:252deg"></b><b style="--a:288deg"></b><b style="--a:324deg"></b></div><h3>Hvala.</h3><p>Pokličem vas v roku 24 ur.</p></div>
+  </form>
+</div></section>
+<footer><img src="/assets/home/f8b383bc44.png" alt="foqs.">Google Ads, TikTok Ads in spletne strani za podjetja, ki oglaševanje merijo v prodaji.<p class="flinks"><a href="/privacy">Privacy Policy</a><span>·</span><a href="/hub">Hub</a></p></footer>
+
+<div class="fx cta-bar" id="bar"><a class="btn" href="#audit">Rezervirajte brezplačen pregled</a></div>
+
+
+
+</div>
 <script>
+(function(){var mq=matchMedia('(max-width:760px)'),mob=mq.matches;
+var x=document.getElementById(mob?'D':'M');x.parentNode.removeChild(x);
+var f=function(){location.reload()};mq.addEventListener?mq.addEventListener('change',f):mq.addListener(f);
+window.__mob=mob})();
+</script>
+<script>if(!window.__mob){(function(){
 
-const SB_URL = 'https://cgnihdlprjqpawvpznsw.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnbmloZGxwcmpxcGF3dnB6bnN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3ODAwODAsImV4cCI6MjEwMTM1NjA4MH0.HQgn-5op-0BYAMllyE3rbhwlLPILxvl1OVnqXau_33g';
-const sb = window.supabase.createClient(SB_URL, SB_KEY);
 
-const hubView = document.querySelector('.view[data-view="hub"]');
-const logView = document.querySelector('.view[data-view="login"]');
-const card    = document.querySelector('.lg-card');
-const msgEl   = document.getElementById('authMsg');
-const mainBtn = document.getElementById('mainBtn');
-const reduce  = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-let view = 'login';
-
-function paint(keepScroll){
-  document.body.dataset.view = view;
-  hubView.hidden = false;
-  logView.hidden = (view !== 'login');
-  if (view === 'hub' && !keepScroll) window.scrollTo(0, 0);
-}
-function say(text, cls){ msgEl.textContent = text || ''; msgEl.className = 'authmsg ' + (cls || ''); }
-function setMode(m){
-  card.dataset.mode = m;
-  say('');
-  document.getElementById('fPass').autocomplete = (m === 'register') ? 'new-password' : 'current-password';
-}
-function showUser(u){
-  if (!u) return;
-  const name = (u.user_metadata && u.user_metadata.name) || u.email || '';
-  document.getElementById('hubName').textContent = name;
-  document.getElementById('hubInitial').textContent = (name.trim()[0] || '\u00b7').toUpperCase();
-  document.body.classList.remove('guest');
-  checkSonar();
-}
-/* sonar is invite only: grey the card out for accounts that are not on the list */
-async function checkSonar(){
-  const card = document.getElementById('modSonar');
-  if (!card) return;
-  let ok = false;
-  try { const { data, error } = await sb.rpc('has_app_access', { p_app: 'sonar' }); ok = !error && !!data; }
-  catch (e) { ok = false; }
-  card.classList.toggle('locked', !ok);
-  const go = card.querySelector('.d-go span');
-  if (go) go.textContent = ok ? 'Open sonar' : 'Private \u00b7 invite only';
-  if (ok) { card.setAttribute('href', '/sonar'); card.removeAttribute('aria-disabled'); }
-  else { card.removeAttribute('href'); card.setAttribute('aria-disabled', 'true'); }
-}
-function enterHub(animate){
-  if (!animate) { view = 'hub'; paint(); return; }
-  document.body.classList.add('reveal');
-  mainBtn.classList.add('busy');
-  logView.classList.add('leaving');
-  setTimeout(function(){
-    mainBtn.classList.remove('busy');
-    logView.classList.remove('leaving');
-    document.body.classList.remove('reveal');
-    view = 'hub'; paint();
-  }, 480);
-}
-
-/* plain-English Supabase errors */
-function explain(m){
-  m = m || '';
-  if (/invalid login credentials/i.test(m)) return 'Wrong email or password.';
-  if (/email not confirmed/i.test(m))       return 'Your email is not confirmed yet. Open the link we sent you, then sign in.';
-  if (/already registered|already been registered/i.test(m)) return 'That email already has an account. Use Sign in, or Forgot password.';
-  if (/rate limit|too many/i.test(m))       return 'Too many attempts. Wait a minute and try again.';
-  if (/password should be at least/i.test(m)) return 'Password must be at least 6 characters.';
-  return m;
-}
-const creds = () => ({
-  email: document.getElementById('fEmail').value.trim(),
-  pass:  document.getElementById('fPass').value
+document.querySelectorAll('.logos li').forEach(li=>{
+  li.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;const r=li.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;
+    li.style.setProperty('--ry',((x-.5)*22).toFixed(1)+'deg');li.style.setProperty('--rx',((.5-y)*18-10).toFixed(1)+'deg');
+    li.style.setProperty('--mx',(x*100).toFixed(0)+'%');li.style.setProperty('--my',(y*100).toFixed(0)+'%');li.classList.add('on')});
+  li.addEventListener('pointerleave',()=>{li.classList.remove('on');li.style.setProperty('--rx','0deg');li.style.setProperty('--ry','0deg')});
 });
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.15});
+document.querySelectorAll('.r').forEach(el=>io.observe(el));
+// count up
+const fmt={eur:v=>(v/1e6).toFixed(2).replace('.',',')+' mio €',x:v=>v.toFixed(1).replace('.',',')+'x',plus:v=>Math.round(v).toLocaleString('sl-SI')+(v>=1000?'+':'')};
+const so=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;so.unobserve(e.target);const el=e.target,to=+el.dataset.n,f=fmt[el.dataset.f],t0=performance.now();const step=t=>{const k=Math.min(1,(t-t0)/1200),ea=1-Math.pow(1-k,3);el.textContent=f(to*ea);if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step)}),{threshold:.5});
+document.querySelectorAll('[data-n]').forEach(el=>so.observe(el));
 
-async function doRegister(){
-  const { email, pass } = creds();
-  const name = document.getElementById('fName').value.trim();
-  if (!name)  { say('Add a name so the apps do not call you by your email.', 'err'); document.getElementById('fName').focus(); return; }
-  if (!email || !pass) { say('Fill in your email and a password.', 'err'); return; }
-  if (pass.length < 6) { say('Password must be at least 6 characters.', 'err'); return; }
-  mainBtn.disabled = true; say('Creating your account \u2026');
-  const { data, error } = await sb.auth.signUp({
-    email, password: pass,
-    options: { data: { name }, emailRedirectTo: location.origin + '/' }
-  });
-  mainBtn.disabled = false;
-  if (error) { say('Could not create the account: ' + explain(error.message), 'err'); return; }
-  if (data.session) { showUser(data.user); enterHub(true); return; }
-  say('Account created. Open the confirmation link we sent to ' + email + ', then sign in.', 'ok');
-}
-async function doSignIn(){
-  const { email, pass } = creds();
-  if (!email || !pass) { say('Fill in your email and password.', 'err'); return; }
-  mainBtn.disabled = true; say('Signing in \u2026');
-  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-  mainBtn.disabled = false;
-  if (error) { say('Could not sign in: ' + explain(error.message), 'err'); return; }
-  showUser(data.user); enterHub(true);
-}
-async function doRecover(){
-  const pass = document.getElementById('fNew').value;
-  if (!pass || pass.length < 6) { say('Password must be at least 6 characters.', 'err'); return; }
-  mainBtn.disabled = true; say('Saving \u2026');
-  const { data, error } = await sb.auth.updateUser({ password: pass });
-  mainBtn.disabled = false;
-  if (error) { say('Could not save it: ' + explain(error.message), 'err'); return; }
-  history.replaceState(null, '', location.pathname);
-  say('New password saved.', 'ok');
-  showUser(data.user); setTimeout(function(){ enterHub(true); }, 500);
-}
+(function(){
+const $=(s,r=document)=>[...r.querySelectorAll(s)],reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const nb=' ',F={eur:v=>Math.round(v).toLocaleString('sl-SI')+nb+'€',eur2:v=>v.toFixed(2).replace('.',',')+nb+'€',mio:v=>v.toFixed(2).replace('.',',')+nb+'mio'+nb+'€',roas:v=>v.toFixed(1).replace('.',',')+'x'+nb+'ROAS',plus:v=>Math.round(v).toLocaleString('sl-SI')+'+',int:v=>Math.round(v).toLocaleString('sl-SI')};
+function count(el,d=1100){const to=+el.dataset.c,f=F[el.dataset.k],fin=el.innerHTML;if(reduce)return;const t0=performance.now();(function st(t){const k=Math.min(1,(t-t0)/d),e=1-Math.pow(1-k,3);if(k<1){el.textContent=f(to*e);requestAnimationFrame(st)}else el.innerHTML=fin})(t0)}
 
-mainBtn.onclick = function(){
-  const m = card.dataset.mode;
-  if (m === 'register') return doRegister();
-  if (m === 'recover')  return doRecover();
-  return doSignIn();
-};
-document.querySelectorAll('.linkish[data-mode]').forEach(function(b){ b.onclick = function(){ setMode(b.dataset.mode); }; });
-document.getElementById('forgotBtn').onclick = async function(){
-  const { email } = creds();
-  if (!email) { say('Type your email above first, then click Forgot password.', 'err'); document.getElementById('fEmail').focus(); return; }
-  say('Sending the link \u2026');
-  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/' });
-  if (error) { say('Could not send it: ' + explain(error.message), 'err'); return; }
-  say('We sent a reset link to ' + email + '. Open it and choose a new password.', 'ok');
-};
-document.getElementById('signOut').onclick = async function(e){
-  e.preventDefault();
-  await sb.auth.signOut();
-  location.reload();
-};
-['fEmail','fPass','fName','fNew'].forEach(function(id){
-  document.getElementById(id).addEventListener('keydown', function(e){ if (e.key === 'Enter') mainBtn.click(); });
-});
+/* 1. trak v heroju: po korakih ob odprtju */
+const flow=$('.flow>*');flow.forEach((el,i)=>setTimeout(()=>{el.classList.add('on');const b=el.querySelector('[data-c]');if(b)count(b,900)},500+i*380));
 
-/* Cards light up on hover with a mouse, and on scroll-into-view on a phone.
-   Everything hangs off .is-on, so iOS cannot leave a card stuck in a hover state. */
-const grid  = document.querySelector('.d-grid');
-const mods  = Array.prototype.slice.call(document.querySelectorAll('.d-mod'));
-const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+/* 2. sestavljanje ob scrollu */
+$('section .eyebrow, section h2, section .lead, .stats .note, .pa .left .btn, .why blockquote, .why .me, .final .tx>*, .final .ph').forEach(el=>{if(!el.closest('.r,.hero'))el.classList.add('rv')});
+$('.pa .left').forEach(el=>el.classList.remove('r'));$('.pa .left>*').forEach(el=>el.classList.add('rv'));
+$('.final .box').forEach(el=>el.classList.remove('r'));
+$('.logos ul, .stats .grid, .now .grid, .rows, .steps .grid, .vs, .cases .grid, .faq .list').forEach(el=>{el.classList.remove('r');el.classList.add('sg')});
+const io2=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;const el=e.target;io2.unobserve(el);
+  if(el.classList.contains('sg')){const kids=[...el.children],gap=el.matches('.rows,.vs,.faq .list')?70:110;kids.forEach((k,i)=>k.style.transitionDelay=(i*gap)+'ms');el.classList.add('in');
+    if(el.matches('.stats .grid'))kids.forEach((k,i)=>setTimeout(()=>count(k.querySelector('[data-c]'),1000),i*gap));
+    if(el.matches('.now .grid'))setTimeout(()=>{el.classList.add('go');$('.bars',el).forEach(b=>[...b.children].forEach((s,j)=>s.style.transitionDelay=(j*70)+'ms'))},250);
+    if(el.matches('.vs'))kids.forEach((k,i)=>setTimeout(()=>k.classList.add('ck'),i*gap+350));
+    setTimeout(()=>{kids.forEach(k=>k.style.transitionDelay='');el.classList.remove('sg','in')},kids.length*gap+800);
+  } else el.classList.add('in')}),{threshold:.2,rootMargin:'0px 0px -6% 0px'});
+$('.rv,.sg').forEach(el=>io2.observe(el));
+/* zamik znotraj iste sekcije, da gre naslov pred besedilom */
+$('section').forEach(s=>$('.rv',s).forEach((el,i)=>el.style.transitionDelay=Math.min(i,4)*90+'ms'));
 
-function setOn(el, on, withScan){
-  el.classList.toggle('is-on', on);
-  el.classList.toggle('scan', !!(on && withScan));
-  el.querySelectorAll('.prev').forEach(function(x){ x.classList.toggle('is-live', on); });
-}
+/* 3. kljukice kot risba */
+$('.vs li:not(:first-child) div:last-child').forEach(d=>{d.insertAdjacentHTML('afterbegin','<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8.5l3.6 3.6L13.5 4.5"/></svg>');const tx=d.lastChild;const sp=document.createElement('span');sp.textContent=tx.textContent;d.replaceChild(sp,tx)});
 
-if (canHover){
-  mods.forEach(function(el){
-    el.addEventListener('mouseenter', function(){ setOn(el, true, true);  if (grid) grid.classList.add('dimmed'); });
-    el.addEventListener('mouseleave', function(){ setOn(el, false, false); if (grid) grid.classList.remove('dimmed'); });
-  });
-} else if ('IntersectionObserver' in window){
-  const io = new IntersectionObserver(function(entries){
-    entries.forEach(function(e){ setOn(e.target, e.isIntersecting, false); });
-  }, { threshold: 0.5 });
-  mods.forEach(function(el){ io.observe(el); });
-} else {
-  mods.forEach(function(el){ setOn(el, true, false); });
-}
+/* 4. "zdaj" na pravem mesecu */
+(function(){const cards=$('.now .card');if(!cards.length)return;const m=new Date().getMonth(),idx=m===10?0:m===11?1:m===0?2:-1;const here=cards[0].querySelector('.here');
+  cards.forEach(c=>c.classList.remove('act'));if(here)here.remove();if(idx<0)return;cards[idx].classList.add('act');if(here)cards[idx].prepend(here)})();
 
-/* keyboard: a focused card behaves like a hovered one */
-mods.forEach(function(el){
-  el.addEventListener('focusin',  function(){ setOn(el, true, canHover); });
-  el.addEventListener('focusout', function(){ if (!canHover) return; setOn(el, false, false); });
-});
+/* 5. črta med koraki se polni s scrollom */
+const pl=document.querySelector('.pline'),steps=$('.steps .step'),dots=$('.pline i');
+function line(){if(!pl)return;const r=pl.getBoundingClientRect(),vh=innerHeight,p=Math.max(0,Math.min(1,(vh*.82-r.top)/(vh*.42)));pl.style.setProperty('--p',p.toFixed(3));
+  [0.02,0.5,0.98].forEach((th,i)=>{const on=p>=th;dots[i]&&dots[i].classList.toggle('lit',on);steps[i]&&steps[i].classList.toggle('lit',on)})}
+if(pl&&!reduce){addEventListener('scroll',line,{passive:true});addEventListener('resize',line);line()}else{steps.forEach(s=>s.classList.add('lit'));dots.forEach(d=>d.classList.add('lit'));pl&&pl.style.setProperty('--p',1)}
+if(getComputedStyle(pl).display==='none')steps.forEach(s=>s.classList.add('lit'));
 
-/* guests look around the hub freely. Opening an app plays the login to hub
-   move backwards: the hub eases away to the right and the card comes in. */
-const fineMouse = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-function focusFirst(){
-  if (!fineMouse) return;
-  const el = document.getElementById(card.dataset.mode === 'register' ? 'fName' : 'fEmail');
-  if (el) el.focus({ preventScroll: true });
-}
-function openAuth(mode){
-  if (view === 'login') return;
-  setMode(mode || 'register');
-  if (reduce){ view = 'login'; paint(true); focusFirst(); return; }
-  document.body.classList.add('reveal');
-  logView.classList.add('arriving');
-  view = 'login'; paint(true);
-  requestAnimationFrame(function(){ requestAnimationFrame(function(){
-    document.body.classList.remove('reveal');
-  }); });
-  setTimeout(function(){ logView.classList.remove('arriving'); focusFirst(); }, 560);
-}
-function closeAuth(){
-  if (view !== 'login' || !document.body.classList.contains('guest')) return;
-  if (card.dataset.mode === 'recover') return;
-  if (reduce){ view = 'hub'; paint(true); return; }
-  document.body.classList.add('reveal');
-  logView.classList.add('leaving');
-  setTimeout(function(){
-    logView.classList.remove('leaving');
-    document.body.classList.remove('reveal');
-    view = 'hub'; paint(true);
-  }, 480);
-}
-document.querySelector('.d-grid').addEventListener('click', function(e){
-  if (!document.body.classList.contains('guest')) return;
-  const a = e.target.closest('.d-mod');
-  if (!a) return;
-  e.preventDefault();
-  openAuth('register');
-}, true);
-document.getElementById('guestIn').onclick = function(){ openAuth('signin'); };
-document.getElementById('lgClose').onclick = closeAuth;
-document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeAuth(); });
+/* 6. meni označi sekcijo */
+const links=$('nav ul a'),all=$('header.hero, section');
+function spy(){const y=innerHeight*.4;let id='';all.forEach(s=>{if(s.getBoundingClientRect().top<=y)id=s.id||''});links.forEach(a=>a.classList.toggle('act',!!id&&a.getAttribute('href')==='#'+id))}
+addEventListener('scroll',spy,{passive:true});spy();
 
-/* clock */
-function tick(){
-  const d = new Date(), e = document.getElementById('d-clock');
-  if (e) e.textContent = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
-}
-tick(); setInterval(tick, 20000);
+/* 7. sij sledi miški */
+const hero=document.querySelector('.hero'),glow=document.querySelector('.hero .glow');
+if(hero&&glow&&!reduce)hero.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;const r=hero.getBoundingClientRect();glow.style.setProperty('--gx',((e.clientX-r.left-r.width/2)*.28).toFixed(0)+'px');glow.style.setProperty('--gy',((e.clientY-r.top-r.height/2)*.22).toFixed(0)+'px')});
 
-/* faceted background, drawn once */
-function drawMesh(){
-  const c = document.getElementById('meshCanvas'); if (!c) return;
-  const w = c.clientWidth || window.innerWidth, ht = c.clientHeight || window.innerHeight;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  if (!w || !ht) return;
-  c.width = w * dpr; c.height = ht * dpr;
-  const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const cell = Math.max(86, Math.round(Math.min(w, ht) / 6.5));
-  const cols = Math.ceil(w / cell) + 2, rows = Math.ceil(ht / cell) + 2, pts = [];
-  for (let y = 0; y <= rows; y++){ pts[y] = []; for (let x = 0; x <= cols; x++){
-    pts[y][x] = { x:(x-1)*cell + (Math.random()-.5)*cell*.55, y:(y-1)*cell + (Math.random()-.5)*cell*.55 };
-  }}
-  const lx = w*.5, ly = -ht*.2, diag = Math.sqrt(w*w + ht*ht);
-  function tri(a, b, c3){
-    const cx = (a.x+b.x+c3.x)/3, cy = (a.y+b.y+c3.y)/3;
-    let t = Math.max(0, Math.min(1, 1 - (Math.sqrt((cx-lx)*(cx-lx) + (cy-ly)*(cy-ly)) / diag) * 1.45));
-    t = t*t;
-    const base = 13 + t*44, teal = t*44;
-    g.fillStyle = 'rgb(' + Math.round(base*.95) + ',' + Math.round(base + teal*.5) + ',' + Math.round(base + teal*.66) + ')';
-    g.beginPath(); g.moveTo(a.x,a.y); g.lineTo(b.x,b.y); g.lineTo(c3.x,c3.y); g.closePath(); g.fill();
-    g.strokeStyle = 'rgba(70,190,197,' + (0.05 + t*0.2).toFixed(3) + ')'; g.lineWidth = 1; g.stroke();
-  }
-  for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++){
-    tri(pts[y][x], pts[y][x+1], pts[y+1][x]);
-    tri(pts[y][x+1], pts[y+1][x+1], pts[y+1][x]);
-  }
-}
-/* Only redraw when the width really changed. On a phone the address bar
-   sliding away fires resize constantly, and a redraw there would reshuffle
-   the whole pattern mid-scroll. */
-let mt, lastW = window.innerWidth;
-window.addEventListener('resize', function(){
-  if (Math.abs(window.innerWidth - lastW) < 2) return;
-  lastW = window.innerWidth;
-  clearTimeout(mt); mt = setTimeout(drawMesh, 200);
-});
-drawMesh();
+/* 8. odziv gumbov */
+$('.btn').forEach(b=>b.addEventListener('pointerdown',e=>{const r=b.getBoundingClientRect(),d=Math.max(r.width,r.height)*2,s=document.createElement('span');s.className='rip';s.style.cssText=`width:${d}px;height:${d}px;left:${e.clientX-r.left-d/2}px;top:${e.clientY-r.top-d/2}px`;b.appendChild(s);setTimeout(()=>s.remove(),520)}));
+})();
 
-/* boot: recovery link, existing session, or the entry screen */
-sb.auth.onAuthStateChange(function(event){
-  if (event === 'PASSWORD_RECOVERY'){ view = 'login'; setMode('recover'); document.body.dataset.state = 'ready'; paint(); }
-});
-(async function boot(){
-  const hash = location.hash || '';
-  if (/error=|error_description=/.test(hash)){
-    const p = new URLSearchParams(hash.slice(1));
-    document.body.classList.add('guest');
-    setMode('signin');
-    say('That link is not valid any more: ' + decodeURIComponent(p.get('error_description') || p.get('error') || ''), 'err');
-  } else if (/type=recovery/.test(hash)){
-    setMode('recover');
-  } else {
-    const { data } = await sb.auth.getSession();
-    if (data.session){
-      const { data: u } = await sb.auth.getUser();
-      showUser(u.user);
-      view = 'hub';
-    } else {
-      document.body.classList.add('guest');
-      view = 'hub';
-    }
-  }
-  document.body.dataset.state = 'ready';
-  paint();
+;
+
+(function(){const ig=document.getElementById('ig');if(!ig)return;const win=ig.querySelector('.win'),im=ig.querySelector('img'),cap=document.getElementById('igcap');
+function o(){if(ig.classList.contains('on'))return;win.style.height=im.offsetWidth*im.naturalHeight/im.naturalWidth+'px';ig.classList.add('on');cap.classList.add('on');ig.setAttribute('aria-expanded','true');setTimeout(()=>ig.scrollIntoView({behavior:'smooth',block:'start'}),120)}
+function c(){win.style.height='';ig.classList.remove('on');cap.classList.remove('on');ig.setAttribute('aria-expanded','false')}
+ig.addEventListener('click',o);ig.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();o()}});
+document.getElementById('igcls').addEventListener('click',e=>{e.stopPropagation();c()});
+addEventListener('resize',()=>{if(ig.classList.contains('on'))win.style.height=im.offsetWidth*im.naturalHeight/im.naturalWidth+'px'});
+const t=document.querySelector('.mkt');if(t)t.addEventListener('click',()=>{0;ig.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(o,550)});
+new IntersectionObserver((es,ob)=>{es.forEach(e=>{if(e.isIntersecting){ig.classList.add('nudge');ob.disconnect()}})},{threshold:.9}).observe(ig);})();
+
+})()}</script>
+<script>if(window.__mob){(function(){
+
+(function(){
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)],reduce=matchMedia('(prefers-reduced-motion: reduce)').matches,nb=' ';
+const F={eur:v=>Math.round(v).toLocaleString('sl-SI')+nb+'€',eur2:v=>v.toFixed(2).replace('.',',')+nb+'€',mio:v=>v.toFixed(2).replace('.',',')+nb+'mio'+nb+'€',x:v=>v.toFixed(1).replace('.',',')+'x',plus:v=>Math.round(v).toLocaleString('sl-SI')+'+',int:v=>Math.round(v).toLocaleString('sl-SI')};
+function count(el,d){if(reduce||!el)return;const to=+el.dataset.c,f=F[el.dataset.k],fin=el.innerHTML,t0=performance.now();(function s(t){const k=Math.min(1,(t-t0)/d),e=1-Math.pow(1-k,3);if(k<1){el.textContent=f(to*e);requestAnimationFrame(s)}else el.innerHTML=fin})(t0)}
+
+/* hero: naslov beseda za besedo iz zamegljenega v ostro (foqs = fokus), potem trak */
+const hero=$('#hero'),h1=$('#h1');
+(function split(n){[...n.childNodes].forEach(c=>{if(c.nodeType===3){const f=document.createDocumentFragment();c.textContent.split(/(\s+)/).forEach(p=>{if(!p)return;if(/^\s+$/.test(p)){f.appendChild(document.createTextNode(' '));return}const s=document.createElement('span');s.className='w';s.textContent=p;f.appendChild(s)});n.replaceChild(f,c)}else if(c.nodeType===1){c.classList.add('w')}})})(h1);
+$$('.w',h1).forEach((w,i)=>w.style.transitionDelay=(i*55)+'ms');
+requestAnimationFrame(()=>hero.classList.add('go'));
+$$('#strip>div').forEach((d,i)=>setTimeout(()=>{d.classList.add('on');count(d.querySelector('[data-c]'),800)},1000+i*320));
+
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;const el=e.target;io.unobserve(el);if(el.classList.contains('sg'))[...el.children].forEach((k,i)=>k.style.transitionDelay=(i*60)+'ms');el.classList.add('in')}),{threshold:.2});
+$$('.rv,.sg').forEach(el=>io.observe(el));
+const hdr=$('#hdr');addEventListener('scroll',()=>hdr.classList.toggle('sc',scrollY>8),{passive:true});
+
+/* zavihki: klik ali poteg levo/desno */
+const tabs=$('#tabs'),tb=$$('#tabs button'),ink=$('#tabs .ink'),panels=$$('.panel'),wrap=$('#panels');let cur=0,seen={};
+function show(i,user){if(i<0||i>=panels.length||i===cur&&user)return;const back=i<cur;cur=i;tb.forEach((b,j)=>b.classList.toggle('on',j===i));ink.style.transform='translateX('+(i*100)+'%)';
+  panels.forEach((p,j)=>{p.classList.remove('on','back');if(j===i){void p.offsetWidth;p.classList.add('on');if(back)p.classList.add('back')}});
+  if(i===0&&!seen[0]){$$('#stats [data-c]').forEach((b,k)=>setTimeout(()=>count(b,900),150+k*80))}seen[i]=1;
+  if(user)requestAnimationFrame(()=>{const d=wrap.getBoundingClientRect().top-117;if(Math.abs(d)>4)scrollTo({top:scrollY+d,behavior:reduce?'auto':'smooth'})})}
+tb.forEach(b=>b.addEventListener('click',()=>show(+b.dataset.i,true)));
+let sx=0,sy=0,st=0;wrap.addEventListener('touchstart',e=>{if(e.target.closest('.steps'))return sx=null;sx=e.touches[0].clientX;sy=e.touches[0].clientY;st=Date.now()},{passive:true});
+wrap.addEventListener('touchend',e=>{if(sx===null)return;const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Math.abs(dx)>60&&Math.abs(dy)<45&&Date.now()-st<600)show(cur+(dx<0?1:-1),true)},{passive:true});
+new IntersectionObserver((es,o)=>es.forEach(e=>{if(e.isIntersecting){o.disconnect();seen[0]=0;show(0,false)}}),{threshold:.3}).observe($('#stats'));
+
+/* reference: razpri eno */
+$$('.ref>button').forEach(b=>b.addEventListener('click',()=>{const r=b.parentElement,was=r.classList.contains('open');$$('.ref').forEach(x=>x.classList.remove('open'));if(!was)r.classList.add('open')}));
+
+/* samopregled */
+const cis=$$('.ci'),score=$('#score'),scT=$('#scT'),scN=$('#scN'),scP=$('#scP'),ba=$('.score .tr .a'),bb=$('.score .tr .b');
+function upd(){const ok=cis.filter(c=>c.classList.contains('ok')).length,no=cis.filter(c=>c.classList.contains('no')).length,n=cis.length,d=ok+no;
+  ba.style.width=(ok/n*100)+'%';bb.style.width=(no/n*100)+'%';scN.textContent=d+' / '+n;
+  scT.textContent=d===0?'Označite prvo postavko':d<n?'Še '+(n-d)+' do konca':'Končano';
+  score.classList.toggle('hot',no>0&&d>=3);
+  if(no>0)scP.textContent=(no===1?'1 stvari':no+' stvari')+' od '+n+' niste prepričani. Točno to preverim v brezplačnem pregledu.';}
+cis.forEach(c=>$$('button',c).forEach(b=>b.addEventListener('click',()=>{const a=b.dataset.a,o=a==='ok'?'no':'ok';c.classList.remove(o);c.classList.toggle(a);upd()})));
+
+/* koraki: poteg */
+const steps=$('#steps'),stp=$$('.stp'),sp=$$('#sp i');
+steps.addEventListener('scroll',()=>{const c=steps.scrollLeft+steps.clientWidth/2;let b=0,bd=1e9;stp.forEach((el,i)=>{const d=Math.abs(el.offsetLeft-steps.offsetLeft+el.offsetWidth/2-c);if(d<bd){bd=d;b=i}});stp.forEach((el,i)=>el.classList.toggle('cur',i===b));sp.forEach((el,i)=>el.classList.toggle('on',i<=b))},{passive:true});
+
+/* vprašanja */
+$$('.q>button').forEach(b=>b.addEventListener('click',()=>{const q=b.parentElement,was=q.classList.contains('open');$$('.q').forEach(x=>x.classList.remove('open'));if(!was)q.classList.add('open')}));
+
+/* spodnji gumb */
+const bar=$('#bar');let pastHero=false,atEnd=false;const ub=()=>bar.classList.toggle('show',pastHero&&!atEnd);
+new IntersectionObserver(es=>{pastHero=!es[0].isIntersecting;ub()},{threshold:.2}).observe(hero);
+new IntersectionObserver(es=>{atEnd=es[0].isIntersecting;ub()},{threshold:.25}).observe($('#audit'));
+})();
+
+;
+
+(function(){const ig=document.getElementById('ig');if(!ig)return;const win=ig.querySelector('.win'),im=ig.querySelector('img'),cap=document.getElementById('igcap');
+function o(){if(ig.classList.contains('on'))return;win.style.height=im.offsetWidth*im.naturalHeight/im.naturalWidth+'px';ig.classList.add('on');cap.classList.add('on');ig.setAttribute('aria-expanded','true');setTimeout(()=>ig.scrollIntoView({behavior:'smooth',block:'start'}),120)}
+function c(){win.style.height='';ig.classList.remove('on');cap.classList.remove('on');ig.setAttribute('aria-expanded','false')}
+ig.addEventListener('click',o);ig.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();o()}});
+document.getElementById('igcls').addEventListener('click',e=>{e.stopPropagation();c()});
+addEventListener('resize',()=>{if(ig.classList.contains('on'))win.style.height=im.offsetWidth*im.naturalHeight/im.naturalWidth+'px'});
+const t=document.querySelector('.mkt');if(t)t.addEventListener('click',()=>{0;ig.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(o,550)});
+new IntersectionObserver((es,ob)=>{es.forEach(e=>{if(e.isIntersecting){ig.classList.add('nudge');ob.disconnect()}})},{threshold:.9}).observe(ig);})();
+
+})()}</script>
+<script>
+(function(){var f=document.querySelector('form.lf');if(!f)return;
+var EP='https://cgnihdlprjqpawvpznsw.supabase.co/rest/v1/site_leads',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnbmloZGxwcmpxcGF3dnB6bnN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3ODAwODAsImV4cCI6MjEwMTM1NjA4MH0.HQgn-5op-0BYAMllyE3rbhwlLPILxvl1OVnqXau_33g';
+var q=function(s){return [].slice.call(f.querySelectorAll(s))};
+var R={url:function(v){return /^(https?:\/\/)?[a-z0-9čšžćđ-]+(\.[a-z0-9čšžćđ-]+)+(\/.*)?$/i.test(v.trim())},urlopt:function(v){return !v.trim()||R.url(v)},name:function(v){return v.trim().length>=2},tel:function(v){return v.replace(/\D/g,'').length>=8}};
+function chk(d,show){var i=d.querySelector('input'),ok=R[d.dataset.r](i.value);d.classList.toggle('good',ok&&!!i.value.trim());if(show||d.classList.contains('bad'))d.classList.toggle('bad',!ok);return ok}
+q('.lf-fld').forEach(function(d){var i=d.querySelector('input');i.addEventListener('input',function(){chk(d,false)});i.addEventListener('blur',function(){if(i.value)chk(d,true)})});
+var chips=q('.lf-chips button');chips.forEach(function(b){b.addEventListener('click',function(){chips.forEach(function(x){x.classList.toggle('on',x===b)})})});
+var busy=false;
+f.addEventListener('submit',function(e){e.preventDefault();if(busy)return;
+  if(!q('.lf-fld').map(function(d){return chk(d,true)}).every(Boolean)){var b=f.querySelector('.lf-fld.bad input');if(b)b.focus();return}
+  var g=f.querySelector('.lf-go'),h=f.offsetHeight,t0=Date.now(),v=function(n){return f.elements[n].value.trim()};
+  busy=true;f.classList.remove('failed');g.style.width=g.offsetWidth+'px';void g.offsetWidth;g.classList.add('load');g.style.width='58px';
+  function reset(){g.classList.remove('load');g.style.width='';busy=false}
+  function ok(){setTimeout(function(){f.style.minHeight=h+'px';f.classList.add('sent');reset();var d=f.querySelector('.lf-done');d.style.paddingTop=Math.max(8,(h-d.offsetHeight)/2-30)+'px';
+    try{if(window.gtag)gtag('event','generate_lead',{form:'pregled'})}catch(_){}} ,Math.max(0,1100-(Date.now()-t0)))}
+  function fail(){setTimeout(function(){reset();f.classList.add('failed')},Math.max(0,700-(Date.now()-t0)))}
+  if(f.elements.company.value){ok();return}
+  var on=f.querySelector('.lf-chips button.on');
+  fetch(EP,{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY,'Prefer':'return=minimal'},
+    body:JSON.stringify({name:v('name'),phone:v('phone'),website:v('website')||null,call_time:on?on.textContent:null,device:window.__mob?'telefon':'racunalnik',page:(location.pathname+location.search).slice(0,200)})})
+   .then(function(r){r.ok?ok():fail()}).catch(fail)});
 })();
 </script>
-<script>/* stevec in "x / 4 paid" tecejo v istem 9 s ritmu kot animacija */
-(function(){var n=document.getElementById('fxNum'),p=document.getElementById('fxPaid');if(!n)return;var fmt=function(v){return Math.round(v).toLocaleString('de-DE')+' \u20ac'};
-function run(){var t0=performance.now();(function f(t){var s=(t-t0)/1000;if(s>9){run();return}var k=s<1.6?1-Math.pow(1-Math.min(1,s/1.6),4):s>8.2?Math.max(0,1-(s-8.2)/.8):1;n.textContent=fmt(1240*k);var c=0;[1.3,2.2,3.1,4].forEach(function(d){var q=s-d;if(q>.3&&q<4.7)c++});p.textContent=c+' / 4 paid';requestAnimationFrame(f)})(t0)}
-if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches){p.textContent='3 / 4 paid';return}run()})();</script></body>
+<script src="/track.js?v=2" defer></script>
+</body>
 </html>

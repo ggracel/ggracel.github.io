@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>foqs. hub</title>
+<meta name="description" content="foqs. - Google Ads, TikTok Ads and websites. Sign in to the foqs. hub for habit, Ura+ and flow.">
+<meta name="theme-color" content="#141112">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:title" content="foqs.">
+<meta property="og:description" content="Google Ads, TikTok Ads and websites that pay for themselves.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://foqs.si/hub">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+
+:root{
+  --ink:#141112; --ink2:#1a1617; --ink3:#211d1e; --ink4:#2a2526;
+  --line:#322c2d; --line2:#453e3f;
+  --teal:#46BEC5; --teal-d:#2ea4ab; --teal-dim:rgba(70,190,197,.14);
+  --fg:#f4f2f2; --dim:#B7B4B5; --mute:#8b8586;
+  --pos:#5ad8ae; --warn:#e8b463;
+  --poppins:'Poppins',system-ui,sans-serif;
+  --inter:'Inter',system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ink);color:var(--fg);font-family:var(--inter);line-height:1.6;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+h1,h2,h3,h4{font-family:var(--poppins);letter-spacing:-.03em;line-height:1.08;margin:0;text-wrap:balance}
+p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:inherit;text-decoration:none}
+img{max-width:100%}
+:focus-visible{outline:2px solid var(--teal);outline-offset:3px;border-radius:4px}
+
+/* ---------- switcher ---------- */
+.sw{position:sticky;top:env(safe-area-inset-top,0px);z-index:100;padding:10px 16px;
+  background:rgba(12,10,11,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);
+  display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.sw-group{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.sw-lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;color:var(--mute);text-transform:uppercase;margin-right:4px}
+.sw button{background:transparent;border:1px solid var(--line2);color:var(--dim);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;font-family:var(--inter);transition:all .18s}
+.sw button:hover{border-color:var(--teal);color:var(--teal)}
+.sw button[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:#0d2c2e}
+
+
+.stage{min-height:78vh;position:relative;overflow:hidden}
+.view[hidden]{display:none!important}
+.pad{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:0}
+
+
+/* ================= background: poligoni ================= */
+#bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:var(--ink)}
+main{position:relative;z-index:1}
+.bg-mesh{position:absolute;inset:0}
+.bg-mesh canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.bg-mesh::after{content:"";position:absolute;inset:0;background:radial-gradient(820px 470px at 50% -6%,rgba(70,190,197,.07),transparent 62%)}
+
+/* ---------- entry screen: hub sits sharp on the right ---------- */
+body[data-view="login"]{overflow:hidden}
+.tease-veil{position:absolute;inset:0;z-index:0;opacity:1;transition:opacity .46s ease;pointer-events:none;
+  background:linear-gradient(90deg,rgba(11,9,10,.97) 0,rgba(11,9,10,.93) 22%,rgba(11,9,10,.55) 42%,rgba(11,9,10,.12) 62%,transparent 78%)}
+body[data-view="login"] .view[data-view="hub"]{
+  pointer-events:none;user-select:none;filter:saturate(.88);transform:scale(.88);transform-origin:100% 34%;
+  transition:transform .5s ease,filter .5s ease}
+body[data-view="login"] .lg-inner{justify-content:flex-start;padding-left:max(20px,5vw)}
+body.reveal[data-view="login"] .tease-veil{opacity:0}
+body.reveal[data-view="login"] .view[data-view="hub"]{transform:none;filter:none}
+@media(max-width:900px){
+  /* on a phone the hub stacks, so a sharp hub behind the card reads as a second
+     broken header. A little blur turns it back into depth without losing the teal. */
+  .tease-veil{background:radial-gradient(92% 62% at 50% 44%,rgba(11,9,10,.94) 30%,rgba(11,9,10,.9) 66%,rgba(11,9,10,.88) 100%)}
+  body[data-view="login"] .view[data-view="hub"]{transform:scale(.95);transform-origin:50% 30%;filter:blur(4px) saturate(.7) brightness(.6)}
+  body[data-view="login"] .lg-inner{justify-content:center;padding-left:16px;padding-right:16px}
+}
+/* A phone screen is filled by the card, so nothing of the hub shows through.
+   This quiet locked list gives the same hint the desktop split gives. */
+.lg-peek{display:none}
+@media(max-width:900px){
+  .lg-peek{display:grid;gap:8px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+  .lg-peek-lab{font-family:var(--mono);font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--mute)}
+  .lg-peek-row{display:flex;align-items:baseline;gap:9px;font-size:13.5px;color:var(--dim)}
+  .lg-peek-row svg{flex:0 0 auto;color:var(--teal);opacity:.75;align-self:center}
+  .lg-peek-row b{font-family:var(--poppins);font-weight:600;letter-spacing:-.01em}
+  .lg-peek-row i{font-style:normal;font-size:12.5px;color:var(--mute)}
+  .view.leaving .lg-peek{animation:cardOut .26s cubic-bezier(.45,0,.85,.25) both}
+}
+@media(max-width:640px){
+  /* 16px inputs stop iOS Safari from zooming the page on focus */
+  .lg-card .lg-f input{font-size:16px;padding:13px 13px}
+  .lg-inner{padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(22px + env(safe-area-inset-bottom,0px))}
+  .lg-card{padding:20px 19px 18px;border-radius:18px}
+  .lg-card .wm{width:112px}
+  .lg-card > small{margin:8px 0 11px}
+  .lg-card p.note{font-size:14px;line-height:1.5;margin-bottom:14px}
+  .lg-f{margin-bottom:10px;gap:4px}
+  .fhint{font-size:11px;margin-top:2px}
+  .authmsg{margin-top:10px;font-size:12.5px}
+  .lg-hint{margin-top:12px}
+  .lg-btn{padding:15px}
+  .linkish{display:inline-block;padding:6px 2px}
+  .lg-alt{margin-top:14px;padding-top:12px}
+  .d-bar{gap:12px;padding-block:calc(16px + env(safe-area-inset-top,0px)) 16px}
+  .d-bar .wm{width:82px}
+  .d-bar-r{gap:11px;font-size:10px}
+  .d-intro{padding-block:32px 30px}
+  .d-grid{gap:14px;padding-bottom:40px}
+  .d-body{padding:16px 14px}
+  .foot{padding-block:18px calc(24px + env(safe-area-inset-bottom,0px));font-size:12px}
+}
+@media(hover:none){
+  /* no lift while scrolling, the border and the brackets carry the state instead */
+  .d-mod.is-on{transform:none;box-shadow:0 14px 34px rgba(0,0,0,.4)}
+}
+
+/* ---------- login to hub transition ---------- */
+.view.leaving .lg-card{animation:cardOut .3s cubic-bezier(.45,0,.85,.25) both}
+@keyframes cardOut{to{opacity:0;transform:translateY(-10px) scale(.96)}}
+@keyframes riseIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes cardIn{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+.view.entering .d-bar{animation:riseIn .34s both}
+.view.entering .d-intro{animation:riseIn .38s .05s both}
+.view.entering .d-mod{animation:cardIn .42s both}
+.view.entering .d-mod:nth-child(1){animation-delay:.10s}
+.view.entering .d-mod:nth-child(2){animation-delay:.16s}
+.view.entering .d-mod:nth-child(3){animation-delay:.22s}
+.view.entering .foot{animation:riseIn .34s .3s both}
+.lg-btn.busy{pointer-events:none;opacity:.85}
+
+/* ---------- shared mini previews ---------- */
+.prev{position:relative;border-radius:12px;background:var(--ink);border:1px solid var(--line);padding:14px;overflow:hidden}
+.prev-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.prev-top small{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--mute);text-transform:uppercase}
+.prev-dot{width:6px;height:6px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 3px var(--teal-dim)}
+
+/* habit */
+.hb-row{display:flex;align-items:center;gap:9px;padding:5px 0}
+.hb-box{width:15px;height:15px;border-radius:5px;border:1.5px solid var(--line2);flex:0 0 auto;position:relative;transition:background .3s,border-color .3s}
+.hb-box::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #0d2c2e;border-width:0 2px 2px 0;transform:rotate(45deg) scale(0);transition:transform .25s cubic-bezier(.2,1.4,.4,1)}
+.hb-box.on,.is-live .hb-box{background:var(--teal);border-color:var(--teal)}
+.hb-box.on::after,.is-live .hb-box::after{transform:rotate(45deg) scale(1)}
+.is-live .hb-box:nth-child(1){transition-delay:.05s}
+.hb-row:nth-child(2) .hb-box{transition-delay:.06s}
+.hb-row:nth-child(3) .hb-box{transition-delay:.12s}
+.hb-row:nth-child(4) .hb-box{transition-delay:.18s}
+.hb-txt{height:7px;border-radius:4px;background:var(--ink4);flex:1}
+.hb-row:nth-child(2) .hb-txt{max-width:78%}
+.hb-row:nth-child(3) .hb-txt{max-width:64%}
+.hb-row:nth-child(4) .hb-txt{max-width:84%}
+.hb-week{display:flex;gap:5px;margin-top:13px;padding-top:12px;border-top:1px solid var(--line)}
+.hb-week i{flex:1;height:22px;border-radius:5px;background:var(--ink4);transition:background .35s}
+.hb-week i:nth-child(-n+5){background:rgba(70,190,197,.4)}
+.is-live .hb-week i:nth-child(-n+5){background:var(--teal)}
+.is-live .hb-week i:nth-child(1){transition-delay:.02s}
+.is-live .hb-week i:nth-child(2){transition-delay:.07s}
+.is-live .hb-week i:nth-child(3){transition-delay:.12s}
+.is-live .hb-week i:nth-child(4){transition-delay:.17s}
+.is-live .hb-week i:nth-child(5){transition-delay:.22s}
+.hb-week i:nth-child(6),.hb-week i:nth-child(7){opacity:.5}
+
+/* ura: goal ring with a pace notch, and a month that fills from the bottom */
+.ur2{display:flex;align-items:center;gap:14px;height:82px}
+.ur2-ring{width:82px;height:82px;flex:0 0 auto;overflow:visible}
+.ur2-track{fill:none;stroke:var(--ink4);stroke-width:7}
+.ur2-arc{fill:none;stroke:var(--teal);stroke-width:7;stroke-linecap:round;stroke-dasharray:48 100;transform:rotate(-90deg);transform-origin:42px 42px;transition:stroke-dasharray .7s cubic-bezier(.2,.8,.2,1)}
+.is-live .ur2-arc{stroke-dasharray:56 100}
+.ur2-tick{stroke:var(--fg);stroke-width:2.4;stroke-linecap:round}
+.ur2-pct{font-family:var(--poppins);font-weight:700;font-size:16px;fill:var(--fg);text-anchor:middle;letter-spacing:-.02em}
+.ur2-sub{font-family:var(--mono);font-size:7px;fill:var(--mute);text-anchor:middle;letter-spacing:.12em;text-transform:uppercase}
+.ur2-cal{flex:1;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(4,1fr);gap:3px;height:76px}
+.ur2-cal i{position:relative;border-radius:3px;background:var(--ink4);overflow:hidden}
+.ur2-cal i.f{background:transparent;border:1px dashed var(--line2)}
+.ur2-cal i.t{box-shadow:inset 0 0 0 1.5px var(--teal)}
+.ur2-cal b{position:absolute;left:0;right:0;bottom:0;height:var(--h);background:linear-gradient(180deg,var(--teal),var(--teal-d));transform:scaleY(.45);transform-origin:bottom;transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+.is-live .ur2-cal b{transform:none}
+.is-live .ur2-cal i:nth-child(7n+2) b{transition-delay:.03s}
+.is-live .ur2-cal i:nth-child(7n+3) b{transition-delay:.06s}
+.is-live .ur2-cal i:nth-child(7n+4) b{transition-delay:.09s}
+.is-live .ur2-cal i:nth-child(7n+5) b{transition-delay:.12s}
+.is-live .ur2-cal i:nth-child(7n+6) b{transition-delay:.15s}
+
+/* changelog under the modules */
+.d-log{position:relative;margin:0 0 54px;background:rgba(26,22,23,.78);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(8px);overflow:hidden}
+.d-log-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--mute);text-transform:uppercase}
+.d-log-head b{color:var(--teal);font-weight:700}
+.d-log ol{list-style:none;margin:0;padding:0}
+.d-log li{display:grid;grid-template-columns:62px 98px 1fr;gap:16px;align-items:baseline;padding:12px 18px;border-top:1px solid var(--line);transition:background .2s}
+.d-log li:first-child{border-top:0}
+.d-log li:hover{background:rgba(70,190,197,.05)}
+.d-log time{font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:.06em;text-transform:uppercase}
+.d-log .tag{justify-self:start;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);border:1px solid rgba(70,190,197,.35);background:rgba(70,190,197,.07);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.d-log .tag.ur{color:var(--dim);border-color:var(--line2);background:transparent}
+.d-log li p{color:var(--dim);font-size:14px;line-height:1.5;margin:0}
+@media(max-width:640px){.d-log li{grid-template-columns:auto 1fr;gap:6px 10px}.d-log li p{grid-column:1/-1}.d-log{margin-bottom:40px}}
+/* changelog only for signed-in accounts; guests keep the old spacing under the cards */
+body.guest .d-log{display:none}
+body.guest .d-grid{padding-bottom:54px}
+@media(max-width:640px){body.guest .d-grid{padding-bottom:40px}}
+
+/* ura */
+.ur-cal{display:flex;gap:7px;align-items:flex-end;height:82px}
+.ur-cal span{flex:1;background:linear-gradient(180deg,var(--teal),var(--teal-d));border-radius:5px 5px 2px 2px;transform-origin:bottom;transition:height .45s cubic-bezier(.2,.8,.2,1)}
+.ur-cal span:nth-child(1){height:44%}
+.ur-cal span:nth-child(2){height:29%;background:var(--ink4)}
+.ur-cal span:nth-child(3){height:64%}
+.ur-cal span:nth-child(4){height:48%}
+.ur-cal span:nth-child(5){height:23%;background:var(--ink4)}
+.is-live .ur-cal span:nth-child(1){height:58%}
+.is-live .ur-cal span:nth-child(2){height:41%;transition-delay:.05s}
+.is-live .ur-cal span:nth-child(3){height:86%;transition-delay:.1s}
+.is-live .ur-cal span:nth-child(4){height:67%;transition-delay:.15s}
+.is-live .ur-cal span:nth-child(5){height:34%;transition-delay:.2s}
+.ur-foot{display:flex;justify-content:space-between;align-items:baseline;margin-top:13px;padding-top:12px;border-top:1px solid var(--line)}
+.ur-foot b{font-family:var(--poppins);font-size:19px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.ur-foot small{font-size:11px;color:var(--mute)}
+.ur-chip{font-family:var(--mono);font-size:10px;color:var(--pos);background:rgba(90,216,174,.12);border:1px solid rgba(90,216,174,.3);border-radius:999px;padding:3px 8px;opacity:0;transform:translateY(4px);transition:all .3s .25s}
+.is-live .ur-chip{opacity:1;transform:none}
+
+/* sonar */
+.sn-chart{width:100%;height:82px;display:block}
+.sn-line{fill:none;stroke:var(--teal);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:420;stroke-dashoffset:0}
+.is-live .sn-line{animation:draw .9s cubic-bezier(.3,.7,.3,1)}
+@keyframes draw{from{stroke-dashoffset:420}to{stroke-dashoffset:0}}
+.sn-area{fill:url(#snfill);opacity:.45;transition:opacity .45s}
+.is-live .sn-area{opacity:1}
+.sn-end{fill:var(--teal);opacity:.55;transition:opacity .3s}
+.is-live .sn-end{opacity:1}
+.sn-end-ring{fill:none;stroke:var(--teal);stroke-width:1.4;opacity:0;transform-origin:center}
+.is-live .sn-end-ring{animation:ping 1.6s ease-out infinite}
+@keyframes ping{0%{opacity:.7;r:3.4}100%{opacity:0;r:11}}
+.sn-foot{display:flex;gap:7px;margin-top:13px;padding-top:12px;border-top:1px solid var(--line);flex-wrap:wrap}
+.sn-foot span{font-family:var(--mono);font-size:10px;border-radius:999px;padding:3px 9px;border:1px solid var(--line2);color:var(--dim)}
+.sn-foot span.up{color:var(--pos);border-color:rgba(90,216,174,.3);background:rgba(90,216,174,.1)}
+
+/* installable badge (habit only) */
+.inst{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;margin-left:10px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:500;
+  color:var(--mute);border:1px solid var(--line2);border-radius:999px;padding:3px 9px;transition:color .25s,border-color .25s,background .25s}
+.inst svg{flex:0 0 auto;opacity:.8}
+.d-mod.is-on .inst{color:var(--teal);border-color:rgba(70,190,197,.45);background:rgba(70,190,197,.09)}
+
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01ms!important}}
+
+/* ============ shared module chrome (used by D) ============ */
+.b-led{display:inline-flex;align-items:center;gap:7px;color:var(--pos)}
+.b-led i{width:7px;height:7px;border-radius:50%;background:var(--pos);animation:blip 2.4s ease-in-out infinite}
+@keyframes blip{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(90,216,174,.5)}50%{opacity:.45;box-shadow:0 0 0 5px rgba(90,216,174,0)}}
+.b-cor{position:absolute;width:13px;height:13px;border:2px solid var(--teal);opacity:0;transition:opacity .2s,transform .28s cubic-bezier(.2,1.5,.4,1);pointer-events:none;z-index:3}
+.b-cor.tl{top:6px;left:6px;border-right:0;border-bottom:0;transform:translate(-5px,-5px)}
+.b-cor.tr{top:6px;right:6px;border-left:0;border-bottom:0;transform:translate(5px,-5px)}
+.b-cor.bl{bottom:6px;left:6px;border-right:0;border-top:0;transform:translate(-5px,5px)}
+.b-cor.br{bottom:6px;right:6px;border-left:0;border-top:0;transform:translate(5px,5px)}
+.d-mod.is-on .b-cor{opacity:1;transform:translate(0,0)}
+.b-scan{position:absolute;left:0;right:0;top:-40%;height:40%;pointer-events:none;z-index:2;
+  background:linear-gradient(180deg,transparent,rgba(70,190,197,.16),transparent);opacity:0}
+.d-mod.is-on.scan .b-scan{opacity:1;animation:scan 1.5s linear infinite}
+@keyframes scan{0%{top:-40%}100%{top:105%}}
+.b-read{font-family:var(--mono);font-size:11px;color:var(--mute);display:grid;gap:5px;border-top:1px solid var(--line);padding-top:12px}
+.b-read div{display:flex;justify-content:space-between;gap:10px;opacity:.45;transform:translateX(-5px);transition:all .25s}
+.d-mod.is-on .b-read div{opacity:1;transform:none}
+.d-mod.is-on .b-read div:nth-child(2){transition-delay:.06s}
+.d-mod.is-on .b-read div:nth-child(3){transition-delay:.12s}
+.b-read span:last-child{color:var(--dim)}
+
+/* ================= D - MIX (A layout + B behaviour) ================= */
+.d{background:transparent}
+.d-bar{position:relative;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding-block:calc(22px + env(safe-area-inset-top,0px)) 22px;border-bottom:1px solid var(--line)}
+.d-bar .wm{width:92px;height:auto;display:block}
+.d-bar-r{display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;letter-spacing:.11em;color:var(--mute);text-transform:uppercase}
+.d-av{width:26px;height:26px;border-radius:50%;background:var(--teal);color:#0d2c2e;font-family:var(--poppins);font-weight:800;font-size:12px;display:grid;place-items:center}
+.d-user{display:flex;align-items:center;gap:9px;color:var(--dim);text-transform:none;letter-spacing:0;font-family:var(--inter);font-size:14px}
+.d-out{background:transparent;border:1px solid var(--line2);border-radius:999px;padding:5px 13px;font-family:var(--inter);font-size:12.5px;color:var(--mute);transition:all .18s}
+.d-out:hover{border-color:var(--teal);color:var(--teal)}
+.d-intro{position:relative;text-align:center;padding-block:46px 42px}
+.d-eyebrow{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--teal);
+  border:1px solid rgba(70,190,197,.32);background:rgba(70,190,197,.07);border-radius:999px;padding:6px 15px}
+.d-eyebrow i{width:6px;height:6px;border-radius:50%;background:var(--pos);animation:blip 2.4s ease-in-out infinite}
+.d-intro h1{font-size:clamp(33px,5.2vw,56px);font-weight:800;margin:18px 0 14px}
+.d-intro p{color:var(--dim);font-size:16.5px;max-width:64ch;margin-inline:auto;text-wrap:balance}
+.d-grid{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:18px;padding-bottom:30px}
+@media(max-width:900px){.d-grid{grid-template-columns:1fr}}
+.d-mod{position:relative;display:flex;flex-direction:column;background:rgba(26,22,23,.78);border:1px solid var(--line);border-radius:14px;overflow:hidden;backdrop-filter:blur(8px);
+  transition:transform .3s cubic-bezier(.2,.8,.2,1),border-color .3s,box-shadow .3s,opacity .3s}
+.d-mod::after{content:"";position:absolute;inset:-1px;border-radius:15px;padding:1px;background:linear-gradient(140deg,var(--teal),transparent 45%,transparent 60%,rgba(70,190,197,.45));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .3s;pointer-events:none;z-index:4}
+.d-mod.is-on{transform:translateY(-6px);border-color:transparent;box-shadow:0 26px 60px rgba(0,0,0,.5)}
+.d-mod.is-on::after{opacity:1}
+.d-grid.dimmed .d-mod{opacity:.5}
+.d-grid.dimmed .d-mod.is-on{opacity:1}
+.d-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--mute);text-transform:uppercase}
+.d-head b{color:var(--teal);font-weight:700}
+.d-body{padding:18px 16px 18px;display:flex;flex-direction:column;gap:15px;flex:1}
+.d-mod h2{font-family:var(--poppins);font-size:22px;font-weight:600;color:var(--dim);letter-spacing:-.02em}
+.d-mod h2 b{font-weight:800;color:var(--fg)}
+.d-mod h2 i{color:var(--teal);font-style:normal}
+.d-mod > .d-body > p{color:var(--mute);font-size:14.5px;line-height:1.55}
+.d-go{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:15px;border-top:1px solid var(--line);
+  font-family:var(--mono);font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--teal)}
+.d-go svg{transition:transform .25s}
+.d-mod.is-on .d-go svg{transform:translateX(5px)}
+
+/* D login: A card, B labels */
+.lgd .lg-card{max-width:410px}
+.lgd .lg-card .wm{width:150px}
+.lgd .lg-f label{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+.lgd .lg-btn{font-family:var(--mono);font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:12.5px}
+.lgd .lg-links button{font-family:var(--mono);font-size:11px;letter-spacing:.05em}
+
+/* ---------- login screens ---------- */
+[hidden]{display:none!important}
+.lg{position:fixed;inset:0;z-index:6;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.lg-inner{position:relative;z-index:1;min-height:100%;display:flex;align-items:center;justify-content:center;padding:calc(46px + env(safe-area-inset-top,0px)) 20px calc(46px + env(safe-area-inset-bottom,0px))}
+.lg-wrap{width:100%;max-width:410px;display:flex;flex-direction:column}
+.lg-card{position:relative;width:100%;max-width:400px;background:rgba(26,22,23,.9);border:1px solid var(--line);border-radius:20px;padding:30px 28px 26px;box-shadow:0 30px 80px rgba(0,0,0,.6);backdrop-filter:blur(8px)}
+.lg-card .wm{width:150px;height:auto;display:block}
+.lg-card > small{display:block;margin:10px 0 16px;letter-spacing:.3em;font-size:10.5px;font-weight:600;color:var(--dim);font-family:var(--mono)}
+.lg-card p.note{color:var(--mute);font-size:14px;margin-bottom:18px}
+.lg-f{display:grid;gap:5px;margin-bottom:14px}
+.lg-f label{font-size:12.5px;color:var(--dim);font-weight:600}
+.lg-f input{background:var(--ink);border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:12px 13px;font-family:var(--inter);font-size:14.5px;width:100%}
+.lg-f input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(70,190,197,.2)}
+.lg-btn{width:100%;background:var(--teal);color:#0d2c2e;border:0;border-radius:10px;padding:13px;font-family:var(--poppins);font-weight:800;font-size:15px;transition:background .2s,transform .15s}
+.lg-btn:hover{background:#5fcdd3;transform:translateY(-1px)}
+.lg-links{display:flex;gap:8px;margin-top:12px}
+.lg-links button{flex:1;background:transparent;border:1px solid var(--line);color:var(--teal);border-radius:10px;padding:9px;font-size:12.5px;font-weight:600;transition:background .2s}
+.lg-links button:hover{background:rgba(70,190,197,.09)}
+
+.fhint{display:block;font-size:11.5px;line-height:1.45;color:var(--mute);margin-top:3px;font-family:var(--inter)}
+.fhint.confirm{margin-top:11px;text-align:center}
+.lg-f input::placeholder{color:#6a6465}
+.lg-alt{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);text-align:center;font-size:13px;color:var(--mute);font-family:var(--inter)}
+.linkish{background:none;border:0;padding:0;color:var(--teal);font-weight:600;font-size:13px;font-family:var(--inter);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.linkish:hover{color:#6fd4da}
+.lg-hint{text-align:center;margin-top:16px;font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--mute)}
+.lgd .lg-alt,.lgd .linkish,.lgd .fhint{font-family:var(--mono);font-size:11.5px}
+.lgd .lg-hint{color:var(--teal);opacity:.75}
+
+
+.foot{border-top:1px solid var(--line);padding-block:20px calc(28px + env(safe-area-inset-bottom,0px));font-size:12.5px;color:var(--mute);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;position:relative}
+.foot b{color:var(--dim);font-weight:500}
+
+/* real auth states */
+.lg-card[data-mode="register"] .in-only,.lg-card[data-mode="register"] .rec-only{display:none}
+.lg-card[data-mode="signin"] .reg-only,.lg-card[data-mode="signin"] .rec-only{display:none}
+.lg-card[data-mode="recover"] .reg-only,.lg-card[data-mode="recover"] .in-only,.lg-card[data-mode="recover"] .not-rec{display:none}
+.authmsg{min-height:20px;margin-top:12px;text-align:center;font-size:13px;line-height:1.5;color:var(--mute);font-family:var(--inter)}
+.authmsg.ok{color:#7fd9de}
+.authmsg.err{color:#ffb2b7}
+.lg-btn[disabled]{opacity:.65;pointer-events:none}
+main{transition:opacity .22s ease}
+body[data-state="boot"] main{opacity:0;pointer-events:none}
+/* guest: the hub is open to look around, every app asks for an account first */
+.d-in{display:none;border-color:rgba(70,190,197,.5);color:var(--teal)}
+body.guest .d-user,body.guest #signOut{display:none}
+body.guest .d-in{display:inline-block}
+.lg-close{display:none;position:absolute;top:14px;right:14px;width:34px;height:34px;align-items:center;justify-content:center;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--mute);transition:color .2s,border-color .2s,background .2s}
+.lg-close:hover{color:var(--teal);border-color:var(--teal);background:rgba(70,190,197,.08)}
+body.guest .lg-close{display:flex}
+.lg-card[data-mode="recover"] .lg-close{display:none}
+/* hub to login: the login to hub move played backwards */
+.view.arriving .lg-card{animation:cardIn .42s cubic-bezier(.2,.8,.2,1) .1s both}
+@media(max-width:900px){.view.arriving .lg-peek{animation:cardIn .42s cubic-bezier(.2,.8,.2,1) .16s both}}
+@media(prefers-reduced-motion:reduce){.view.arriving .lg-card,.view.arriving .lg-peek{animation:none}}
+/* sonar brez dostopa: osivljena, neklikljiva kartica */
+.d-mod.locked{filter:grayscale(1);opacity:.42;pointer-events:none;cursor:default}
+.d-mod.locked .b-led i{background:var(--mute)}
+.d-mod.locked .d-go{color:var(--mute)}
+.d-mod.locked .b-scan{display:none}
+
+/* ===== flow in the hub ===== */
+.fl{display:flex;align-items:flex-end;gap:14px;height:62px;margin-bottom:11px}
+.fl-num{display:flex;flex-direction:column;flex:0 0 auto}
+.fl-num b{font-family:var(--poppins);font-size:21px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;transition:color .35s}
+.fl-num small{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.is-live .fl-num b{color:var(--pos)}
+.fl-bars{flex:1;display:flex;gap:6px;align-items:flex-end;height:100%;min-width:0}
+.fl-bars i{flex:1;display:flex;gap:2px;align-items:flex-end;height:100%}
+.fl-bars b{flex:1;height:var(--h);border-radius:3px 3px 1px 1px;transform:scaleY(.55);transform-origin:bottom;transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+.fl-bars b.in{background:linear-gradient(180deg,var(--teal),var(--teal-d))}
+.fl-bars b.out{background:var(--line2)}
+.is-live .fl-bars b{transform:none}
+.is-live .fl-bars i:nth-child(2) b{transition-delay:.04s}.is-live .fl-bars i:nth-child(3) b{transition-delay:.08s}.is-live .fl-bars i:nth-child(4) b{transition-delay:.12s}.is-live .fl-bars i:nth-child(5) b{transition-delay:.16s}.is-live .fl-bars i:nth-child(6) b{transition-delay:.2s}
+.fl-list{border-top:1px solid var(--line);padding-top:8px}
+.fl-row{display:flex;align-items:center;gap:9px;padding:4px 0}
+.fl-row em{font-style:normal;font-family:var(--mono);font-size:10px;color:var(--mute);flex:0 0 auto}
+.fl-row:nth-child(2) .hb-txt{max-width:62%}.fl-row:nth-child(3) .hb-txt{max-width:74%}
+.fl-row .hb-txt{margin-right:auto}
+/* izpostavljena kartica */
+.d-grid.two{grid-template-columns:repeat(2,1fr)}
+.d-feat{grid-column:1/-1}
+.d-feat .d-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:26px;align-items:center;padding:24px 22px}
+.ft-l{display:flex;flex-direction:column;gap:15px;min-width:0}
+.ft-new{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--teal);border:1px solid rgba(70,190,197,.32);background:rgba(70,190,197,.07);border-radius:999px;padding:5px 12px}
+.ft-new i{width:6px;height:6px;border-radius:50%;background:var(--pos);animation:blip 2.4s ease-in-out infinite}
+.d-feat h2{font-size:clamp(26px,3.2vw,36px)}
+.d-feat .ft-l>p{color:var(--mute);font-size:15.5px;line-height:1.55;max-width:46ch}
+.ft-cta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:2px}
+.ft-btn{display:inline-flex;align-items:center;gap:9px;background:var(--teal);color:#0d2c2e;border-radius:10px;padding:11px 18px;font-family:var(--mono);font-weight:700;font-size:12.5px;letter-spacing:.13em;text-transform:uppercase;transition:background .2s,transform .2s,box-shadow .3s}
+.ft-btn svg{transition:transform .25s}
+.d-feat.is-on .ft-btn{background:#5fcdd3;transform:translateY(-1px);box-shadow:0 10px 26px rgba(70,190,197,.28)}
+.d-feat.is-on .ft-btn svg{transform:translateX(4px)}
+.ft-cta small{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--mute)}
+.d-feat .b-read div{opacity:1;transform:none}
+.fx{padding:16px}
+.fx .prev-top{gap:10px}.fx .prev-top small{margin-right:auto}
+.fx-note{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:var(--warn);opacity:0;animation:fxnote 9s ease-in-out infinite}
+.fx-note i{width:5px;height:5px;border-radius:50%;background:var(--warn)}
+.fx-main{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1.1fr);gap:16px;align-items:center;margin-bottom:12px}
+.fx-ring{width:84px;height:84px;display:block}
+.fx-arc{fill:none;stroke:var(--teal);stroke-width:7;stroke-linecap:round;stroke-dasharray:0 100;transform:rotate(-90deg);transform-origin:center;animation:fxarc 9s cubic-bezier(.2,.8,.2,1) infinite}
+.fx-num{display:flex;flex-direction:column;gap:2px;min-width:0}
+.fx-num small{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.fx-num b{font-family:var(--poppins);font-size:clamp(22px,2.6vw,30px);font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fx-num span{display:flex;gap:10px;font-family:var(--mono);font-size:10px}
+.fx-num em{font-style:normal}.fx-num em.in{color:var(--teal)}.fx-num em.out{color:var(--mute)}
+.fx-bars{height:74px;flex:none}
+.fx-bars b{transform:scaleY(0);animation:fxbar 9s cubic-bezier(.2,.8,.2,1) infinite}
+.fx-bars i:nth-child(2) b{animation-delay:.07s}.fx-bars i:nth-child(3) b{animation-delay:.14s}.fx-bars i:nth-child(4) b{animation-delay:.21s}.fx-bars i:nth-child(5) b{animation-delay:.28s}.fx-bars i:nth-child(6) b{animation-delay:.35s}
+.fx-list{border-top:1px solid var(--line);padding-top:8px}
+.fx-name{font-size:12.5px;color:var(--dim);margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;animation:fxname 9s ease infinite}
+.fx-list .hb-box{animation:fxbox 9s ease infinite}
+.fx-list .hb-box::after{animation:fxtick 9s cubic-bezier(.2,1.4,.4,1) infinite}
+.fx-list .fl-row:nth-child(1) .hb-box,.fx-list .fl-row:nth-child(1) .hb-box::after,.fx-list .fl-row:nth-child(1) .fx-name{animation-delay:1.3s}
+.fx-list .fl-row:nth-child(2) .hb-box,.fx-list .fl-row:nth-child(2) .hb-box::after,.fx-list .fl-row:nth-child(2) .fx-name{animation-delay:2.2s}
+.fx-list .fl-row:nth-child(3) .hb-box,.fx-list .fl-row:nth-child(3) .hb-box::after,.fx-list .fl-row:nth-child(3) .fx-name{animation-delay:3.1s}
+.fx-list .fl-row:nth-child(4) .hb-box,.fx-list .fl-row:nth-child(4) .hb-box::after,.fx-list .fl-row:nth-child(4) .fx-name{animation-delay:4s}
+@keyframes fxarc{0%{stroke-dasharray:0 100}18%,90%{stroke-dasharray:68 100}100%{stroke-dasharray:0 100}}
+@keyframes fxbar{0%{transform:scaleY(0)}14%,90%{transform:scaleY(1)}100%{transform:scaleY(0)}}
+@keyframes fxbox{0%,1%{background:transparent;border-color:var(--line2)}4%,50%{background:var(--teal);border-color:var(--teal)}56%,100%{background:transparent;border-color:var(--line2)}}
+@keyframes fxtick{0%,1%{transform:rotate(45deg) scale(0)}5%,50%{transform:rotate(45deg) scale(1)}56%,100%{transform:rotate(45deg) scale(0)}}
+@keyframes fxname{0%,1%{color:var(--dim)}4%,50%{color:var(--mute)}56%,100%{color:var(--dim)}}
+@keyframes fxnote{0%,8%{opacity:0;transform:translateY(3px)}14%,86%{opacity:1;transform:none}94%,100%{opacity:0}}
+@media(max-width:900px){.d-grid.two{grid-template-columns:1fr}.d-feat .d-body{grid-template-columns:1fr;gap:18px;padding:16px 14px}.fx-main{grid-template-columns:auto minmax(0,1fr)}.fx-bars{grid-column:1/-1;height:56px}}
+@media(prefers-reduced-motion:reduce){.fx-arc{animation:none;stroke-dasharray:68 100}.fx-bars b{animation:none;transform:none}.fx-list .hb-box,.fx-list .hb-box::after,.fx-name,.fx-note{animation:none}.fx-note{opacity:1}}
+</style>
+<script defer src="/track.js?v=2"></script>
+</head>
+<body data-state="boot" data-view="login">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="snfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#46BEC5" stop-opacity=".34"/><stop offset="1" stop-color="#46BEC5" stop-opacity="0"/></linearGradient></defs></svg>
+<div id="bg" aria-hidden="true">
+  <div class="bg-mesh"><canvas id="meshCanvas"></canvas></div>
+</div>
+<main>
+<!-- ============ D ============ -->
+<section class="stage d" data-stage="d">
+
+  <div class="view" data-view="hub" hidden>
+    <div class="pad">
+      <div class="d-bar">
+        <img class="wm" src="/foqs-logo.png" alt="foqs." width="700" height="247">
+        <div class="d-bar-r">
+          <span id="d-clock">09:41</span>
+          <span class="d-user"><span class="d-av" id="hubInitial">·</span><span id="hubName"></span></span>
+          <button class="d-out" id="signOut" type="button">Sign out</button>
+          <button class="d-out d-in" id="guestIn" type="button">Sign in</button>
+        </div>
+      </div>
+      <div class="d-intro">
+        <span class="d-eyebrow"><i></i>New · foqs.flow is live</span>
+        <h1>Three apps. One login.</h1>
+        <p>Small tools built for my own work, now all in one place and on your phone.</p>
+      </div>
+      <div class="d-grid two">
+        <a class="d-mod d-feat" id="modFlow" href="/flow">
+          <span class="b-cor tl"></span><span class="b-cor tr"></span><span class="b-cor bl"></span><span class="b-cor br"></span>
+          <span class="b-scan"></span>
+          <div class="d-head"><span>MOD <b>FLW-03</b> &middot; featured</span><span class="b-led"><i></i>new</span></div>
+          <div class="d-body">
+            <div class="ft-l">
+              <span class="ft-new"><i></i>New in the hub</span>
+              <h2>foqs.<b>flow</b><i>.</i><span class="inst" title="Installs on your phone home screen"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>Phone app</span></h2>
+              <p>Money in, money out. Your monthly costs as a checklist you tick off, income per client, and one number for what is left.</p>
+              <div class="b-read">
+                <div><span>Costs</span><span>Monthly checklist, paid or waiting</span></div>
+                <div><span>Income</span><span>Per client, with open invoices</span></div>
+                <div><span>Runs</span><span>Phone &middot; desktop, same data</span></div>
+              </div>
+              <div class="ft-cta"><span class="ft-btn">Open flow <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span><small>Uses your foqs. login</small></div>
+            </div>
+            <div class="prev fx" aria-hidden="true">
+              <div class="prev-top"><small>&lsaquo; October &rsaquo;</small><span class="fx-note"><i></i>2 invoices waiting</span><span class="prev-dot"></span></div>
+              <div class="fx-main">
+                <svg class="fx-ring" viewBox="0 0 84 84"><circle class="ur2-track" cx="42" cy="42" r="34"/><circle class="fx-arc" cx="42" cy="42" r="34" pathLength="100"/><text class="ur2-pct" x="42" y="45">68%</text><text class="ur2-sub" x="42" y="57">spent</text></svg>
+                <div class="fx-num"><small>Left this month</small><b id="fxNum">1.240 &euro;</b><span><em class="in">+ 3.890</em><em class="out">- 2.650</em></span></div>
+                <div class="fl-bars fx-bars"><i><b class="in" style="--h:72%"></b><b class="out" style="--h:48%"></b></i><i><b class="in" style="--h:70%"></b><b class="out" style="--h:46%"></b></i><i><b class="in" style="--h:74%"></b><b class="out" style="--h:92%"></b></i><i><b class="in" style="--h:71%"></b><b class="out" style="--h:50%"></b></i><i><b class="in" style="--h:86%"></b><b class="out" style="--h:60%"></b></i><i><b class="in" style="--h:100%"></b><b class="out" style="--h:62%"></b></i></div>
+              </div>
+              <div class="fx-list">
+                <div class="fl-row"><span class="hb-box"></span><span class="fx-name">Rent</span><em>600 &euro;</em></div>
+                <div class="fl-row"><span class="hb-box"></span><span class="fx-name">Car lease</span><em>268 &euro;</em></div>
+                <div class="fl-row"><span class="hb-box"></span><span class="fx-name">Phone + internet</span><em>79 &euro;</em></div>
+                <div class="fl-row"><span class="hb-box"></span><span class="fx-name">Electricity</span><em>53 &euro;</em></div>
+              </div>
+              <div class="sn-foot"><span class="up" id="fxPaid">0 / 4 paid</span><span>Income per client</span><span>Monthly recap</span></div>
+            </div>
+          </div>
+        </a>
+        <a class="d-mod" href="/habit">
+          <span class="b-cor tl"></span><span class="b-cor tr"></span><span class="b-cor bl"></span><span class="b-cor br"></span>
+          <span class="b-scan"></span>
+          <div class="d-head"><span>MOD <b>HAB-01</b></span><span class="b-led"><i></i>ready</span></div>
+          <div class="d-body">
+            <h2>foqs.<b>habit</b><i>.</i><span class="inst" title="Installs on your phone home screen"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>Phone app</span></h2>
+            <p>Win the day. Daily non-negotiables, a streak that hurts to break, and a week you can read in one look.</p>
+            <div class="prev">
+              <div class="prev-top"><small>Today</small><span class="prev-dot"></span></div>
+              <div class="hb-row"><span class="hb-box on"></span><span class="hb-txt"></span></div>
+              <div class="hb-row"><span class="hb-box on"></span><span class="hb-txt"></span></div>
+              <div class="hb-row"><span class="hb-box on"></span><span class="hb-txt"></span></div>
+              <div class="hb-row"><span class="hb-box"></span><span class="hb-txt"></span></div>
+              <div class="hb-week"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+            <div class="b-read">
+              <div><span>Rhythm</span><span>Daily</span></div>
+              <div><span>Sync</span><span>Across your devices</span></div>
+              <div><span>Home screen</span><span>iPhone · Mac</span></div>
+            </div>
+            <div class="d-go"><span>Open habit</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></div>
+          </div>
+        </a>
+        <a class="d-mod" href="/uraplus">
+          <span class="b-cor tl"></span><span class="b-cor tr"></span><span class="b-cor bl"></span><span class="b-cor br"></span>
+          <span class="b-scan"></span>
+          <div class="d-head"><span>MOD <b>URA-02</b></span><span class="b-led"><i></i>ready</span></div>
+          <div class="d-body">
+            <h2><b>Ura</b><i>+</i><span class="inst" title="Installs on your phone home screen"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>Phone app</span></h2>
+            <p>Hours into money. A goal ring with a pace marker, a calendar that fills with every hour, and shifts you log in one tap.</p>
+            <div class="prev">
+              <div class="prev-top"><small>This month</small><span class="prev-dot"></span></div>
+              <div class="ur2" aria-hidden="true">
+                <svg class="ur2-ring" viewBox="0 0 84 84">
+                  <circle class="ur2-track" cx="42" cy="42" r="34"/>
+                  <circle class="ur2-arc" cx="42" cy="42" r="34" pathLength="100"/>
+                  <line class="ur2-tick" x1="42" y1="3" x2="42" y2="15" transform="rotate(166 42 42)"/>
+                  <text class="ur2-pct" x="42" y="45">52%</text>
+                  <text class="ur2-sub" x="42" y="57">of goal</text>
+                </svg>
+                <div class="ur2-cal"><i><b style="--h:78%"></b></i><i><b style="--h:62%"></b></i><i><b style="--h:92%"></b></i><i><b style="--h:40%"></b></i><i><b style="--h:84%"></b></i><i></i><i></i><i><b style="--h:88%"></b></i><i><b style="--h:70%"></b></i><i></i><i><b style="--h:96%"></b></i><i><b style="--h:66%"></b></i><i><b style="--h:22%"></b></i><i></i><i><b style="--h:60%"></b></i><i><b style="--h:90%"></b></i><i><b style="--h:74%"></b></i><i><b style="--h:82%"></b></i><i><b style="--h:56%"></b></i><i></i><i></i><i><b style="--h:72%"></b></i><i><b style="--h:48%"></b></i><i class="t"><b style="--h:34%"></b></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></div>
+              </div>
+              <div class="ur-foot"><b>Ahead of pace</b><span class="ur-chip">+86 &euro;</span></div>
+            </div>
+            <div class="b-read">
+              <div><span>Goal</span><span>Monthly, with pace</span></div>
+              <div><span>Entry</span><span>Number pad or shifts</span></div>
+              <div><span>Runs</span><span>Phone &middot; desktop dashboard</span></div>
+            </div>
+            <div class="d-go"><span>Open Ura+</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></div>
+          </div>
+        </a>
+            </div>
+      <section class="d-log" aria-label="Latest updates">
+        <div class="d-log-head"><span>Changelog &middot; <b>latest updates</b></span><span class="b-led"><i></i>21 Nov 2026</span></div>
+        <ol>
+          <li><time>21 Nov</time><span class="tag">flow 1.0</span><p>New app. Monthly costs as a checklist, income per client with open invoices, and what is left, on phone and desktop.</p></li>
+          <li><time>10 Oct</time><span class="tag">sonar 7.1</span><p>A live view next to the demo bot, with its own guard rails and a confirm step before anything trades.</p></li>
+          <li><time>05 Oct</time><span class="tag">sonar 6.9</span><p>Copy tab follows a shortlist of wallets in shadow. The morning review now lives inside the app.</p></li>
+          <li><time>04 Oct</time><span class="tag ur">Ura+</span><p>Pace marker on the goal ring. You see in euros whether you are ahead or behind your month.</p></li>
+          <li><time>29 Sep</time><span class="tag">sonar 5.7</span><p>Phone app with its own icon and bottom tabs.</p></li>
+          <li><time>27 Sep</time><span class="tag ur">Ura+</span><p>New phone design: goal ring, a calendar that fills with your hours, number pad entry.</p></li>
+        </ol>
+      </section>
+      <div class="foot"><span>foqs. <b>Advertising &amp; Performance Consulting</b></span><span>One account for every foqs. app</span></div>
+    </div>
+  </div>
+
+  <div class="view lg lgd" data-view="login">
+    <div class="tease-veil" aria-hidden="true"></div>
+    <div class="lg-inner"><div class="lg-wrap">
+    <div class="lg-card" data-mode="register">
+      <button class="lg-close" id="lgClose" type="button" aria-label="Back to the hub"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <img class="wm" src="/foqs-logo.png" alt="foqs." width="700" height="247">
+      <small>HUB</small>
+      <p class="note reg-only">Create your foqs. account and you are straight in. One login for all foqs. apps.</p>
+      <p class="note in-only">Welcome back. Sign in to open your apps.</p>
+      <p class="note rec-only">Choose a new password for your foqs. account.</p>
+
+      <div class="lg-f reg-only">
+        <label for="fName">Name</label>
+        <input id="fName" type="text" maxlength="40" autocomplete="nickname" placeholder="e.g. Gašper">
+        <small class="fhint">Shown instead of your email in the apps.</small>
+      </div>
+      <div class="lg-f not-rec">
+        <label for="fEmail">Email</label>
+        <input id="fEmail" type="email" autocomplete="username" inputmode="email" placeholder="you@example.com">
+      </div>
+      <div class="lg-f not-rec">
+        <label for="fPass">Password</label>
+        <input id="fPass" type="password" autocomplete="current-password" placeholder="••••••••">
+        <small class="fhint reg-only">At least 6 characters.</small>
+      </div>
+      <div class="lg-f rec-only">
+        <label for="fNew">New password</label>
+        <input id="fNew" type="password" autocomplete="new-password" placeholder="••••••••">
+        <small class="fhint">At least 6 characters.</small>
+      </div>
+
+      <button class="lg-btn" id="mainBtn" type="button"><span class="reg-only">Create account</span><span class="in-only">Sign in</span><span class="rec-only">Save new password</span></button>
+      <p id="authMsg" class="authmsg" role="status"></p>
+
+      <p class="lg-alt">
+        <span class="reg-only">Already have an account? <button type="button" class="linkish" data-mode="signin">Sign in</button></span>
+        <span class="in-only">No account yet? <button type="button" class="linkish" data-mode="register">Create account</button> · <button type="button" class="linkish" id="forgotBtn">Forgot password</button></span>
+        <span class="rec-only">Remembered it? <button type="button" class="linkish" data-mode="signin">Sign in</button></span>
+      </p>
+      <p class="lg-hint">3 Apps, One Login.</p>
+    </div>
+      <div class="lg-peek" aria-hidden="true">
+        <span class="lg-peek-lab">Inside</span>
+        <span class="lg-peek-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><b>foqs.habit</b><i>Win the day</i></span>
+        <span class="lg-peek-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><b>Ura+</b><i>Hours into money</i></span>
+        <span class="lg-peek-row"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><b>foqs.flow</b><i>Money in, money out</i></span>
+      </div></div></div>
+  </div>
+</section>
+</main>
+<a href="/privacy" style="position:fixed;left:50%;bottom:10px;transform:translateX(-50%);z-index:9999;font:500 11px/1 Inter,system-ui,sans-serif;color:#8a8482;text-decoration:none;letter-spacing:.04em;opacity:.8">Privacy Policy</a>
+
+<script>
+
+const SB_URL = 'https://cgnihdlprjqpawvpznsw.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnbmloZGxwcmpxcGF3dnB6bnN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3ODAwODAsImV4cCI6MjEwMTM1NjA4MH0.HQgn-5op-0BYAMllyE3rbhwlLPILxvl1OVnqXau_33g';
+const sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+const hubView = document.querySelector('.view[data-view="hub"]');
+const logView = document.querySelector('.view[data-view="login"]');
+const card    = document.querySelector('.lg-card');
+const msgEl   = document.getElementById('authMsg');
+const mainBtn = document.getElementById('mainBtn');
+const reduce  = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let view = 'login';
+
+function paint(keepScroll){
+  document.body.dataset.view = view;
+  hubView.hidden = false;
+  logView.hidden = (view !== 'login');
+  if (view === 'hub' && !keepScroll) window.scrollTo(0, 0);
+}
+function say(text, cls){ msgEl.textContent = text || ''; msgEl.className = 'authmsg ' + (cls || ''); }
+function setMode(m){
+  card.dataset.mode = m;
+  say('');
+  document.getElementById('fPass').autocomplete = (m === 'register') ? 'new-password' : 'current-password';
+}
+function showUser(u){
+  if (!u) return;
+  const name = (u.user_metadata && u.user_metadata.name) || u.email || '';
+  document.getElementById('hubName').textContent = name;
+  document.getElementById('hubInitial').textContent = (name.trim()[0] || '\u00b7').toUpperCase();
+  document.body.classList.remove('guest');
+  checkSonar();
+}
+/* sonar is invite only: grey the card out for accounts that are not on the list */
+async function checkSonar(){
+  const card = document.getElementById('modSonar');
+  if (!card) return;
+  let ok = false;
+  try { const { data, error } = await sb.rpc('has_app_access', { p_app: 'sonar' }); ok = !error && !!data; }
+  catch (e) { ok = false; }
+  card.classList.toggle('locked', !ok);
+  const go = card.querySelector('.d-go span');
+  if (go) go.textContent = ok ? 'Open sonar' : 'Private \u00b7 invite only';
+  if (ok) { card.setAttribute('href', '/sonar'); card.removeAttribute('aria-disabled'); }
+  else { card.removeAttribute('href'); card.setAttribute('aria-disabled', 'true'); }
+}
+function enterHub(animate){
+  if (!animate) { view = 'hub'; paint(); return; }
+  document.body.classList.add('reveal');
+  mainBtn.classList.add('busy');
+  logView.classList.add('leaving');
+  setTimeout(function(){
+    mainBtn.classList.remove('busy');
+    logView.classList.remove('leaving');
+    document.body.classList.remove('reveal');
+    view = 'hub'; paint();
+  }, 480);
+}
+
+/* plain-English Supabase errors */
+function explain(m){
+  m = m || '';
+  if (/invalid login credentials/i.test(m)) return 'Wrong email or password.';
+  if (/email not confirmed/i.test(m))       return 'Your email is not confirmed yet. Open the link we sent you, then sign in.';
+  if (/already registered|already been registered/i.test(m)) return 'That email already has an account. Use Sign in, or Forgot password.';
+  if (/rate limit|too many/i.test(m))       return 'Too many attempts. Wait a minute and try again.';
+  if (/password should be at least/i.test(m)) return 'Password must be at least 6 characters.';
+  return m;
+}
+const creds = () => ({
+  email: document.getElementById('fEmail').value.trim(),
+  pass:  document.getElementById('fPass').value
+});
+
+async function doRegister(){
+  const { email, pass } = creds();
+  const name = document.getElementById('fName').value.trim();
+  if (!name)  { say('Add a name so the apps do not call you by your email.', 'err'); document.getElementById('fName').focus(); return; }
+  if (!email || !pass) { say('Fill in your email and a password.', 'err'); return; }
+  if (pass.length < 6) { say('Password must be at least 6 characters.', 'err'); return; }
+  mainBtn.disabled = true; say('Creating your account \u2026');
+  const { data, error } = await sb.auth.signUp({
+    email, password: pass,
+    options: { data: { name }, emailRedirectTo: location.origin + '/hub/' }
+  });
+  mainBtn.disabled = false;
+  if (error) { say('Could not create the account: ' + explain(error.message), 'err'); return; }
+  if (data.session) { showUser(data.user); enterHub(true); return; }
+  say('Account created. Open the confirmation link we sent to ' + email + ', then sign in.', 'ok');
+}
+async function doSignIn(){
+  const { email, pass } = creds();
+  if (!email || !pass) { say('Fill in your email and password.', 'err'); return; }
+  mainBtn.disabled = true; say('Signing in \u2026');
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  mainBtn.disabled = false;
+  if (error) { say('Could not sign in: ' + explain(error.message), 'err'); return; }
+  showUser(data.user); enterHub(true);
+}
+async function doRecover(){
+  const pass = document.getElementById('fNew').value;
+  if (!pass || pass.length < 6) { say('Password must be at least 6 characters.', 'err'); return; }
+  mainBtn.disabled = true; say('Saving \u2026');
+  const { data, error } = await sb.auth.updateUser({ password: pass });
+  mainBtn.disabled = false;
+  if (error) { say('Could not save it: ' + explain(error.message), 'err'); return; }
+  history.replaceState(null, '', location.pathname);
+  say('New password saved.', 'ok');
+  showUser(data.user); setTimeout(function(){ enterHub(true); }, 500);
+}
+
+mainBtn.onclick = function(){
+  const m = card.dataset.mode;
+  if (m === 'register') return doRegister();
+  if (m === 'recover')  return doRecover();
+  return doSignIn();
+};
+document.querySelectorAll('.linkish[data-mode]').forEach(function(b){ b.onclick = function(){ setMode(b.dataset.mode); }; });
+document.getElementById('forgotBtn').onclick = async function(){
+  const { email } = creds();
+  if (!email) { say('Type your email above first, then click Forgot password.', 'err'); document.getElementById('fEmail').focus(); return; }
+  say('Sending the link \u2026');
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/hub/' });
+  if (error) { say('Could not send it: ' + explain(error.message), 'err'); return; }
+  say('We sent a reset link to ' + email + '. Open it and choose a new password.', 'ok');
+};
+document.getElementById('signOut').onclick = async function(e){
+  e.preventDefault();
+  await sb.auth.signOut();
+  location.reload();
+};
+['fEmail','fPass','fName','fNew'].forEach(function(id){
+  document.getElementById(id).addEventListener('keydown', function(e){ if (e.key === 'Enter') mainBtn.click(); });
+});
+
+/* Cards light up on hover with a mouse, and on scroll-into-view on a phone.
+   Everything hangs off .is-on, so iOS cannot leave a card stuck in a hover state. */
+const grid  = document.querySelector('.d-grid');
+const mods  = Array.prototype.slice.call(document.querySelectorAll('.d-mod'));
+const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+function setOn(el, on, withScan){
+  el.classList.toggle('is-on', on);
+  el.classList.toggle('scan', !!(on && withScan));
+  el.querySelectorAll('.prev').forEach(function(x){ x.classList.toggle('is-live', on); });
+}
+
+if (canHover){
+  mods.forEach(function(el){
+    el.addEventListener('mouseenter', function(){ setOn(el, true, true);  if (grid) grid.classList.add('dimmed'); });
+    el.addEventListener('mouseleave', function(){ setOn(el, false, false); if (grid) grid.classList.remove('dimmed'); });
+  });
+} else if ('IntersectionObserver' in window){
+  const io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ setOn(e.target, e.isIntersecting, false); });
+  }, { threshold: 0.5 });
+  mods.forEach(function(el){ io.observe(el); });
+} else {
+  mods.forEach(function(el){ setOn(el, true, false); });
+}
+
+/* keyboard: a focused card behaves like a hovered one */
+mods.forEach(function(el){
+  el.addEventListener('focusin',  function(){ setOn(el, true, canHover); });
+  el.addEventListener('focusout', function(){ if (!canHover) return; setOn(el, false, false); });
+});
+
+/* guests look around the hub freely. Opening an app plays the login to hub
+   move backwards: the hub eases away to the right and the card comes in. */
+const fineMouse = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+function focusFirst(){
+  if (!fineMouse) return;
+  const el = document.getElementById(card.dataset.mode === 'register' ? 'fName' : 'fEmail');
+  if (el) el.focus({ preventScroll: true });
+}
+function openAuth(mode){
+  if (view === 'login') return;
+  setMode(mode || 'register');
+  if (reduce){ view = 'login'; paint(true); focusFirst(); return; }
+  document.body.classList.add('reveal');
+  logView.classList.add('arriving');
+  view = 'login'; paint(true);
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){
+    document.body.classList.remove('reveal');
+  }); });
+  setTimeout(function(){ logView.classList.remove('arriving'); focusFirst(); }, 560);
+}
+function closeAuth(){
+  if (view !== 'login' || !document.body.classList.contains('guest')) return;
+  if (card.dataset.mode === 'recover') return;
+  if (reduce){ view = 'hub'; paint(true); return; }
+  document.body.classList.add('reveal');
+  logView.classList.add('leaving');
+  setTimeout(function(){
+    logView.classList.remove('leaving');
+    document.body.classList.remove('reveal');
+    view = 'hub'; paint(true);
+  }, 480);
+}
+document.querySelector('.d-grid').addEventListener('click', function(e){
+  if (!document.body.classList.contains('guest')) return;
+  const a = e.target.closest('.d-mod');
+  if (!a) return;
+  e.preventDefault();
+  openAuth('register');
+}, true);
+document.getElementById('guestIn').onclick = function(){ openAuth('signin'); };
+document.getElementById('lgClose').onclick = closeAuth;
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeAuth(); });
+
+/* clock */
+function tick(){
+  const d = new Date(), e = document.getElementById('d-clock');
+  if (e) e.textContent = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+tick(); setInterval(tick, 20000);
+
+/* faceted background, drawn once */
+function drawMesh(){
+  const c = document.getElementById('meshCanvas'); if (!c) return;
+  const w = c.clientWidth || window.innerWidth, ht = c.clientHeight || window.innerHeight;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  if (!w || !ht) return;
+  c.width = w * dpr; c.height = ht * dpr;
+  const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const cell = Math.max(86, Math.round(Math.min(w, ht) / 6.5));
+  const cols = Math.ceil(w / cell) + 2, rows = Math.ceil(ht / cell) + 2, pts = [];
+  for (let y = 0; y <= rows; y++){ pts[y] = []; for (let x = 0; x <= cols; x++){
+    pts[y][x] = { x:(x-1)*cell + (Math.random()-.5)*cell*.55, y:(y-1)*cell + (Math.random()-.5)*cell*.55 };
+  }}
+  const lx = w*.5, ly = -ht*.2, diag = Math.sqrt(w*w + ht*ht);
+  function tri(a, b, c3){
+    const cx = (a.x+b.x+c3.x)/3, cy = (a.y+b.y+c3.y)/3;
+    let t = Math.max(0, Math.min(1, 1 - (Math.sqrt((cx-lx)*(cx-lx) + (cy-ly)*(cy-ly)) / diag) * 1.45));
+    t = t*t;
+    const base = 13 + t*44, teal = t*44;
+    g.fillStyle = 'rgb(' + Math.round(base*.95) + ',' + Math.round(base + teal*.5) + ',' + Math.round(base + teal*.66) + ')';
+    g.beginPath(); g.moveTo(a.x,a.y); g.lineTo(b.x,b.y); g.lineTo(c3.x,c3.y); g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(70,190,197,' + (0.05 + t*0.2).toFixed(3) + ')'; g.lineWidth = 1; g.stroke();
+  }
+  for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++){
+    tri(pts[y][x], pts[y][x+1], pts[y+1][x]);
+    tri(pts[y][x+1], pts[y+1][x+1], pts[y+1][x]);
+  }
+}
+/* Only redraw when the width really changed. On a phone the address bar
+   sliding away fires resize constantly, and a redraw there would reshuffle
+   the whole pattern mid-scroll. */
+let mt, lastW = window.innerWidth;
+window.addEventListener('resize', function(){
+  if (Math.abs(window.innerWidth - lastW) < 2) return;
+  lastW = window.innerWidth;
+  clearTimeout(mt); mt = setTimeout(drawMesh, 200);
+});
+drawMesh();
+
+/* boot: recovery link, existing session, or the entry screen */
+sb.auth.onAuthStateChange(function(event){
+  if (event === 'PASSWORD_RECOVERY'){ view = 'login'; setMode('recover'); document.body.dataset.state = 'ready'; paint(); }
+});
+(async function boot(){
+  const hash = location.hash || '';
+  if (/error=|error_description=/.test(hash)){
+    const p = new URLSearchParams(hash.slice(1));
+    document.body.classList.add('guest');
+    setMode('signin');
+    say('That link is not valid any more: ' + decodeURIComponent(p.get('error_description') || p.get('error') || ''), 'err');
+  } else if (/type=recovery/.test(hash)){
+    setMode('recover');
+  } else {
+    const { data } = await sb.auth.getSession();
+    if (data.session){
+      const { data: u } = await sb.auth.getUser();
+      showUser(u.user);
+      view = 'hub';
+    } else {
+      document.body.classList.add('guest');
+      view = 'hub';
+    }
+  }
+  document.body.dataset.state = 'ready';
+  paint();
+})();
+</script>
+<script>/* stevec in "x / 4 paid" tecejo v istem 9 s ritmu kot animacija */
+(function(){var n=document.getElementById('fxNum'),p=document.getElementById('fxPaid');if(!n)return;var fmt=function(v){return Math.round(v).toLocaleString('de-DE')+' \u20ac'};
+function run(){var t0=performance.now();(function f(t){var s=(t-t0)/1000;if(s>9){run();return}var k=s<1.6?1-Math.pow(1-Math.min(1,s/1.6),4):s>8.2?Math.max(0,1-(s-8.2)/.8):1;n.textContent=fmt(1240*k);var c=0;[1.3,2.2,3.1,4].forEach(function(d){var q=s-d;if(q>.3&&q<4.7)c++});p.textContent=c+' / 4 paid';requestAnimationFrame(f)})(t0)}
+if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches){p.textContent='3 / 4 paid';return}run()})();</script></body>
+</html>
